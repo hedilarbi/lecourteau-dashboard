@@ -10,7 +10,6 @@ const useGetOrder = (id) => {
     try {
       const response = await getOrder(id);
       if (response.status) {
-        console.log(response.data);
         setOrder(response.data);
       } else {
         console.log("getUser error");

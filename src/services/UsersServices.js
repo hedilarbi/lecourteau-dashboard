@@ -1,9 +1,9 @@
-import { ApiUrl } from "../constants";
+import { API_URL } from "@env";
 import axios from "axios";
 
 const getUsers = async () => {
   try {
-    let getUsersResponse = await axios.get(`${ApiUrl}/users`);
+    let getUsersResponse = await axios.get(`${API_URL}/users`);
 
     if (getUsersResponse?.status === 200) {
       return {
@@ -27,7 +27,7 @@ const getUsers = async () => {
 
 const getUser = async (id) => {
   try {
-    let getUserResponse = await axios.get(`${ApiUrl}/users/${id}`);
+    let getUserResponse = await axios.get(`${API_URL}/users/${id}`);
 
     if (getUserResponse?.status === 200) {
       return {
@@ -51,7 +51,9 @@ const getUser = async (id) => {
 
 const deleteUser = async (id) => {
   try {
-    let deleteUserResponse = await axios.delete(`${ApiUrl}/users/delete/${id}`);
+    let deleteUserResponse = await axios.delete(
+      `${API_URL}/users/delete/${id}`
+    );
 
     if (deleteUserResponse?.status === 200) {
       return {

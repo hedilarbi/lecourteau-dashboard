@@ -5,7 +5,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { AntDesign } from "@expo/vector-icons";
 import { Dropdown } from "react-native-element-dropdown";
 import { Colors, Fonts } from "../../constants";
@@ -13,13 +13,35 @@ const AddItemModel = ({ setItems, menuItems, setShowAddItemModel }) => {
   const [item, setItem] = useState({});
   const [quantity, setQuantity] = useState(0);
   const [size, setSize] = useState("");
+  const sizeRef = useRef(null);
+  const itemRef = useRef(null);
+  const quantityRef = useRef(null);
   const sizes = [
     { value: "Petite", label: "Petite" },
     { value: "Moyenne", label: "Moyenne" },
     { value: "Familliale", label: "Familliale" },
   ];
-
+  const [error, setError] = useState("");
   const addItem = () => {
+    quantityRef.current.setNativeProps({
+      style: { borderColor: Colors.primary, borderWidth: 2 },
+    });
+
+    if (quantity === 0 || quantity.length < 1) {
+      quantityRef.current.setNativeProps({
+        style: { borderColor: "red", borderWidth: 2 },
+      });
+      return;
+    }
+    if (size.length < 1) {
+      setError("choisir la taille");
+      return;
+    }
+
+    if (Object.keys(item).length < 1) {
+      setError("choisir un article");
+      return;
+    }
     setItems((prev) => [...prev, { item, quantity, size }]);
     setShowAddItemModel(false);
   };
@@ -30,20 +52,44 @@ const AddItemModel = ({ setItems, menuItems, setShowAddItemModel }) => {
         alignSelf: "center",
         justifySelf: "center",
         zIndex: 2000,
-        borderWidth: 1,
-        borderRadius: 5,
+        borderWidth: 2,
+        borderColor: Colors.primary,
+        borderRadius: 16,
         backgroundColor: "white",
-        padding: 40,
+        paddingRight: 20,
+        paddingLeft: 20,
+        paddingVertical: 20,
+        width: 500,
       }}
     >
-      <TouchableOpacity
-        style={{ alignSelf: "flex-end" }}
-        onPress={() => setShowAddItemModel(false)}
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
       >
-        <AntDesign name="close" size={30} color="gray" />
-      </TouchableOpacity>
+        <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
+          Ajouter un article
+        </Text>
+        <TouchableOpacity onPress={() => setShowAddItemModel(false)}>
+          <AntDesign name="close" size={40} color="gray" />
+        </TouchableOpacity>
+      </View>
+      {error.length > 0 && (
+        <Text
+          style={{
+            fontFamily: Fonts.LATO_BOLD,
+            fontSize: 20,
+            color: "red",
+            textAlign: "center",
+          }}
+        >
+          {error}
+        </Text>
+      )}
       <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <Text style={styles.text}>Item</Text>
+        <Text style={styles.text}>article</Text>
         <Dropdown
           style={[styles.dropdown]}
           placeholderStyle={styles.placeholderStyle}
@@ -56,13 +102,14 @@ const AddItemModel = ({ setItems, menuItems, setShowAddItemModel }) => {
           maxHeight={300}
           labelField="label"
           valueField="label"
-          placeholder={""}
+          placeholder="Article"
           value={item.name}
+          ref={itemRef}
           onChange={(item) => setItem({ _id: item.value, name: item.label })}
         />
       </View>
       <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <Text style={styles.text}>Size</Text>
+        <Text style={styles.text}>Taille</Text>
         <Dropdown
           style={[styles.dropdown]}
           placeholderStyle={styles.placeholderStyle}
@@ -75,29 +122,29 @@ const AddItemModel = ({ setItems, menuItems, setShowAddItemModel }) => {
           maxHeight={300}
           labelField="label"
           valueField="label"
-          placeholder={""}
+          placeholder="Taille"
           value={size}
+          ref={sizeRef}
           onChange={(item) => setSize(item.value)}
         />
       </View>
       <View
         style={{ flexDirection: "row", marginTop: 20, alignItems: "center" }}
       >
-        <Text style={styles.text}>Quantity</Text>
+        <Text style={styles.text}>Quantité</Text>
 
         <TextInput
           style={{
             fontFamily: Fonts.LATO_REGULAR,
-            fontSize: 18,
-            paddingBottom: 5,
-            paddingLeft: 5,
-            paddingRight: 5,
-            paddingTop: 5,
-            borderWidth: 1,
-            borderRadius: 5,
+            fontSize: 20,
+            paddingVertical: 5,
+            paddingHorizontal: 8,
+            borderWidth: 2,
+            borderColor: Colors.primary,
             marginLeft: 20,
           }}
           placeholder="0"
+          ref={quantityRef}
           keyboardType="numeric"
           onChangeText={(text) => setQuantity(text)}
         />
@@ -113,7 +160,7 @@ const AddItemModel = ({ setItems, menuItems, setShowAddItemModel }) => {
         }}
         onPress={addItem}
       >
-        <Text style={styles.text}>Add</Text>
+        <Text style={styles.text}>Ajouter</Text>
       </TouchableOpacity>
     </View>
   );
@@ -123,16 +170,16 @@ export default AddItemModel;
 
 const styles = StyleSheet.create({
   text: {
-    fontFamily: Fonts.LATO_REGULAR,
-    fontSize: 22,
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 20,
   },
   dropdown: {
-    height: 30,
+    height: 40,
     width: 200,
-    borderColor: "gray",
-    borderWidth: 0.5,
-    paddingHorizontal: 3,
-    paddingVertical: 2,
+    borderColor: Colors.primary,
+    borderWidth: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 5,
     marginLeft: 40,
     marginVertical: 20,
   },
@@ -157,11 +204,11 @@ const styles = StyleSheet.create({
   },
 
   placeholderStyle: {
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: Fonts.LATO_REGULAR,
   },
   selectedTextStyle: {
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: Fonts.LATO_REGULAR,
   },
 });

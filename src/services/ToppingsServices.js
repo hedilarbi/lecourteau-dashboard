@@ -1,9 +1,9 @@
-import { ApiUrl } from "../constants";
+import { API_URL } from "@env";
 import axios from "axios";
 
 const getToppings = async () => {
   try {
-    let getToppingsResponse = await axios.get(`${ApiUrl}/toppings`);
+    let getToppingsResponse = await axios.get(`${API_URL}/toppings`);
 
     if (getToppingsResponse?.status === 200) {
       return {
@@ -28,7 +28,7 @@ const getToppings = async () => {
 const createToppingCategory = async (name) => {
   try {
     let createToppingCategoryResponse = await axios.post(
-      `${ApiUrl}/toppingCategories/create`,
+      `${API_URL}/toppingCategories/create`,
       { name }
     );
 
@@ -55,7 +55,7 @@ const createToppingCategory = async (name) => {
 const getToppingsCategories = async () => {
   try {
     let getToppingsCategoriesResponse = await axios.get(
-      `${ApiUrl}/toppingCategories`
+      `${API_URL}/toppingCategories`
     );
 
     if (getToppingsCategoriesResponse?.status === 200) {
@@ -80,7 +80,7 @@ const getToppingsCategories = async () => {
 
 const createTopping = async (name, category, price) => {
   try {
-    let createToppingResponse = await axios.post(`${ApiUrl}/toppings/create`, {
+    let createToppingResponse = await axios.post(`${API_URL}/toppings/create`, {
       name,
       category,
       price,
@@ -108,7 +108,7 @@ const createTopping = async (name, category, price) => {
 const deleteTopping = async (id) => {
   try {
     let deleteToppingResponse = await axios.delete(
-      `${ApiUrl}/toppings/delete/${id}`
+      `${API_URL}/toppings/delete/${id}`
     );
 
     if (deleteToppingResponse?.status === 200) {

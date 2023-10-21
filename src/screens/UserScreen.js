@@ -46,13 +46,17 @@ const UserScreen = () => {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: Colors.screenBg, padding: 8 }}
+      style={{ flex: 1, backgroundColor: Colors.screenBg, padding: 16 }}
     >
       <View>
         <Text
-          style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24, marginTop: 10 }}
+          style={{
+            fontFamily: Fonts.LATO_BOLD,
+            fontSize: 24,
+            marginVertical: 10,
+          }}
         >
-          General Info
+          Informations Générale
         </Text>
         <View
           style={{
@@ -77,7 +81,7 @@ const UserScreen = () => {
                     fontSize: 20,
                   }}
                 >
-                  Name:
+                  Nom & prénom:
                 </Text>
                 <Text
                   style={{
@@ -102,7 +106,7 @@ const UserScreen = () => {
                     fontSize: 20,
                   }}
                 >
-                  email:
+                  E-mail:
                 </Text>
                 <Text
                   style={{
@@ -127,7 +131,7 @@ const UserScreen = () => {
                     fontSize: 20,
                   }}
                 >
-                  Phone Number:
+                  Téléphone:
                 </Text>
                 <Text
                   style={{
@@ -148,7 +152,7 @@ const UserScreen = () => {
                     fontSize: 20,
                   }}
                 >
-                  created At:
+                  Creé le:
                 </Text>
                 <Text
                   style={{
@@ -173,7 +177,7 @@ const UserScreen = () => {
                     fontSize: 20,
                   }}
                 >
-                  fidelity points:
+                  Points de fidélités:
                 </Text>
                 <Text
                   style={{
@@ -198,7 +202,7 @@ const UserScreen = () => {
                     fontSize: 20,
                   }}
                 >
-                  Number of orders:
+                  Nomber de commande:
                 </Text>
                 <Text
                   style={{
@@ -207,23 +211,10 @@ const UserScreen = () => {
                     marginLeft: 10,
                   }}
                 >
-                  {user.orders?.length} orders
+                  {user.orders?.length}
                 </Text>
               </View>
             </View>
-          </View>
-          <View style={{ marginTop: 10 }}>
-            <Text
-              style={{
-                fontFamily: Fonts.LATO_BOLD,
-                fontSize: 20,
-              }}
-            >
-              Favoris:
-            </Text>
-            {user.favorites?.map((favorite) => (
-              <Text>{favorite.name}, </Text>
-            ))}
           </View>
         </View>
       </View>
@@ -231,7 +222,7 @@ const UserScreen = () => {
         <Text
           style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24, marginTop: 20 }}
         >
-          Addresses
+          Adresses
         </Text>
 
         {user.addresses?.length > 0 ? (
@@ -246,10 +237,15 @@ const UserScreen = () => {
                     : { backgroundColor: "rgba(247,166,0,0.3)" },
                 ]}
               >
-                <Text style={[styles.rowCell]}>{address.city}</Text>
-                <Text style={[styles.rowCell]}>{address.region}</Text>
-                <Text style={[styles.rowCell]}>{address.street}</Text>
-                <Text style={[styles.rowCell]}>{address.street_number}</Text>
+                <Text
+                  style={{
+                    flex: 1,
+                    fontFamily: Fonts.LATO_REGULAR,
+                    fontSize: 20,
+                  }}
+                >
+                  {address.address}
+                </Text>
               </View>
             ))}
           </ScrollView>
@@ -263,7 +259,9 @@ const UserScreen = () => {
               marginTop: 20,
             }}
           >
-            <Text>Empty</Text>
+            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+              Vide
+            </Text>
           </View>
         )}
       </View>
@@ -272,7 +270,7 @@ const UserScreen = () => {
         <Text
           style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24, marginTop: 20 }}
         >
-          Orders
+          Commandes
         </Text>
 
         {user.orders?.length > 0 ? (
@@ -323,7 +321,9 @@ const UserScreen = () => {
               marginTop: 20,
             }}
           >
-            <Text>Empty</Text>
+            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+              Vide
+            </Text>
           </View>
         )}
       </View>

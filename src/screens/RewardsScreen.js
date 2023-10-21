@@ -57,7 +57,7 @@ const RewardsScreen = () => {
           setDeleteWarningModelState={setDeleteWarningModelState}
           setIsLoading={setIsLoading}
           setRefresh={setRefresh}
-          message={`Are you sure to delete this reward ?`}
+          message={`Etes-vous sûr de vouloir supprimer cette récompense ?`}
           deleter={deleteReward}
         />
       )}
@@ -69,7 +69,7 @@ const RewardsScreen = () => {
       )}
       <View style={{ flex: 1, padding: 20 }}>
         <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
-          Rewards List
+          Récompenses
         </Text>
         <View
           style={{
@@ -81,7 +81,7 @@ const RewardsScreen = () => {
         >
           <AddButton
             setShowModel={setShowCreateRewardModel}
-            text="Add Reward"
+            text="Récompense"
           />
         </View>
         {isLoading ? (

@@ -75,7 +75,7 @@ const DeleteWarning = ({
         <View style={styles.titleContainer}>
           <AntDesign name="exclamationcircle" size={65} color="#FF0707" />
           <View style={styles.textContainer}>
-            <Text style={styles.title}>Delete Warning</Text>
+            <Text style={styles.title}>Alerte</Text>
             <Text style={styles.subTitle}>{message}</Text>
           </View>
         </View>
@@ -84,13 +84,13 @@ const DeleteWarning = ({
             style={styles.cancelBtn}
             onPress={() => setDeleteWarningModelState(false)}
           >
-            <Text style={styles.btnText}>Cancel</Text>
+            <Text style={styles.btnText}>Annuler</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.confirmBtn}
             onPress={() => deleteFromList(id)}
           >
-            <Text style={styles.btnText}>Confirm</Text>
+            <Text style={styles.btnText}>Confirmer</Text>
           </TouchableOpacity>
         </View>
       </View>

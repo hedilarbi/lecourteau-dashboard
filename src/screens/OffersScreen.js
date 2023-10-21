@@ -19,6 +19,7 @@ import AddButton from "../components/AddButton";
 import CreateOfferModel from "../components/models/CreateOfferModel";
 import OfferModel from "../components/models/OfferModel";
 import { deleteOffer, getOffers } from "../services/OffersServices";
+import { convertDate, convertDateToDate } from "../utils/dateHandlers";
 const OffersScreen = () => {
   const navigation = useNavigation();
   const [offers, setOffers] = useState([]);
@@ -58,7 +59,7 @@ const OffersScreen = () => {
           id={offerId}
           setDeleteWarningModelState={setDeleteWarningModelState}
           setRefresh={setRefresh}
-          message={`Are you sure to delete this item ?`}
+          message={`Etes-vous sûr de vouloir supprimer cette personalisation ?`}
           deleter={deleteOffer}
         />
       )}
@@ -71,7 +72,7 @@ const OffersScreen = () => {
 
       <View style={{ flex: 1, padding: 20 }}>
         <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
-          Orders List
+          Offres
         </Text>
         <View
           style={{
@@ -82,7 +83,7 @@ const OffersScreen = () => {
           }}
         >
           <SearchBar />
-          <AddButton setShowModel={setShowCreateOfferModel} text="Add Offer" />
+          <AddButton setShowModel={setShowCreateOfferModel} text="Offre" />
         </View>
         {isLoading ? (
           <View
@@ -115,8 +116,12 @@ const OffersScreen = () => {
                 ]}
               >
                 <Image style={[styles.image]} source={{ uri: offer.image }} />
-                <Text style={[styles.rowCell]}>{offer.name}</Text>
-                <Text style={[styles.rowCell]}>{offer.exp_date}</Text>
+                <Text style={[styles.rowCell, { width: "20%" }]}>
+                  {offer.name}
+                </Text>
+                <Text style={[styles.rowCell]}>
+                  {convertDateToDate(offer.expireAt)}
+                </Text>
 
                 <Text style={[styles.rowCell]}>{offer.price} $</Text>
 

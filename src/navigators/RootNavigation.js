@@ -20,10 +20,10 @@ const RootNavigation = () => {
     let staffToken;
     try {
       staffToken = await getItemAsync("token");
-    } catch (err) {
-      console.log(err.message);
+    } catch (err) {}
+    if (staffToken) {
+      dispatch(setStaffToken(staffToken));
     }
-    dispatch(setStaffToken(staffToken));
   };
 
   useEffect(() => {

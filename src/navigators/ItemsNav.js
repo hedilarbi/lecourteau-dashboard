@@ -16,7 +16,11 @@ const ItemsNav = () => {
           headerShown: false,
         }}
       />
-      <Stack.Screen name="Item" component={ItemScreen} />
+      <Stack.Screen
+        name="Item"
+        component={ItemScreen}
+        options={{ title: "Article" }}
+      />
     </Stack.Navigator>
   );
 };

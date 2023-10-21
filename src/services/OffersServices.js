@@ -1,9 +1,9 @@
-import { ApiUrl } from "../constants";
+import { API_URL } from "@env";
 import axios from "axios";
 
 const getOffers = async () => {
   try {
-    let getOffersResponse = await axios.get(`${ApiUrl}/offers`);
+    let getOffersResponse = await axios.get(`${API_URL}/offers`);
 
     if (getOffersResponse?.status === 200) {
       return {
@@ -27,7 +27,7 @@ const getOffers = async () => {
 
 const createOffer = async (name, items, price, expireAt, customizations) => {
   try {
-    let createOfferResponse = await axios.post(`${ApiUrl}/offers/create`, {
+    let createOfferResponse = await axios.post(`${API_URL}/offers/create`, {
       name,
       items,
       price,
@@ -57,7 +57,7 @@ const createOffer = async (name, items, price, expireAt, customizations) => {
 
 const getOffer = async (id) => {
   try {
-    let getOfferResponse = await axios.get(`${ApiUrl}/offers/${id}`);
+    let getOfferResponse = await axios.get(`${API_URL}/offers/${id}`);
 
     if (getOfferResponse?.status === 200) {
       return {
@@ -82,7 +82,7 @@ const getOffer = async (id) => {
 const deleteOffer = async (id) => {
   try {
     let deleteOfferResponse = await axios.delete(
-      `${ApiUrl}/offers/delete/${id}`
+      `${API_URL}/offers/delete/${id}`
     );
 
     if (deleteOfferResponse?.status === 200) {
@@ -114,13 +114,16 @@ const updateOffer = async (
   customizations
 ) => {
   try {
-    let updateOfferResponse = await axios.put(`${ApiUrl}/offers/update/${id}`, {
-      name,
-      price,
-      exprireAt,
-      items,
-      customizations,
-    });
+    let updateOfferResponse = await axios.put(
+      `${API_URL}/offers/update/${id}`,
+      {
+        name,
+        price,
+        exprireAt,
+        items,
+        customizations,
+      }
+    );
 
     if (updateOfferResponse?.status === 200) {
       return {

@@ -3,4 +3,9 @@ const convertDate = (dateInString) => {
   return date.toLocaleString("fr-FR");
 };
 
-export { convertDate };
+const convertDateToDate = (dateInString) => {
+  const date = new Date(dateInString);
+  return date.toLocaleDateString("fr-FR");
+};
+
+export { convertDate, convertDateToDate };

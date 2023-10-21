@@ -16,8 +16,8 @@ const AddToppingModel = ({
   setCustomizationsNames,
   toppings,
 }) => {
-  const [name, setName] = useState({ name: "", _id: "" });
-
+  const [name, setName] = useState({});
+  const [error, setError] = useState("");
   const [toppingsNames, setToppingsNames] = useState([]);
   useEffect(() => {
     let list = [];
@@ -26,6 +26,10 @@ const AddToppingModel = ({
   }, []);
 
   const save = () => {
+    if (Object.keys(name).length < 1) {
+      setError("Chosir une personalisation");
+      return;
+    }
     setCustomizationsNames((prevCusto) => [...prevCusto, name]);
     setShowAddCategoryModel(false);
   };
@@ -36,11 +40,13 @@ const AddToppingModel = ({
         alignSelf: "center",
         justifySelf: "center",
         zIndex: 2000,
-        borderWidth: 1,
-        borderRadius: 5,
+        borderRadius: 16,
+        borderWidth: 2,
+        borderColor: Colors.primary,
         backgroundColor: "white",
         paddingHorizontal: 40,
         paddingVertical: 20,
+        width: 400,
       }}
     >
       <View
@@ -50,23 +56,33 @@ const AddToppingModel = ({
           flexDirection: "row",
         }}
       >
-        <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 18 }}>
-          Add Customization:
+        <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+          Ajouter une Personalisation
         </Text>
         <TouchableOpacity onPress={() => setShowAddCategoryModel(false)}>
-          <AntDesign name="close" size={30} color="gray" />
+          <AntDesign name="close" size={40} color="gray" />
         </TouchableOpacity>
       </View>
+      {error.length > 0 && (
+        <Text
+          style={{
+            color: "red",
+            textAlign: "center",
+            fontFamily: Fonts.LATO_BOLD,
+            fontSize: 20,
+          }}
+        >
+          {error}
+        </Text>
+      )}
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
-          marginTop: 20,
+          marginTop: 40,
         }}
       >
-        <Text style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 18 }}>
-          Name
-        </Text>
+        <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>Nom</Text>
         <Dropdown
           style={[styles.dropdown]}
           placeholderStyle={styles.placeholderStyle}
@@ -79,8 +95,8 @@ const AddToppingModel = ({
           maxHeight={300}
           labelField="label"
           valueField="label"
-          placeholder={""}
-          value={name.name}
+          placeholder="Chosir personalisation"
+          value={name?.name}
           onChange={(item) => setName({ name: item.label, _id: item.value })}
         />
       </View>
@@ -91,17 +107,18 @@ const AddToppingModel = ({
           paddingHorizontal: 20,
           paddingVertical: 10,
           borderRadius: 5,
-          marginTop: 20,
+          marginTop: 40,
         }}
         onPress={save}
       >
         <Text
           style={{
-            fontFamily: Fonts.LATO_REGULAR,
-            fontSize: 18,
+            fontFamily: Fonts.LATO_BOLD,
+            fontSize: 20,
+            textAlign: "center",
           }}
         >
-          Save
+          Ajouter
         </Text>
       </TouchableOpacity>
     </View>
@@ -142,11 +159,11 @@ const styles = StyleSheet.create({
 
   dropdown: {
     height: 30,
-    width: 200,
-    borderColor: "gray",
-    borderWidth: 0.5,
-    paddingHorizontal: 3,
-    paddingVertical: 2,
+    width: 250,
+    borderColor: Colors.primary,
+    borderWidth: 1,
+    paddingHorizontal: 5,
+    paddingVertical: 5,
 
     marginLeft: 20,
   },

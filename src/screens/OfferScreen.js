@@ -11,15 +11,15 @@ import React, { useEffect, useState } from "react";
 import { getOffer, updateOffer } from "../services/OffersServices";
 import { Colors, Fonts } from "../constants";
 import { useRoute } from "@react-navigation/native";
-import { convertDate } from "../utils/dateHandlers";
+import { convertDateToDate } from "../utils/dateHandlers";
 import { getItemsNames } from "../services/MenuItemServices";
 import { getToppings } from "../services/ToppingsServices";
 import Calender from "../components/Calender";
-import { AntDesign, FontAwesome } from "@expo/vector-icons";
+import { AntDesign, Entypo } from "@expo/vector-icons";
 import AddItemModel from "../components/models/AddItemMode";
 import AddToppingModel from "../components/models/AddToppingModel";
 import SuccessModel from "../components/models/SuccessModel";
-
+import * as ImagePicker from "expo-image-picker";
 const OfferScreen = () => {
   const route = useRoute();
   const { id } = route.params;
@@ -31,7 +31,7 @@ const OfferScreen = () => {
   const [expireAt, setExpireAt] = useState("");
   const [items, setItems] = useState([]);
   const [customizations, setCustomizations] = useState([]);
-  const [toppings, setToppings] = useState([]);
+
   const [showAddItemModel, setShowAddItemModel] = useState(false);
   const [showAddToppingModel, setShowAddToppingModel] = useState(false);
   const [menuItems, setMenuItems] = useState([]);
@@ -67,7 +67,18 @@ const OfferScreen = () => {
   useEffect(() => {
     fetchData();
   }, []);
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
 
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  };
   const deleteFromItems = (index) => {
     const updatedList = items.filter((item, i) => i !== index);
     setItems(updatedList);
@@ -188,8 +199,8 @@ const OfferScreen = () => {
             }}
             onPress={() => setUpdateMode(false)}
           >
-            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-              Cancle
+            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+              Annuler
             </Text>
           </TouchableOpacity>
         ) : (
@@ -203,16 +214,16 @@ const OfferScreen = () => {
             }}
             onPress={activateUpdateMode}
           >
-            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-              Update
+            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+              Modifier
             </Text>
           </TouchableOpacity>
         )}
       </View>
 
       <View style={{ paddingHorizontal: 20 }}>
-        <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 28 }}>
-          General Info
+        <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
+          Informations
         </Text>
         <View
           style={{
@@ -226,28 +237,29 @@ const OfferScreen = () => {
           <Image
             source={{ uri: offer.image }}
             style={{
-              width: 150,
-              height: 100,
+              width: 250,
+              height: 150,
               resizeMode: "cover",
               borderRadius: 10,
             }}
           />
-          <View style={{ marginLeft: 20 }}>
+          <View style={{ marginLeft: 20, justifyContent: "space-between" }}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-                Name:
+              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                Nom:
               </Text>
               {updateMode ? (
                 <TextInput
                   style={{
-                    borderWidth: 1,
-                    borderRadius: 5,
-                    paddingHorizontal: 5,
-                    marginVertical: 10,
+                    borderWidth: 2,
+
+                    paddingHorizontal: 8,
+                    paddingVertical: 5,
+                    borderColor: Colors.primary,
                     fontFamily: Fonts.LATO_REGULAR,
                     fontSize: 20,
                     marginLeft: 10,
-                    width: "50%",
+                    width: "70%",
                   }}
                   value={name}
                   onChangeText={(text) => setName(text)}
@@ -256,7 +268,7 @@ const OfferScreen = () => {
                 <Text
                   style={{
                     fontFamily: Fonts.LATO_REGULAR,
-                    fontSize: 24,
+                    fontSize: 20,
                     marginLeft: 10,
                   }}
                 >
@@ -271,33 +283,45 @@ const OfferScreen = () => {
                 marginTop: 10,
               }}
             >
-              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-                Price:
+              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                Prix:
               </Text>
               {updateMode ? (
-                <TextInput
-                  style={{
-                    borderWidth: 1,
-                    borderRadius: 5,
-                    paddingHorizontal: 5,
-                    marginVertical: 10,
-                    fontFamily: Fonts.LATO_REGULAR,
-                    fontSize: 20,
-                    marginLeft: 10,
-                    width: "20%",
-                  }}
-                  value={price.toString()}
-                  onChangeText={(text) => setPrice(text)}
-                />
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <TextInput
+                    style={{
+                      borderWidth: 2,
+
+                      paddingHorizontal: 5,
+                      paddingVertical: 5,
+                      paddingHorizontal: 8,
+                      borderColor: Colors.primary,
+                      fontFamily: Fonts.LATO_REGULAR,
+                      fontSize: 20,
+                      marginLeft: 10,
+                    }}
+                    value={price.toString()}
+                    onChangeText={(text) => setPrice(text)}
+                  />
+                  <Text
+                    style={{
+                      fontFamily: Fonts.LATO_REGULAR,
+                      fontSize: 20,
+                      marginLeft: 10,
+                    }}
+                  >
+                    $
+                  </Text>
+                </View>
               ) : (
                 <Text
                   style={{
                     fontFamily: Fonts.LATO_REGULAR,
-                    fontSize: 24,
+                    fontSize: 20,
                     marginLeft: 10,
                   }}
                 >
-                  {offer.price}
+                  {offer.price} $
                 </Text>
               )}
             </View>
@@ -308,8 +332,8 @@ const OfferScreen = () => {
                 marginTop: 10,
               }}
             >
-              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-                Expire Date:
+              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                Date d'éxpiration:
               </Text>
               {updateMode ? (
                 <Calender setDate={setExpireAt} date={expireAt} />
@@ -317,11 +341,11 @@ const OfferScreen = () => {
                 <Text
                   style={{
                     fontFamily: Fonts.LATO_REGULAR,
-                    fontSize: 24,
+                    fontSize: 20,
                     marginLeft: 10,
                   }}
                 >
-                  {convertDate(offer.expireAt)}
+                  {convertDateToDate(offer.expireAt)}
                 </Text>
               )}
             </View>
@@ -330,7 +354,9 @@ const OfferScreen = () => {
       </View>
 
       <View style={{ marginTop: 20, paddingHorizontal: 20 }}>
-        <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 28 }}>Items</Text>
+        <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
+          Articles
+        </Text>
         {updateMode ? (
           <View
             style={{
@@ -349,14 +375,14 @@ const OfferScreen = () => {
                 key={item._id}
                 style={{
                   backgroundColor: Colors.primary,
-                  borderRadius: 50,
+
                   paddingVertical: 10,
                   paddingHorizontal: 20,
                   alignItems: "center",
                   flexDirection: "row",
                 }}
               >
-                <Text style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 24 }}>
+                <Text style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 20 }}>
                   {item.item.name} x {item.quantity}
                 </Text>
                 <TouchableOpacity
@@ -374,17 +400,27 @@ const OfferScreen = () => {
                 paddingHorizontal: 10,
                 paddingVertical: 10,
                 alignItems: "center",
+                flexDirection: "row",
               }}
               onPress={() => setShowAddItemModel(true)}
             >
-              <FontAwesome name="plus" size={24} color="black" />
+              <Entypo name="plus" size={24} color="black" />
+              <Text
+                style={{
+                  fontFamily: Fonts.LATO_BOLD,
+                  fontSize: 20,
+                  marginLeft: 10,
+                }}
+              >
+                Ajouter
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View
             style={{
               backgroundColor: "white",
-              borderRadius: 10,
+
               padding: 16,
               marginTop: 10,
               flexDirection: "row",
@@ -398,13 +434,13 @@ const OfferScreen = () => {
                 key={item._id}
                 style={{
                   backgroundColor: Colors.primary,
-                  borderRadius: 50,
+
                   paddingVertical: 10,
                   paddingHorizontal: 20,
                   alignItems: "center",
                 }}
               >
-                <Text style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 24 }}>
+                <Text style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 20 }}>
                   {item.item.name} x {item.quantity}
                 </Text>
               </View>
@@ -413,14 +449,14 @@ const OfferScreen = () => {
         )}
       </View>
       <View style={{ marginTop: 20, paddingHorizontal: 20 }}>
-        <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 28 }}>
-          Customizations
+        <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
+          Personalisations
         </Text>
         {updateMode ? (
           <View
             style={{
               backgroundColor: "white",
-              borderRadius: 10,
+
               padding: 16,
               marginTop: 10,
               flexDirection: "row",
@@ -433,7 +469,7 @@ const OfferScreen = () => {
                 key={custo._id}
                 style={{
                   backgroundColor: Colors.primary,
-                  borderRadius: 50,
+
                   paddingVertical: 10,
                   paddingHorizontal: 20,
                   alignItems: "center",
@@ -443,7 +479,7 @@ const OfferScreen = () => {
                 <Text
                   style={{
                     fontFamily: Fonts.LATO_REGULAR,
-                    fontSize: 24,
+                    fontSize: 20,
                     marginLeft: 10,
                   }}
                 >
@@ -464,17 +500,27 @@ const OfferScreen = () => {
                 paddingHorizontal: 10,
                 paddingVertical: 10,
                 alignItems: "center",
+                flexDirection: "row",
               }}
               onPress={() => setShowAddToppingModel(true)}
             >
-              <FontAwesome name="plus" size={24} color="black" />
+              <Entypo name="plus" size={24} color="black" />
+              <Text
+                style={{
+                  fontFamily: Fonts.LATO_BOLD,
+                  fontSize: 20,
+                  marginLeft: 10,
+                }}
+              >
+                Ajouter
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View
             style={{
               backgroundColor: "white",
-              borderRadius: 10,
+
               padding: 16,
               marginTop: 10,
               flexDirection: "row",
@@ -487,7 +533,7 @@ const OfferScreen = () => {
                 key={custo._id}
                 style={{
                   backgroundColor: Colors.primary,
-                  borderRadius: 50,
+
                   paddingVertical: 10,
                   paddingHorizontal: 20,
                   alignItems: "center",
@@ -496,7 +542,7 @@ const OfferScreen = () => {
                 <Text
                   style={{
                     fontFamily: Fonts.LATO_REGULAR,
-                    fontSize: 24,
+                    fontSize: 20,
                     marginLeft: 10,
                   }}
                 >
@@ -526,8 +572,8 @@ const OfferScreen = () => {
             }}
             onPress={() => saveUpdates()}
           >
-            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-              Save
+            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+              Sauvergarder
             </Text>
           </TouchableOpacity>
         </View>

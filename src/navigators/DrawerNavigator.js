@@ -13,8 +13,6 @@ import {
   MaterialIcons,
 } from "@expo/vector-icons";
 
-import SettingsScreen from "../screens/SettingsScreen";
-import NotificationsScreen from "../screens/NotificationsScreen";
 import RewardsScreen from "../screens/RewardsScreen";
 import ToppingsScreen from "../screens/ToppingsScreen";
 import * as ScreenOrientation from "expo-screen-orientation";
@@ -65,7 +63,7 @@ function DrawerNavigator() {
       drawerContent={(props) => <CustomDrawer {...props} />}
     >
       <Drawer.Screen
-        name="Home"
+        name="Acceuil"
         component={HomeScreen}
         options={{
           headerShown: false,
@@ -79,7 +77,7 @@ function DrawerNavigator() {
         component={UsersNav}
         options={{
           headerShown: false,
-          title: "Users",
+          title: "Utilisateur",
           drawerIcon: ({ color }) => (
             <FontAwesome name="users" size={24} color={color} />
           ),
@@ -90,7 +88,7 @@ function DrawerNavigator() {
         component={OrdersNav}
         options={{
           headerShown: false,
-          title: "Orders",
+          title: "Commandes",
           drawerIcon: ({ color }) => (
             <Foundation name="clipboard-notes" size={28} color={color} />
           ),
@@ -101,7 +99,7 @@ function DrawerNavigator() {
         component={ItemsNav}
         options={{
           headerShown: false,
-          title: "Items",
+          title: "Articles",
           drawerIcon: ({ color }) => (
             <SimpleLineIcons name="list" size={24} color={color} />
           ),
@@ -112,7 +110,7 @@ function DrawerNavigator() {
         component={ToppingsScreen}
         options={{
           headerShown: false,
-          title: "Toppings",
+          title: "Personalisations",
           drawerIcon: ({ color }) => (
             <MaterialIcons name="dashboard-customize" size={24} color={color} />
           ),
@@ -123,7 +121,7 @@ function DrawerNavigator() {
         component={OffersNav}
         options={{
           headerShown: false,
-          title: "Offers",
+          title: "Offres",
           drawerIcon: ({ color }) => (
             <MaterialCommunityIcons
               name="brightness-percent"
@@ -137,14 +135,15 @@ function DrawerNavigator() {
         name="Rewards"
         component={RewardsScreen}
         options={{
+          title: "Récompenses",
           headerShown: false,
           drawerIcon: ({ color }) => (
             <Entypo name="price-ribbon" size={24} color={color} />
           ),
         }}
       />
-      <Drawer.Screen
-        name="Settings"
+      {/* <Drawer.Screen
+        name="Paramètre"
         component={SettingsScreen}
         options={{
           headerShown: false,
@@ -162,7 +161,7 @@ function DrawerNavigator() {
             <Ionicons name="notifications" size={24} color={color} />
           ),
         }}
-      />
+      /> */}
     </Drawer.Navigator>
   );
 }

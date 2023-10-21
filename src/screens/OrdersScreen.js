@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  Alert,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -11,11 +12,10 @@ import {
 import React, { useEffect, useState } from "react";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 
-import { Colors, Fonts } from "../constants";
+import { Colors, Fonts, OrderStatus } from "../constants";
 import SearchBar from "../components/SearchBar";
 import DeleteWarning from "../components/models/DeleteWarning";
-import OrderModel from "../components/models/OrderModel";
-import useGetOrders from "../hooks/useGetOrders";
+
 import { deleteOrder, getOrders } from "../services/OrdersServices";
 import { useNavigation } from "@react-navigation/native";
 import { convertDate } from "../utils/dateHandlers";
@@ -24,15 +24,17 @@ const OrdersScreen = () => {
   const navigation = useNavigation();
   const setOrderStatusColor = (status) => {
     switch (status) {
-      case "Done":
+      case OrderStatus.READY:
+        return "#2AB2DB";
+      case OrderStatus.DONE:
+        return "#2AB2DB";
+      case OrderStatus.IN_DELIVERY:
         return "#2AB2DB";
 
-      case "onGoing":
+      case OrderStatus.ON_GOING:
         return "#F3A32B";
-      case "canceled":
+      case OrderStatus.CANCELED:
         return "#FF0707";
-      case "On Delivery":
-        return "#2AED49";
     }
   };
   const [isLoading, setIsLoading] = useState(false);
@@ -44,19 +46,19 @@ const OrdersScreen = () => {
   const [ordersList, setOrdersList] = useState([]);
   const [orders, setOrders] = useState([]);
   const fetchData = async () => {
+    setIsLoading(true);
     getOrders().then((response) => {
       if (response?.status) {
         setOrders(response?.data);
         setOrdersList(response.data);
       } else {
-        console.log("getUsers false");
+        Alert.alert("Something went wrong");
       }
     });
+    setIsLoading(false);
   };
   useEffect(() => {
-    setIsLoading(true);
     fetchData();
-    setIsLoading(false);
   }, [refresh]);
 
   const handleShowDeleteWarning = (id) => {
@@ -67,7 +69,7 @@ const OrdersScreen = () => {
   const filterOrders = (text) => {
     setFilter(text);
     let filteredOrders = [];
-    if (text === "All") {
+    if (text === "Tout") {
       setOrders(ordersList);
     } else {
       ordersList.map((order) => {
@@ -87,14 +89,14 @@ const OrdersScreen = () => {
           setDeleteWarningModelState={setDeleteWarningModelState}
           setIsLoading={setIsLoading}
           setRefresh={setRefresh}
-          message={`Are you sure to delete this reward ?`}
+          message={`Etes-vous sûr de vouloir supprimer cette commande ?`}
           deleter={deleteOrder}
         />
       )}
 
       <View style={{ flex: 1, padding: 20 }}>
         <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
-          Orders List
+          Commandes
         </Text>
         <View
           style={{
@@ -114,14 +116,14 @@ const OrdersScreen = () => {
                 alignItems: "center",
                 borderWidth: 1,
               },
-              filter === "All"
+              filter === "Tout"
                 ? { backgroundColor: Colors.primary }
                 : { backgroundColor: "white" },
             ]}
-            onPress={() => filterOrders("All")}
+            onPress={() => filterOrders("Tout")}
           >
             <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-              All
+              Tout
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -133,14 +135,14 @@ const OrdersScreen = () => {
                 alignItems: "center",
                 borderWidth: 1,
               },
-              filter === "onGoing"
+              filter === OrderStatus.ON_GOING
                 ? { backgroundColor: Colors.primary }
                 : { backgroundColor: "white" },
             ]}
-            onPress={() => filterOrders("onGoing")}
+            onPress={() => filterOrders(OrderStatus.ON_GOING)}
           >
             <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-              On Going
+              {OrderStatus.ON_GOING}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -152,14 +154,14 @@ const OrdersScreen = () => {
                 alignItems: "center",
                 borderWidth: 1,
               },
-              filter === "on Delivery"
+              filter === OrderStatus.IN_DELIVERY
                 ? { backgroundColor: Colors.primary }
                 : { backgroundColor: "white" },
             ]}
-            onPress={() => filterOrders("on Delivery")}
+            onPress={() => filterOrders(OrderStatus.IN_DELIVERY)}
           >
             <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-              On Delivery
+              {OrderStatus.IN_DELIVERY}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -171,14 +173,14 @@ const OrdersScreen = () => {
                 alignItems: "center",
                 borderWidth: 1,
               },
-              filter === "Done"
+              filter === OrderStatus.DONE
                 ? { backgroundColor: Colors.primary }
                 : { backgroundColor: "white" },
             ]}
-            onPress={() => filterOrders("Done")}
+            onPress={() => filterOrders(OrderStatus.DONE)}
           >
             <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-              Done
+              {OrderStatus.DONE}
             </Text>
           </TouchableOpacity>
         </View>
@@ -221,17 +223,20 @@ const OrdersScreen = () => {
                       style={[
                         styles.rowCell,
                         {
-                          width: "15%",
+                          width: "10%",
                           color: setOrderStatusColor(order.status),
                         },
                       ]}
                     >
                       {order.status}
                     </Text>
-
+                    <Text style={[styles.rowCell, { width: "15%" }]}>
+                      {order.code}
+                    </Text>
                     <Text style={[styles.rowCell, { width: "10%" }]}>
                       {order.type}
                     </Text>
+
                     <Text style={[styles.rowCell, { width: "10%" }]}>
                       {order.total_price} $
                     </Text>
@@ -274,7 +279,7 @@ const OrdersScreen = () => {
                 }}
               >
                 <Text style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 26 }}>
-                  Empty
+                  Vide
                 </Text>
               </View>
             )}

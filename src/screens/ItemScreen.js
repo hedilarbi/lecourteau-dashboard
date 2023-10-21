@@ -15,21 +15,23 @@ import {
   updateMenuItem,
 } from "../services/MenuItemServices";
 import { useRoute } from "@react-navigation/native";
-import { AntDesign, FontAwesome } from "@expo/vector-icons";
+import { AntDesign, Entypo } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { Dropdown } from "react-native-element-dropdown";
 import AddToppingModel from "../components/models/AddToppingModel";
 import { getToppings } from "../services/ToppingsServices";
 import SuccessModel from "../components/models/SuccessModel";
+import * as ImagePicker from "expo-image-picker";
 const ItemScreen = () => {
   const route = useRoute();
   const { id } = route.params;
   const [menuItem, setMenuItem] = useState({});
   const [isLoading, setIsLoading] = useState(true);
-
+  const [error, setError] = useState("");
   const [updateMode, setUpdateMode] = useState(false);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("");
+  const [image, setImage] = useState("");
+  const [category, setCategory] = useState({});
   const [description, setDescription] = useState("");
   const [customization, setCustomization] = useState([]);
   const [prices, setPrices] = useState([]);
@@ -51,6 +53,18 @@ const ItemScreen = () => {
       .finally(() => {
         setIsLoading(false);
       });
+  };
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
   };
   useEffect(() => {
     if (showSuccessModel) {
@@ -134,6 +148,19 @@ const ItemScreen = () => {
   };
 
   const saveUpdates = async () => {
+    if (name.length < 1) {
+      setError("Nom de l'article manquant");
+      return;
+    }
+    if (prices.length < 1) {
+      setError("Ajouter au moin un prix ");
+      return;
+    }
+    if (description.length < 1) {
+      setError("Description de l'article manquante");
+      return;
+    }
+
     setIsLoading(true);
     updateMenuItem(
       id,
@@ -191,8 +218,8 @@ const ItemScreen = () => {
               }}
               onPress={() => setUpdateMode(false)}
             >
-              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-                Cancle
+              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                Annuler
               </Text>
             </TouchableOpacity>
           ) : (
@@ -206,15 +233,27 @@ const ItemScreen = () => {
               }}
               onPress={activateUpdateMode}
             >
-              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-                Update
+              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                Modifier
               </Text>
             </TouchableOpacity>
           )}
         </View>
+        {error.length > 0 && (
+          <Text
+            style={{
+              fontFamily: Fonts.LATO_BOLD,
+              fontSize: 20,
+              color: "red",
+              textAlign: "center",
+            }}
+          >
+            {error}
+          </Text>
+        )}
         <View style={{ paddingHorizontal: 20 }}>
-          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 28 }}>
-            General Info
+          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
+            Informations générale
           </Text>
           <View
             style={{
@@ -225,27 +264,66 @@ const ItemScreen = () => {
               marginTop: 20,
             }}
           >
-            <Image
-              source={{ uri: menuItem.image }}
-              style={{
-                width: 200,
-                height: 200,
-                resizeMode: "cover",
-                borderRadius: 10,
-              }}
-            />
-            <View style={{ marginLeft: 20 }}>
+            {updateMode ? (
+              <TouchableOpacity
+                style={{
+                  width: 200,
+                  height: 200,
+                  borderRadius: 16,
+                  backgroundColor: "gray",
+                  marginTop: 20,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+                onPress={pickImage}
+              >
+                {image ? (
+                  <Image
+                    source={{ uri: image }}
+                    style={{
+                      resizeMode: "cover",
+                      width: "100%",
+                      height: "100%",
+                      borderRadius: 16,
+                    }}
+                  />
+                ) : (
+                  <Image
+                    source={{ uri: menuItem.image }}
+                    style={{
+                      width: 200,
+                      height: 200,
+                      resizeMode: "cover",
+                      borderRadius: 10,
+                    }}
+                  />
+                )}
+              </TouchableOpacity>
+            ) : (
+              <Image
+                source={{ uri: menuItem.image }}
+                style={{
+                  width: 200,
+                  height: 200,
+                  resizeMode: "cover",
+                  borderRadius: 10,
+                }}
+              />
+            )}
+
+            <View style={{ marginLeft: 20, justifyContent: "space-between" }}>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-                  Name:
+                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                  Nom:
                 </Text>
                 {updateMode ? (
                   <TextInput
                     style={{
-                      borderWidth: 1,
-                      borderRadius: 5,
+                      borderWidth: 2,
+                      borderColor: Colors.primary,
                       paddingHorizontal: 5,
-                      marginVertical: 10,
+                      paddingVertical: 5,
+                      paddingHorizontal: 8,
                       fontFamily: Fonts.LATO_REGULAR,
                       fontSize: 20,
                       marginLeft: 10,
@@ -258,7 +336,7 @@ const ItemScreen = () => {
                   <Text
                     style={{
                       fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 24,
+                      fontSize: 20,
                       marginLeft: 10,
                     }}
                   >
@@ -273,8 +351,8 @@ const ItemScreen = () => {
                   marginTop: 10,
                 }}
               >
-                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-                  Category:
+                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                  Categorie:
                 </Text>
                 {updateMode ? (
                   <Dropdown
@@ -289,7 +367,7 @@ const ItemScreen = () => {
                     maxHeight={300}
                     labelField="label"
                     valueField="label"
-                    placeholder={""}
+                    placeholder="Catégorie"
                     value={category.label}
                     onChange={(item) => setCategory(item)}
                   />
@@ -297,7 +375,7 @@ const ItemScreen = () => {
                   <Text
                     style={{
                       fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 24,
+                      fontSize: 20,
                       marginLeft: 10,
                     }}
                   >
@@ -308,20 +386,19 @@ const ItemScreen = () => {
               <View
                 style={{
                   flexDirection: "row",
-
-                  marginTop: 10,
+                  alignItems: "center",
                 }}
               >
-                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
+                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
                   Description:
                 </Text>
                 {updateMode ? (
                   <TextInput
                     style={{
-                      borderWidth: 1,
-                      borderRadius: 5,
-                      paddingHorizontal: 5,
-                      marginVertical: 10,
+                      borderWidth: 2,
+                      borderColor: Colors.primary,
+                      paddingHorizontal: 8,
+                      paddingVertical: 5,
                       fontFamily: Fonts.LATO_REGULAR,
                       fontSize: 20,
                       marginLeft: 10,
@@ -334,7 +411,7 @@ const ItemScreen = () => {
                   <Text
                     style={{
                       fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 24,
+                      fontSize: 20,
                       marginLeft: 10,
                       width: "70%",
                     }}
@@ -349,8 +426,8 @@ const ItemScreen = () => {
         </View>
 
         <View style={{ marginTop: 20, paddingHorizontal: 20 }}>
-          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 28 }}>
-            Prices
+          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
+            Prix
           </Text>
           <View
             style={{
@@ -380,7 +457,7 @@ const ItemScreen = () => {
                       alignItems: "center",
                     }}
                   >
-                    <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
+                    <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
                       {item.size}:
                     </Text>
                     <TextInput
@@ -418,13 +495,13 @@ const ItemScreen = () => {
                       alignItems: "center",
                     }}
                   >
-                    <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
+                    <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
                       {price.size}:
                     </Text>
                     <Text
                       style={{
                         fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 24,
+                        fontSize: 20,
                         marginLeft: 10,
                       }}
                     >
@@ -437,8 +514,8 @@ const ItemScreen = () => {
           </View>
         </View>
         <View style={{ marginTop: 20, paddingHorizontal: 20 }}>
-          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 28 }}>
-            Customizations
+          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
+            Personalisations
           </Text>
           {updateMode ? (
             <View
@@ -449,6 +526,7 @@ const ItemScreen = () => {
                 marginTop: 10,
                 flexDirection: "row",
                 alignItems: "center",
+                flexWrap: "wrap",
                 gap: 20,
               }}
             >
@@ -467,7 +545,7 @@ const ItemScreen = () => {
                   <Text
                     style={{
                       fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 24,
+                      fontSize: 20,
                       marginLeft: 10,
                     }}
                   >
@@ -490,10 +568,20 @@ const ItemScreen = () => {
                   paddingHorizontal: 10,
                   paddingVertical: 10,
                   alignItems: "center",
+                  flexDirection: "row",
                 }}
                 onPress={() => setShowAddCustomizationModel(true)}
               >
-                <FontAwesome name="plus" size={24} color="black" />
+                <Entypo name="plus" size={24} color="black" />
+                <Text
+                  style={{
+                    fontFamily: Fonts.LATO_BOLD,
+                    fontSize: 20,
+                    marginLeft: 10,
+                  }}
+                >
+                  Ajouter
+                </Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -523,7 +611,7 @@ const ItemScreen = () => {
                   <Text
                     style={{
                       fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 24,
+                      fontSize: 20,
                       marginLeft: 10,
                     }}
                   >
@@ -553,8 +641,8 @@ const ItemScreen = () => {
               }}
               onPress={() => saveUpdates()}
             >
-              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-                Save
+              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                Sauvegarder
               </Text>
             </TouchableOpacity>
           </View>
@@ -568,14 +656,14 @@ export default ItemScreen;
 
 const styles = StyleSheet.create({
   dropdown: {
-    height: 30,
+    height: 40,
 
-    borderColor: "black",
-    borderWidth: 0.5,
-    paddingHorizontal: 3,
-    paddingVertical: 2,
+    borderColor: Colors.primary,
+    borderWidth: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 5,
     width: "30%",
-    marginHorizontal: 10,
+    marginLeft: 10,
   },
   selectedStyle: {
     height: 18,

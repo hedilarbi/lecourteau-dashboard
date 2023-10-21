@@ -56,7 +56,7 @@ const CustomDrawer = (props) => {
           }}
           onPress={logout}
         >
-          Logout
+          Déconnexion
         </Text>
       </TouchableOpacity>
     </View>

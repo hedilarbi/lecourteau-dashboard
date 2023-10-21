@@ -10,7 +10,7 @@ import React, { useEffect, useState } from "react";
 import { AntDesign } from "@expo/vector-icons";
 import { Dropdown } from "react-native-element-dropdown";
 import { Colors, Fonts } from "../../constants";
-import { Entypo } from "@expo/vector-icons";
+
 import { createReward } from "../../services/RewardServices";
 import { getItemsNames } from "../../services/MenuItemServices";
 import SuccessModel from "./SuccessModel";
@@ -19,8 +19,9 @@ const CreateRewardModel = ({ setShowCreateRewardModel, setRefresh }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [items, setItems] = useState([]);
   const [item, setItem] = useState("");
-  const [points, setPoints] = useState(0);
+  const [points, setPoints] = useState("");
   const [showSuccessModel, setShowSuccessModel] = useState(false);
+  const [error, setError] = useState("");
   const fetchData = async () => {
     getItemsNames().then((response) => {
       if (response.status) {
@@ -42,9 +43,18 @@ const CreateRewardModel = ({ setShowCreateRewardModel, setRefresh }) => {
   }, []);
 
   const saveItem = async () => {
+    if (Object.keys(item).length < 1) {
+      setError("Article manquant");
+      return;
+    }
+    if (points.length < 1) {
+      setError("Nombre de points manquant");
+      return;
+    }
     createReward(points, item.id).then((response) => {
       if (response.status) {
         setShowSuccessModel(true);
+        setRefresh((prev) => prev + 1);
       }
     });
   };
@@ -84,15 +94,35 @@ const CreateRewardModel = ({ setShowCreateRewardModel, setRefresh }) => {
         </View>
       )}
       <View style={styles.model}>
-        <TouchableOpacity
-          style={{ alignSelf: "flex-end" }}
-          onPress={() => setShowCreateRewardModel(false)}
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
         >
-          <AntDesign name="close" size={40} color="gray" />
-        </TouchableOpacity>
+          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
+            Ajouter une récompense
+          </Text>
+          <TouchableOpacity onPress={() => setShowCreateRewardModel(false)}>
+            <AntDesign name="close" size={40} color="gray" />
+          </TouchableOpacity>
+        </View>
+        {error.length > 0 && (
+          <Text
+            style={{
+              fontFamily: Fonts.LATO_BOLD,
+              fontSize: 20,
+              textAlign: "center",
+              color: "red",
+            }}
+          >
+            {error}
+          </Text>
+        )}
         <View>
           <View style={styles.name}>
-            <Text style={styles.text}>Item</Text>
+            <Text style={styles.text}>Article</Text>
             <Dropdown
               style={[styles.dropdown]}
               placeholderStyle={styles.placeholderStyle}
@@ -105,7 +135,7 @@ const CreateRewardModel = ({ setShowCreateRewardModel, setRefresh }) => {
               maxHeight={300}
               labelField="label"
               valueField="label"
-              placeholder={""}
+              placeholder="Chosir un article"
               value={item.name}
               onChange={(item) => {
                 setItem({ id: item.value, name: item.label });
@@ -118,12 +148,11 @@ const CreateRewardModel = ({ setShowCreateRewardModel, setRefresh }) => {
               style={{
                 fontFamily: Fonts.LATO_REGULAR,
                 fontSize: 18,
-                paddingBottom: 5,
-                paddingLeft: 5,
-                paddingRight: 5,
-                paddingTop: 5,
-                borderWidth: 1,
-                borderRadius: 5,
+                paddingHorizontal: 8,
+                paddingVertical: 5,
+                borderColor: Colors.primary,
+                borderWidth: 2,
+
                 marginLeft: 20,
               }}
               placeholder="1200"
@@ -143,7 +172,7 @@ const CreateRewardModel = ({ setShowCreateRewardModel, setRefresh }) => {
           }}
           onPress={saveItem}
         >
-          <Text style={styles.text}>Save</Text>
+          <Text style={styles.text}>Sauvegarder</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -169,12 +198,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 40,
     paddingHorizontal: 40,
-    width: "70%",
+    width: 500,
   },
   image: { flexDirection: "row", marginTop: 40, alignItems: "center" },
   text: {
-    fontFamily: Fonts.LATO_REGULAR,
-    fontSize: 22,
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 20,
   },
   name: {
     flexDirection: "row",
@@ -183,12 +212,12 @@ const styles = StyleSheet.create({
   },
 
   dropdown: {
-    height: 30,
+    height: 40,
     width: 200,
-    borderColor: "gray",
-    borderWidth: 0.5,
-    paddingHorizontal: 3,
-    paddingVertical: 2,
+    borderColor: Colors.primary,
+    borderWidth: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 5,
     marginLeft: 40,
   },
   selectedStyle: {
@@ -212,11 +241,11 @@ const styles = StyleSheet.create({
   },
 
   placeholderStyle: {
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: Fonts.LATO_REGULAR,
   },
   selectedTextStyle: {
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: Fonts.LATO_REGULAR,
   },
   priceBox: {

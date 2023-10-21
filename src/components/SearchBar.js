@@ -29,7 +29,7 @@ const SearchBar = ({ setter, list, filter }) => {
           fontSize: 20,
           marginLeft: 5,
         }}
-        placeholder="Search"
+        placeholder="Chercher"
         onChangeText={(text) => filterList(text)}
         placeholderTextColor={Colors.mgry}
       />

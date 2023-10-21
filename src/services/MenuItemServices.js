@@ -1,9 +1,9 @@
-import { ApiUrl } from "../constants";
+import { API_URL } from "@env";
 import axios from "axios";
 
 const getMenuItems = async () => {
   try {
-    let getMenuItemsResponse = await axios.get(`${ApiUrl}/menuItems`);
+    let getMenuItemsResponse = await axios.get(`${API_URL}/menuItems`);
 
     if (getMenuItemsResponse?.status === 200) {
       return {
@@ -28,7 +28,7 @@ const getMenuItems = async () => {
 const createMenuItemsCategory = async (name) => {
   try {
     let createMenuItemsCategoryResponse = await axios.post(
-      `${ApiUrl}/categories/create`,
+      `${API_URL}/categories/create`,
       { name }
     );
 
@@ -54,7 +54,7 @@ const createMenuItemsCategory = async (name) => {
 
 const getCategories = async () => {
   try {
-    let getCategoriesResponse = await axios.get(`${ApiUrl}/categories/`);
+    let getCategoriesResponse = await axios.get(`${API_URL}/categories/`);
 
     if (getCategoriesResponse?.status === 200) {
       return {
@@ -85,7 +85,7 @@ const createMenuItem = async (
 ) => {
   try {
     let createMenuItemResponse = await axios.post(
-      `${ApiUrl}/menuItems/create`,
+      `${API_URL}/menuItems/create`,
       { name, prices, customization, category, description }
     );
 
@@ -111,7 +111,7 @@ const createMenuItem = async (
 
 const getItemsNames = async () => {
   try {
-    let getItemsNamesResponse = await axios.get(`${ApiUrl}/menuItems/name`);
+    let getItemsNamesResponse = await axios.get(`${API_URL}/menuItems/name`);
 
     if (getItemsNamesResponse?.status === 200) {
       return {
@@ -136,7 +136,7 @@ const getItemsNames = async () => {
 const deleteMenuItem = async (id) => {
   try {
     let deleteMenuItemResponse = await axios.delete(
-      `${ApiUrl}/menuItems/delete/${id}`
+      `${API_URL}/menuItems/delete/${id}`
     );
 
     if (deleteMenuItemResponse?.status === 200) {
@@ -160,7 +160,7 @@ const deleteMenuItem = async (id) => {
 
 const getMenuItem = async (id) => {
   try {
-    let getMenuItemResponse = await axios.get(`${ApiUrl}/menuItems/${id}`);
+    let getMenuItemResponse = await axios.get(`${API_URL}/menuItems/${id}`);
 
     if (getMenuItemResponse?.status === 200) {
       return {
@@ -193,7 +193,7 @@ const updateMenuItem = async (
 ) => {
   try {
     let updateMenuItemResponse = await axios.put(
-      `${ApiUrl}/menuItems/update/${id}`,
+      `${API_URL}/menuItems/update/${id}`,
       { image, name, description, category, prices, customization },
       { timeout: 10000 }
     );

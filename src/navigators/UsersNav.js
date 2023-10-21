@@ -14,7 +14,11 @@ const UsersNav = () => {
           headerShown: false,
         }}
       />
-      <Stack.Screen name="User" component={UserScreen} />
+      <Stack.Screen
+        name="User"
+        component={UserScreen}
+        options={{ title: "Utilisateur" }}
+      />
     </Stack.Navigator>
   );
 };

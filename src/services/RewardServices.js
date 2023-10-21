@@ -1,9 +1,9 @@
-import { ApiUrl } from "../constants";
+import { API_URL } from "@env";
 import axios from "axios";
 
 const createReward = async (points, item) => {
   try {
-    let createRewardResponse = await axios.post(`${ApiUrl}/rewards/create`, {
+    let createRewardResponse = await axios.post(`${API_URL}/rewards/create`, {
       item,
       points,
     });
@@ -29,7 +29,7 @@ const createReward = async (points, item) => {
 };
 const getRewards = async () => {
   try {
-    let getRewardsResponse = await axios.get(`${ApiUrl}/rewards`);
+    let getRewardsResponse = await axios.get(`${API_URL}/rewards`);
 
     if (getRewardsResponse?.status === 200) {
       return {
@@ -54,7 +54,7 @@ const getRewards = async () => {
 const deleteReward = async (id) => {
   try {
     let deleteRewardResponse = await axios.delete(
-      `${ApiUrl}/rewards/delete/${id}`
+      `${API_URL}/rewards/delete/${id}`
     );
 
     if (deleteRewardResponse?.status === 200) {

@@ -1,5 +1,7 @@
 import {
   ActivityIndicator,
+  Alert,
+  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -7,27 +9,65 @@ import {
   View,
 } from "react-native";
 import React, { useEffect, useState } from "react";
-import { AntDesign } from "@expo/vector-icons";
+import { AntDesign, Entypo } from "@expo/vector-icons";
 import { Colors, Fonts } from "../../constants";
 import * as ImagePicker from "expo-image-picker";
-import { createMenuItemsCategory } from "../../services/MenuItemServices";
+import { API_URL } from "@env";
 import SuccessModel from "./SuccessModel";
+import mime from "mime";
 const CreateCategoryModel = ({ setShowCreateCategoryModel }) => {
-  const [image, setImage] = useState(null);
+  const [image, setImage] = useState("");
   const [name, setName] = useState("");
   const [showSuccessModel, setShowSuccessModel] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
   const saveItem = async () => {
-    setIsLoading(true);
-    createMenuItemsCategory(name)
-      .then((response) => {
-        if (response.status) {
-          setShowSuccessModel(true);
-        }
-      })
-      .finally(() => {
-        setIsLoading(false);
+    if (name.length < 1) {
+      setError("Nom de la catégorie manquant");
+      return;
+    }
+    if (image.length < 1) {
+      setError("Image de la catégorie manquante");
+      return;
+    }
+
+    const formdata = new FormData();
+    if (image) {
+      formdata.append("file", {
+        uri: image,
+        type: mime.getType(image),
+        name: image.split("/").pop(),
       });
+    }
+
+    formdata.append("name", name);
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/categories/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        body: formdata,
+      });
+      if (!response.ok) {
+        throw new Error("HTTP error " + response.status);
+      }
+      const data = await response.json();
+      setShowSuccessModel(true);
+      setShowCreateCategoryModel(false);
+    } catch (err) {
+      if (err.response) {
+        Alert.alert(err.response.message);
+        Alert.alert("hy");
+      } else {
+        Alert.alert(err.message);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
   useEffect(() => {
     if (showSuccessModel) {
@@ -37,7 +77,7 @@ const CreateCategoryModel = ({ setShowCreateCategoryModel }) => {
         setShowSuccessModel(false);
 
         setShowCreateCategoryModel(false);
-      }, 1000);
+      }, 2000);
 
       return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
     }
@@ -50,8 +90,6 @@ const CreateCategoryModel = ({ setShowCreateCategoryModel }) => {
       aspect: [4, 3],
       quality: 1,
     });
-
-    console.log(result);
 
     if (!result.canceled) {
       setImage(result.assets[0].uri);
@@ -86,39 +124,60 @@ const CreateCategoryModel = ({ setShowCreateCategoryModel }) => {
         >
           <AntDesign name="close" size={40} color="gray" />
         </TouchableOpacity>
-        <View>
-          <View style={styles.image}>
-            <Text style={styles.text}>Image</Text>
-            <TouchableOpacity
-              style={{
-                backgroundColor: Colors.primary,
-                paddingBottom: 10,
-                paddingLeft: 20,
-                paddingRight: 20,
-                paddingTop: 10,
-                marginLeft: 20,
-                borderRadius: 5,
-              }}
-              onPress={() => pickImage()}
-            >
-              <Text style={styles.text}>Upload Image</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.name}>
-            <Text style={styles.text}>Name</Text>
+        {error.length > 0 && (
+          <Text
+            style={{
+              fontFamily: Fonts.LATO_BOLD,
+              fontSize: 20,
+              textAlign: "center",
+              color: "red",
+            }}
+          >
+            {error}
+          </Text>
+        )}
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <TouchableOpacity
+            style={{
+              width: 100,
+              height: 100,
+              borderRadius: 16,
+              backgroundColor: "gray",
+              marginTop: 20,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+            onPress={pickImage}
+          >
+            {image ? (
+              <Image
+                source={{ uri: image }}
+                style={{
+                  resizeMode: "cover",
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: 16,
+                }}
+              />
+            ) : (
+              <Entypo name="camera" size={26} color="black" />
+            )}
+          </TouchableOpacity>
+          <View style={[styles.name, { marginLeft: 20 }]}>
+            <Text style={styles.text}>Nom</Text>
             <TextInput
               style={{
                 fontFamily: Fonts.LATO_REGULAR,
-                fontSize: 18,
-                paddingBottom: 5,
-                paddingLeft: 5,
-                paddingRight: 5,
-                paddingTop: 5,
-                borderWidth: 1,
-                borderRadius: 5,
+                fontSize: 20,
+                paddingHorizontal: 5,
+                paddingVertical: 8,
+                width: "70%",
+                borderWidth: 2,
+
+                borderColor: Colors.primary,
                 marginLeft: 20,
               }}
-              placeholder="Item Name"
+              placeholder="Nom de la catégorie"
               placeholderTextColor={Colors.tgry}
               onChangeText={(text) => setName(text)}
             />
@@ -135,7 +194,7 @@ const CreateCategoryModel = ({ setShowCreateCategoryModel }) => {
           }}
           onPress={saveItem}
         >
-          <Text style={styles.text}>Save</Text>
+          <Text style={styles.text}>Sauvegarder</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -165,12 +224,12 @@ const styles = StyleSheet.create({
   },
   image: { flexDirection: "row", marginTop: 40, alignItems: "center" },
   text: {
-    fontFamily: Fonts.LATO_REGULAR,
-    fontSize: 22,
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 20,
   },
   name: {
     flexDirection: "row",
-    marginTop: 40,
+
     alignItems: "center",
   },
 

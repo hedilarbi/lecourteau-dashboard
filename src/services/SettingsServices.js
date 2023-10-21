@@ -1,9 +1,9 @@
-import { ApiUrl } from "../constants";
+import { API_URL } from "@env";
 import axios from "axios";
 
 const getSettings = async () => {
   try {
-    let getSettingsResponse = await axios.get(`${ApiUrl}/settings`);
+    let getSettingsResponse = await axios.get(`${API_URL}/settings`);
 
     if (getSettingsResponse?.status === 200) {
       return {
@@ -28,7 +28,7 @@ const getSettings = async () => {
 const updateSettings = async (settings) => {
   try {
     let updateSettingsResponse = await axios.get(
-      `${ApiUrl}/settings/update/${settings._id}`,
+      `${API_URL}/settings/update/${settings._id}`,
       {
         settings,
       }

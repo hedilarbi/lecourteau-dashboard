@@ -1,5 +1,7 @@
 import {
   ActivityIndicator,
+  Alert,
+  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -10,15 +12,18 @@ import React, { useEffect, useState } from "react";
 import { AntDesign } from "@expo/vector-icons";
 import { Dropdown } from "react-native-element-dropdown";
 import { Colors, Fonts } from "../../constants";
-import { Entypo, FontAwesome, MaterialIcons } from "@expo/vector-icons";
-import { createMenuItem, getCategories } from "../../services/MenuItemServices";
+import { Entypo } from "@expo/vector-icons";
+import { getCategories } from "../../services/MenuItemServices";
 import { getToppings } from "../../services/ToppingsServices";
-import AddCategoryModel from "./AddToppingModel";
+import { API_URL } from "@env";
 import * as ImagePicker from "expo-image-picker";
 import AddToppingModel from "./AddToppingModel";
 import SuccessModel from "./SuccessModel";
 
-const CreateItemModel = ({ setShowCreateItemModel, setMenuItems }) => {
+import mime from "mime";
+import AddMenuItemPrice from "./AddMenuItemPrice";
+
+const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
   const [showAddCategoryModel, setShowAddCategoryModel] = useState(false);
   const [categories, setCategories] = useState([]);
   const [toppings, setToppings] = useState([]);
@@ -28,14 +33,11 @@ const CreateItemModel = ({ setShowCreateItemModel, setMenuItems }) => {
   const [showSuccessModel, setShowSuccessModel] = useState(false);
   const [name, setName] = useState("");
   const [image, setImage] = useState("");
-  const [categoryName, setCategoryName] = useState("Entreé");
+  const [categoryName, setCategoryName] = useState("");
   const [description, setDescription] = useState("");
-  const [prices, setPrices] = useState([
-    { size: "Petite", price: 0 },
-    { size: "Moyenne", price: 0 },
-    { size: "Large", price: 0 },
-    { size: "Familliale", price: 0 },
-  ]);
+  const [showAddPriceModal, setShowAddPriceModal] = useState(false);
+  const [prices, setPrices] = useState([]);
+  const [error, setError] = useState("");
 
   const fetchData = async () => {
     try {
@@ -70,50 +72,87 @@ const CreateItemModel = ({ setShowCreateItemModel, setMenuItems }) => {
   }, []);
 
   const saveItem = async () => {
-    let category = "";
+    if (image.length < 1) {
+      setError("Image de l'article manquante");
+      return;
+    }
+    if (name.length < 1) {
+      setError("Nom de l'article manquant");
+      return;
+    }
+    if (prices.length < 1) {
+      setError("Ajouter au moin un prix ");
+      return;
+    }
+    if (description.length < 1) {
+      setError("Description de l'article manquante");
+      return;
+    }
+    if (categoriesNames.length < 1) {
+      setError("Catégorie de l'article manquante");
+      return;
+    }
+    let categoryId = "";
     categories.map((item) => {
       if (item.name === categoryName) {
-        category = item._id;
+        categoryId = item._id;
       }
     });
     const customization = customizationsNames.map((item) => {
       return item._id;
     });
+    const formdata = new FormData();
+    if (image) {
+      formdata.append("file", {
+        uri: image,
+        type: mime.getType(image),
+        name: image.split("/").pop(),
+      });
+    }
+    formdata.append("customization", JSON.stringify(customization));
+    formdata.append("prices", JSON.stringify(prices));
+    formdata.append("name", name);
+    formdata.append("category", categoryId);
+    formdata.append("description", description);
     setIsloading(true);
-    createMenuItem(name, prices, customization, category, description).then(
-      (response) => {
-        if (response?.status) {
-          setShowSuccessModel(true);
-          setMenuItems((prev) => [...prev, response.data]);
-        } else {
-          console.log(response.message);
-        }
-      }
-    );
 
+    try {
+      const response = await fetch(`${API_URL}/menuItems/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        body: formdata,
+      });
+      if (!response.ok) {
+        throw new Error("HTTP error " + response.status);
+      }
+      const data = await response.json();
+
+      setShowSuccessModel(true);
+      setRefresh((prev) => prev + 1);
+    } catch (err) {
+      if (err.response) {
+        Alert.alert("Problème interne");
+      } else {
+        Alert.alert("problème internet");
+      }
+    }
     setIsloading(false);
   };
   useEffect(() => {
     if (showSuccessModel) {
-      // After 1 second, reset showSuccessModel to false
-
       const timer = setTimeout(() => {
         setShowSuccessModel(false);
 
         setShowCreateItemModel(false);
       }, 1000);
 
-      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+      return () => clearTimeout(timer);
     }
   }, [showSuccessModel]);
-  const handlePriceChange = (index, newPrice) => {
-    const updatedPrices = [...prices]; // Create a copy of the prices array
-    updatedPrices[index].price = newPrice; // Update the price of the specific index
-    setPrices(updatedPrices); // Set the state with the updated array
-  };
 
   const pickImage = async () => {
-    // No permissions request is necessary for launching the image library
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: true,
@@ -121,13 +160,20 @@ const CreateItemModel = ({ setShowCreateItemModel, setMenuItems }) => {
       quality: 1,
     });
 
-    console.log(result);
-
     if (!result.canceled) {
       setImage(result.assets[0].uri);
     }
   };
-
+  const deletePrice = (index) => {
+    const newPrices = [...prices];
+    newPrices.splice(index, 1);
+    setPrices(newPrices);
+  };
+  const deleteCustomization = (index) => {
+    const newCustomizations = [...customizationsNames];
+    newCustomizations.splice(index, 1);
+    setCustomizationsNames(newCustomizations);
+  };
   return (
     <View style={styles.container}>
       {showSuccessModel && <SuccessModel />}
@@ -156,7 +202,13 @@ const CreateItemModel = ({ setShowCreateItemModel, setMenuItems }) => {
           setCustomizationsNames={setCustomizationsNames}
         />
       )}
-
+      <AddMenuItemPrice
+        setModalVisible={setShowAddPriceModal}
+        modalVisible={showAddPriceModal}
+        category={categoryName}
+        setPrices={setPrices}
+        prices={prices}
+      />
       <View style={styles.model}>
         <View
           style={{
@@ -166,7 +218,7 @@ const CreateItemModel = ({ setShowCreateItemModel, setMenuItems }) => {
           }}
         >
           <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-            Add Menu Item
+            Ajouter un article
           </Text>
           <TouchableOpacity
             style={{ alignSelf: "flex-end" }}
@@ -175,110 +227,177 @@ const CreateItemModel = ({ setShowCreateItemModel, setMenuItems }) => {
             <AntDesign name="close" size={40} color="gray" />
           </TouchableOpacity>
         </View>
+        {error.length > 0 && (
+          <Text
+            style={{
+              fontFamily: Fonts.LATO_BOLD,
+              fontSize: 20,
+              textAlign: "center",
+              color: "red",
+            }}
+          >
+            {error}
+          </Text>
+        )}
 
         <View>
           <View>
-            <View style={styles.image}>
-              <Text style={styles.text}>Image</Text>
+            <View style={{ flexDirection: "row" }}>
               <TouchableOpacity
                 style={{
-                  backgroundColor: Colors.primary,
-                  paddingBottom: 10,
-                  paddingLeft: 20,
-                  paddingRight: 20,
-                  paddingTop: 10,
-                  marginLeft: 20,
-                  borderRadius: 5,
+                  width: 200,
+                  height: 200,
+                  borderRadius: 16,
+                  backgroundColor: "gray",
+                  marginTop: 20,
+                  justifyContent: "center",
+                  alignItems: "center",
                 }}
                 onPress={pickImage}
               >
-                <Text style={styles.text}>Upload Image</Text>
+                {image ? (
+                  <Image
+                    source={{ uri: image }}
+                    style={{
+                      resizeMode: "cover",
+                      width: "100%",
+                      height: "100%",
+                      borderRadius: 16,
+                    }}
+                  />
+                ) : (
+                  <Entypo name="camera" size={48} color="black" />
+                )}
               </TouchableOpacity>
+              <View style={{ marginLeft: 40, justifyContent: "space-between" }}>
+                <View style={styles.name}>
+                  <Text style={styles.text}>Nom</Text>
+                  <TextInput
+                    style={{
+                      fontFamily: Fonts.LATO_REGULAR,
+                      fontSize: 20,
+                      paddingHorizontal: 5,
+                      paddingVertical: 8,
+                      width: "50%",
+                      borderWidth: 2,
+
+                      borderColor: Colors.primary,
+                      marginLeft: 20,
+                    }}
+                    placeholder="Item Name"
+                    onChangeText={(text) => setName(text)}
+                  />
+                </View>
+                <View style={styles.name}>
+                  <Text style={styles.text}>Description</Text>
+                  <TextInput
+                    style={{
+                      fontFamily: Fonts.LATO_REGULAR,
+                      fontSize: 20,
+                      paddingHorizontal: 5,
+                      paddingVertical: 8,
+                      flex: 1,
+                      borderWidth: 2,
+
+                      borderColor: Colors.primary,
+                      marginLeft: 20,
+                    }}
+                    placeholder="Description"
+                    onChangeText={(text) => setDescription(text)}
+                  />
+                </View>
+                <View style={styles.name}>
+                  <Text style={styles.text}>Categorie</Text>
+                  <Dropdown
+                    style={[styles.dropdown]}
+                    placeholderStyle={styles.placeholderStyle}
+                    selectedTextStyle={styles.selectedTextStyle}
+                    selectedStyle={styles.selectedStyle}
+                    itemContainerStyle={styles.itemContainerStyle}
+                    itemTextStyle={styles.itemTextStyle}
+                    containerStyle={styles.containerStyle}
+                    data={categoriesNames}
+                    maxHeight={300}
+                    labelField="label"
+                    valueField="label"
+                    placeholder="Catégorie"
+                    value={categoryName}
+                    onChange={(item) => {
+                      setCategoryName(item.label);
+                    }}
+                  />
+                </View>
+              </View>
             </View>
-            <View style={styles.name}>
-              <Text style={styles.text}>Name</Text>
-              <TextInput
-                style={{
-                  fontFamily: Fonts.LATO_REGULAR,
-                  fontSize: 18,
-                  paddingBottom: 5,
-                  paddingLeft: 5,
-                  paddingRight: 5,
-                  paddingTop: 5,
-                  borderWidth: 1,
-                  borderRadius: 5,
-                  marginLeft: 20,
-                }}
-                placeholder="Item Name"
-                placeholderTextColor={Colors.tgry}
-                onChangeText={(text) => setName(text)}
-              />
-            </View>
-            <View style={styles.name}>
-              <Text style={styles.text}>Description</Text>
-              <TextInput
-                style={{
-                  fontFamily: Fonts.LATO_REGULAR,
-                  fontSize: 18,
-                  paddingBottom: 5,
-                  paddingLeft: 5,
-                  paddingRight: 5,
-                  paddingTop: 5,
-                  borderWidth: 1,
-                  borderRadius: 5,
-                  marginLeft: 20,
-                }}
-                placeholder="Description"
-                placeholderTextColor={Colors.tgry}
-                onChangeText={(text) => setDescription(text)}
-              />
-            </View>
-            <View style={styles.name}>
-              <Text style={styles.text}>Category</Text>
-              <Dropdown
-                style={[styles.dropdown]}
-                placeholderStyle={styles.placeholderStyle}
-                selectedTextStyle={styles.selectedTextStyle}
-                selectedStyle={styles.selectedStyle}
-                itemContainerStyle={styles.itemContainerStyle}
-                itemTextStyle={styles.itemTextStyle}
-                containerStyle={styles.containerStyle}
-                data={categoriesNames}
-                maxHeight={300}
-                labelField="label"
-                valueField="label"
-                placeholder={""}
-                value={categoryName}
-                onChange={(item) => {
-                  setCategoryName(item.label);
-                }}
-              />
-            </View>
-            <View style={styles.prices}>
-              <Text style={styles.text}>Prices</Text>
+
+            <View style={styles.customizations}>
+              <Text style={styles.text}>Prix</Text>
               <View
                 style={{
-                  marginTop: 10,
                   flexDirection: "row",
-                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 20,
+                  marginTop: 20,
                 }}
               >
-                {prices.map((item, index) => (
-                  <View style={styles.priceBox} key={index}>
-                    <Text style={styles.text}>{item.size[0]}</Text>
-                    <TextInput
-                      style={styles.priceInput}
-                      placeholder="13.25"
-                      keyboardType="numeric"
-                      onChangeText={(text) => handlePriceChange(index, text)}
-                    />
-                    <Text style={styles.text}>$</Text>
+                {prices.map((price, index) => (
+                  <View
+                    style={{
+                      borderWidth: 1,
+                      borderRadius: 5,
+                      backgroundColor: "white",
+                      paddingHorizontal: 10,
+                      paddingVertical: 10,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 5,
+                      marginTop: 10,
+                    }}
+                    key={index}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 16,
+                        textTransform: "capitalize",
+                      }}
+                    >
+                      {price.size}
+                    </Text>
+                    <Text
+                      style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 16 }}
+                    >
+                      {price.price} $
+                    </Text>
+                    <TouchableOpacity
+                      style={{ alignSelf: "flex-end", marginLeft: 10 }}
+                      onPress={() => deletePrice(index)}
+                    >
+                      <AntDesign name="close" size={24} color="gray" />
+                    </TouchableOpacity>
                   </View>
                 ))}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: Colors.primary,
+                    paddingHorizontal: 40,
+                    paddingVertical: 10,
+                    flexDirection: "row",
+                    gap: 10,
+                    alignItems: "center",
+                    marginTop: 10,
+                    borderRadius: 5,
+                  }}
+                  onPress={() => setShowAddPriceModal(true)}
+                >
+                  <Entypo name="plus" size={24} color="black" />
+                  <Text style={styles.text}>Ajouter</Text>
+                </TouchableOpacity>
               </View>
             </View>
             <View style={styles.customizations}>
-              <Text style={styles.text}>Customizations</Text>
+              <Text style={styles.text}>Personalisations</Text>
               <View
                 style={{
                   flexDirection: "row",
@@ -305,9 +424,12 @@ const CreateItemModel = ({ setShowCreateItemModel, setMenuItems }) => {
                   >
                     <Text style={styles.text}>{customization.name}</Text>
 
-                    <View style={{ alignSelf: "flex-end", marginLeft: 10 }}>
+                    <TouchableOpacity
+                      style={{ alignSelf: "flex-end", marginLeft: 10 }}
+                      onPress={() => deleteCustomization(index)}
+                    >
                       <AntDesign name="close" size={24} color="gray" />
-                    </View>
+                    </TouchableOpacity>
                   </View>
                 ))}
                 <TouchableOpacity
@@ -324,7 +446,7 @@ const CreateItemModel = ({ setShowCreateItemModel, setMenuItems }) => {
                   onPress={() => setShowAddCategoryModel(true)}
                 >
                   <Entypo name="plus" size={24} color="black" />
-                  <Text style={styles.text}>Add</Text>
+                  <Text style={styles.text}>Ajouter</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -340,7 +462,7 @@ const CreateItemModel = ({ setShowCreateItemModel, setMenuItems }) => {
             }}
             onPress={saveItem}
           >
-            <Text style={styles.text}>Save</Text>
+            <Text style={styles.text}>Sauvegarder</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -367,26 +489,26 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 40,
     paddingHorizontal: 40,
-    width: "70%",
+    width: "90%",
   },
   image: { flexDirection: "row", marginTop: 40, alignItems: "center" },
   text: {
-    fontFamily: Fonts.LATO_REGULAR,
-    fontSize: 22,
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 20,
   },
   name: {
     flexDirection: "row",
-    marginTop: 40,
+    marginTop: 20,
     alignItems: "center",
   },
 
   dropdown: {
-    height: 30,
+    height: 40,
     width: 200,
-    borderColor: "gray",
-    borderWidth: 0.5,
-    paddingHorizontal: 3,
-    paddingVertical: 2,
+    borderColor: Colors.primary,
+    borderWidth: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
 
     marginLeft: 20,
   },

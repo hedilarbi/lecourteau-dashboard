@@ -29,7 +29,7 @@ const Calender = ({ setDate, date }) => {
       }}
     >
       <Text style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 18 }}>
-        Calendar
+        {date.toLocaleDateString("fr-FR")}
       </Text>
     </TouchableOpacity>
   );

@@ -9,6 +9,7 @@ import { Provider, useDispatch } from "react-redux";
 import { store } from "./src/redux/store";
 import { getItemAsync } from "expo-secure-store";
 import { setStaffToken } from "./src/redux/slices/StaffSlice";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -37,9 +38,10 @@ export default function App() {
 
   return (
     <Provider store={store}>
-      <>
+      <SafeAreaView style={{ flex: 1 }}>
+        <StatusBar backgroundColor="black" style="light" />
         <RootNavigation />
-      </>
+      </SafeAreaView>
     </Provider>
   );
 }

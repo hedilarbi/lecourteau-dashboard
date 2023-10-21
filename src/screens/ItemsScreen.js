@@ -67,7 +67,7 @@ const ItemsScreen = () => {
           id={menuItem}
           setDeleteWarningModelState={setDeleteWarningModelState}
           setRefresh={setRefresh}
-          message={`Are you sure to delete this item ?`}
+          message={`Etes-vous sûr de vouloir supprimer cet article ?`}
           deleter={deleteMenuItem}
         />
       )}
@@ -80,12 +80,12 @@ const ItemsScreen = () => {
       {showCreateItemModel && (
         <CreateItemModel
           setShowCreateItemModel={setShowCreateItemModel}
-          setMenuItems={setMenuItems}
+          setRefresh={setRefresh}
         />
       )}
       <View style={{ flex: 1, padding: 20 }}>
         <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
-          Items List
+          Articles
         </Text>
         <View
           style={{
@@ -100,10 +100,10 @@ const ItemsScreen = () => {
             list={menuItemsList}
             filter={filterMenuItems}
           />
-          <AddButton setShowModel={setShowCreateItemModel} text="Add Item" />
+          <AddButton setShowModel={setShowCreateItemModel} text="Article" />
           <AddButton
             setShowModel={setShowCreateCategoryModel}
-            text="Add Category"
+            text="Catégorie"
           />
         </View>
         {isLoading ? (

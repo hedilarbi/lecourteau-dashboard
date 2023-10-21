@@ -62,14 +62,14 @@ const UsersScreen = () => {
           setDeleteWarningModelState={setDeleteWarningModelState}
           setIsLoading={setIsLoading}
           setRefresh={setRefresh}
-          message={`Are you sure to delete the user`}
+          message={`Etes-vous sûr de vouloir supprimer cet utilisateur ?`}
           deleter={deleteUser}
         />
       )}
 
       <View style={{ flex: 1, padding: 20 }}>
         <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
-          Users List
+          Utilisateurs
         </Text>
         <View style={{ marginTop: 30 }}>
           <SearchBar setter={setUsers} list={usersList} filter={filterUsers} />
@@ -107,7 +107,7 @@ const UsersScreen = () => {
                 <Text style={[styles.rowCell, { width: "20%" }]}>
                   {user.name}
                 </Text>
-                <Text style={([styles.rowCell], { width: "20%" })}>
+                <Text style={[styles.rowCell, { width: "20%" }]}>
                   {user.phone_number}
                 </Text>
                 <Text style={[styles.rowCell, { flex: 1 }]}>{user.email}</Text>

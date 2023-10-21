@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -79,6 +80,7 @@ const SignUpScreen = () => {
           setShowErrorMessg(true);
         }
       })
+      .catch((err) => {})
       .finally(() => {
         setIsLoading(false);
       });
@@ -139,17 +141,9 @@ const SignUpScreen = () => {
           }}
         >
           <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 18 }}>
-            Sign in with username
+            Se connecter avec le nom d'utilisateur
           </Text>
-          <Text
-            style={{
-              fontFamily: Fonts.LATO_REGULAR,
-              fontSize: 14,
-              color: Colors.tgry,
-            }}
-          >
-            Login with a valid username
-          </Text>
+
           <View
             style={{
               backgroundColor: "white",
@@ -163,10 +157,10 @@ const SignUpScreen = () => {
             ref={userNameInput}
           >
             <Text style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 14 }}>
-              Username:
+              Utilisateur:
             </Text>
             <TextInput
-              placeholder="username"
+              placeholder="Utilisateur"
               placeholderTextColor="#CBC6C6"
               style={{
                 fontFamily: Fonts.LATO_REGULAR,
@@ -190,10 +184,10 @@ const SignUpScreen = () => {
             ref={passwordInput}
           >
             <Text style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 14 }}>
-              Password:
+              Mot de passe:
             </Text>
             <TextInput
-              placeholder="Phone Number"
+              placeholder="Mot de passe"
               placeholderTextColor="#CBC6C6"
               style={{
                 fontFamily: Fonts.LATO_REGULAR,
@@ -217,7 +211,7 @@ const SignUpScreen = () => {
             onPress={login}
           >
             <Text style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 14 }}>
-              Login
+              Se connecter
             </Text>
           </TouchableOpacity>
         </View>

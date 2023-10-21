@@ -29,21 +29,22 @@ const OrderScreen = () => {
   const [status, setStatus] = useState("");
   const [price, setPrice] = useState("");
   const statusOptions = [
-    { label: "Cancled", value: "Cancled" },
-    { label: "On Delivery", value: "On Delivery" },
-    { label: "Done", value: "Done" },
+    { label: OrderStatus.READY, value: OrderStatus.READY },
+    { label: OrderStatus.DONE, value: OrderStatus.DONE },
+    { label: OrderStatus.IN_DELIVERY, value: OrderStatus.IN_DELIVERY },
+
+    { label: OrderStatus.CANCELED, value: OrderStatus.CANCELED },
   ];
   const setOrderStatusColor = (status) => {
     switch (status) {
-      case "Done":
+      case OrderStatus.READY:
         return "#2AB2DB";
-
-      case "onGoing":
-        return "#F3A32B";
-      case "canceled":
+      case OrderStatus.DONE:
+        return "#2AB2DB";
+      case OrderStatus.IN_DELIVERY:
+        return "#2AB2DB";
+      case OrderStatus.CANCELED:
         return "#FF0707";
-      case "On Delivery":
-        return "#2AED49";
     }
   };
 
@@ -106,14 +107,18 @@ const OrderScreen = () => {
   }
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: Colors.screenBg, padding: 8 }}
+      style={{ flex: 1, backgroundColor: Colors.screenBg, padding: 16 }}
       contentContainerStyle={{ paddingBottom: 40 }}
     >
       <View>
         <Text
-          style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24, marginTop: 10 }}
+          style={{
+            fontFamily: Fonts.LATO_BOLD,
+            fontSize: 24,
+            marginVertical: 10,
+          }}
         >
-          General Info
+          Informations générale
         </Text>
         <View
           style={{
@@ -127,7 +132,6 @@ const OrderScreen = () => {
             style={{
               flexDirection: "row",
               justifyContent: "space-between",
-              alignItems: "center",
             }}
           >
             <View style={{ flex: 1 / 2 }}>
@@ -143,7 +147,7 @@ const OrderScreen = () => {
                     fontSize: 20,
                   }}
                 >
-                  Status:
+                  Etat:
                 </Text>
                 {updateStatusMode ? (
                   <>
@@ -216,6 +220,31 @@ const OrderScreen = () => {
                     fontSize: 20,
                   }}
                 >
+                  Code
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: Fonts.LATO_REGULAR,
+                    fontSize: 20,
+                    marginLeft: 10,
+                  }}
+                >
+                  {order.code}
+                </Text>
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginTop: 10,
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: Fonts.LATO_BOLD,
+                    fontSize: 20,
+                  }}
+                >
                   Type
                 </Text>
                 <Text
@@ -241,7 +270,7 @@ const OrderScreen = () => {
                     fontSize: 20,
                   }}
                 >
-                  created At:
+                  Crée le:
                 </Text>
                 <Text
                   style={{
@@ -262,7 +291,7 @@ const OrderScreen = () => {
                     fontSize: 20,
                   }}
                 >
-                  Total Price:
+                  Totale:
                 </Text>
                 {updatePriceMode ? (
                   <>
@@ -324,6 +353,7 @@ const OrderScreen = () => {
                 style={{
                   flexDirection: "row",
                   marginTop: 10,
+
                   alignItems: "center",
                 }}
               >
@@ -333,7 +363,7 @@ const OrderScreen = () => {
                     fontSize: 20,
                   }}
                 >
-                  Sub Total:
+                  Sous-totale:
                 </Text>
                 <Text
                   style={{
@@ -358,7 +388,7 @@ const OrderScreen = () => {
                     fontSize: 20,
                   }}
                 >
-                  Number of items:
+                  Nombre d'article:
                 </Text>
                 <Text
                   style={{
@@ -370,44 +400,46 @@ const OrderScreen = () => {
                   {order.orderItems?.length +
                     order.offers?.length +
                     order.rewards?.length}{" "}
-                  item(s)
+                  article(s)
+                </Text>
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+
+                  marginTop: 10,
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: Fonts.LATO_BOLD,
+                    fontSize: 20,
+                  }}
+                >
+                  Adresse:
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: Fonts.LATO_REGULAR,
+                    fontSize: 20,
+                    marginLeft: 10,
+                    width: "70%",
+                    flexWrap: "wrap",
+                  }}
+                  numberOfLines={2}
+                >
+                  {order.address}
                 </Text>
               </View>
             </View>
           </View>
-          {/* <View
-            style={{
-              marginTop: 10,
-              flexDirection: "row",
-              alignItems: "center",
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: Fonts.LATO_BOLD,
-                fontSize: 20,
-              }}
-            >
-              Address:
-            </Text>
-
-            <Text
-              style={{
-                fontFamily: Fonts.LATO_REGULAR,
-                fontSize: 20,
-                marginLeft: 10,
-              }}
-            >
-              {order.address}
-            </Text>
-          </View> */}
         </View>
       </View>
       <View>
         <Text
           style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24, marginTop: 20 }}
         >
-          Client Info
+          Informations Client
         </Text>
         <View
           style={{
@@ -431,7 +463,7 @@ const OrderScreen = () => {
                     fontSize: 20,
                   }}
                 >
-                  Name:
+                  Nom & prénom:
                 </Text>
                 <Text
                   style={{
@@ -456,7 +488,7 @@ const OrderScreen = () => {
                     fontSize: 20,
                   }}
                 >
-                  Phone Number
+                  Téléphone:
                 </Text>
                 <Text
                   style={{
@@ -477,7 +509,7 @@ const OrderScreen = () => {
                     fontSize: 20,
                   }}
                 >
-                  Email:
+                  E-mail:
                 </Text>
                 <Text
                   style={{
@@ -503,7 +535,7 @@ const OrderScreen = () => {
           style={{
             backgroundColor: "white",
             borderRadius: 10,
-            padding: 20,
+            padding: 15,
             marginTop: 10,
           }}
         >
@@ -512,9 +544,10 @@ const OrderScreen = () => {
               fontFamily: Fonts.LATO_REGULAR,
               fontSize: 20,
               marginLeft: 10,
+              textAlign: "center",
             }}
           >
-            {order.instructions}
+            {order.instructions ? order.instructions : "Aucune"}
           </Text>
         </View>
       </View>
@@ -523,7 +556,7 @@ const OrderScreen = () => {
         <Text
           style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24, marginTop: 20 }}
         >
-          Items
+          Articles
         </Text>
 
         {order.orderItems?.length > 0 ? (
@@ -573,7 +606,9 @@ const OrderScreen = () => {
               marginTop: 20,
             }}
           >
-            <Text>Empty</Text>
+            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+              Vide
+            </Text>
           </View>
         )}
       </View>
@@ -581,7 +616,7 @@ const OrderScreen = () => {
         <Text
           style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24, marginTop: 20 }}
         >
-          Offers
+          Offres
         </Text>
 
         {order.offers?.length > 0 ? (
@@ -617,7 +652,9 @@ const OrderScreen = () => {
               marginTop: 20,
             }}
           >
-            <Text>Empty</Text>
+            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+              Vide
+            </Text>
           </View>
         )}
       </View>

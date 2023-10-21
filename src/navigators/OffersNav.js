@@ -15,7 +15,11 @@ const OffersNav = () => {
           headerShown: false,
         }}
       />
-      <Stack.Screen name="Offer" component={OfferScreen} />
+      <Stack.Screen
+        name="Offer"
+        component={OfferScreen}
+        options={{ title: "Offre" }}
+      />
     </Stack.Navigator>
   );
 };

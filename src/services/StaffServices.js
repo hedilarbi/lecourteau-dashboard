@@ -1,9 +1,9 @@
-import { ApiUrl } from "../constants";
+import { API_URL } from "@env";
 import axios from "axios";
 
 const loginStaff = async (username, password) => {
   try {
-    let loginStaffResponse = await axios.post(`${ApiUrl}/staffs/login`, {
+    let loginStaffResponse = await axios.post(`${API_URL}/staffs/login`, {
       username,
       password,
     });
@@ -30,7 +30,7 @@ const loginStaff = async (username, password) => {
 const getStaffByToken = async (token) => {
   try {
     let getStaffByTokenResponse = await axios.get(
-      `${ApiUrl}/staff/userByToken/`,
+      `${API_URL}/staff/userByToken/`,
       {
         headers: {
           Authorization: `Bearer ${token}`,

@@ -1,9 +1,9 @@
-import { ApiUrl } from "../constants";
+import { API_URL } from "@env";
 import axios from "axios";
 
 const getOrders = async () => {
   try {
-    let getOrdersResponse = await axios.get(`${ApiUrl}/orders`);
+    let getOrdersResponse = await axios.get(`${API_URL}/orders`);
 
     if (getOrdersResponse?.status === 200) {
       return {
@@ -27,7 +27,7 @@ const getOrders = async () => {
 
 const getOrder = async (id) => {
   try {
-    let getOrderResponse = await axios.get(`${ApiUrl}/orders/${id}`);
+    let getOrderResponse = await axios.get(`${API_URL}/orders/${id}`);
 
     if (getOrderResponse?.status === 200) {
       return {
@@ -52,7 +52,7 @@ const getOrder = async (id) => {
 const deleteOrder = async (id) => {
   try {
     let deleteUserResponse = await axios.delete(
-      `${ApiUrl}/orders/delete/${id}`
+      `${API_URL}/orders/delete/${id}`
     );
 
     if (deleteUserResponse?.status === 200) {
@@ -76,7 +76,7 @@ const deleteOrder = async (id) => {
 const updateStatus = async (id, status) => {
   try {
     let updateStatusResponse = await axios.put(
-      `${ApiUrl}/orders/update/status/${id}`,
+      `${API_URL}/orders/update/status/${id}`,
       { status },
       { timeout: 10000 }
     );
@@ -102,7 +102,7 @@ const updateStatus = async (id, status) => {
 const updatePrice = async (id, price) => {
   try {
     let updatePriceResponse = await axios.put(
-      `${ApiUrl}/orders/update/price/${id}`,
+      `${API_URL}/orders/update/price/${id}`,
       { price },
       { timeout: 10000 }
     );

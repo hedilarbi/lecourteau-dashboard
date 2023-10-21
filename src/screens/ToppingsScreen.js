@@ -62,7 +62,7 @@ const ToppingsScreen = () => {
           setDeleteWarningModelState={setDeleteWarningModelState}
           setIsLoading={setIsLoading}
           setRefresh={setRefresh}
-          message={`Are you sure to delete this topping ?`}
+          message={`Etes-vous sûr de vouloir supprimer cette personalisation ?`}
           deleter={deleteTopping}
         />
       )}
@@ -75,12 +75,13 @@ const ToppingsScreen = () => {
       {showCreateToppingCategoryModel && (
         <CreateToppingCategoryModel
           setShowCreateToppingCategoryModel={setShowCreateToppingCategoryModel}
+          setRefresh={setRefresh}
         />
       )}
 
       <View style={{ flex: 1, padding: 20 }}>
         <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
-          Topping List
+          Personalisations
         </Text>
         <View
           style={{
@@ -97,11 +98,11 @@ const ToppingsScreen = () => {
           />
           <AddButton
             setShowModel={setShowCreateToppingModel}
-            text="Add Topping"
+            text="Personalisation"
           />
           <AddButton
             setShowModel={setShowCreateToppingCategoryModel}
-            text="Add Category"
+            text="Catégorie"
           />
         </View>
         {isLoading ? (

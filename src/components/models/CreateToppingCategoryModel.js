@@ -6,22 +6,36 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AntDesign } from "@expo/vector-icons";
 
 import { Colors, Fonts } from "../../constants";
 import { createToppingCategory } from "../../services/ToppingsServices";
 import SuccessModel from "./SuccessModel";
 
-const CreateToppingCategoryModel = ({ setShowCreateToppingCategoryModel }) => {
+const CreateToppingCategoryModel = ({
+  setShowCreateToppingCategoryModel,
+  setRefresh,
+}) => {
   const [name, setName] = useState("");
   const [showSuccessModel, setShowSuccessModel] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const nameRef = useRef(null);
   const saveItem = async () => {
+    if (name.length < 1) {
+      nameRef.current.setNativeProps({
+        style: {
+          borderWidth: 2,
+          borderColor: "red",
+        },
+      });
+      return;
+    }
     setIsLoading(true);
     createToppingCategory(name)
       .then((response) => {
         if (response.status) {
+          setRefresh((prev) => prev + 1);
           setShowSuccessModel(true);
         }
       })
@@ -64,28 +78,39 @@ const CreateToppingCategoryModel = ({ setShowCreateToppingCategoryModel }) => {
         </View>
       )}
       <View style={styles.model}>
-        <TouchableOpacity
-          style={{ alignSelf: "flex-end" }}
-          onPress={() => setShowCreateToppingCategoryModel(false)}
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
         >
-          <AntDesign name="close" size={40} color="gray" />
-        </TouchableOpacity>
+          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
+            Ajouter une Catégorie
+          </Text>
+          <TouchableOpacity
+            onPress={() => setShowCreateToppingCategoryModel(false)}
+          >
+            <AntDesign name="close" size={40} color="gray" />
+          </TouchableOpacity>
+        </View>
         <View>
           <View style={styles.name}>
-            <Text style={styles.text}>Name</Text>
+            <Text style={styles.text}>Nom</Text>
             <TextInput
               style={{
                 fontFamily: Fonts.LATO_REGULAR,
-                fontSize: 18,
-                paddingBottom: 5,
-                paddingLeft: 5,
-                paddingRight: 5,
-                paddingTop: 5,
-                borderWidth: 1,
-                borderRadius: 5,
+                fontSize: 20,
+                paddingHorizontal: 5,
+                paddingVertical: 8,
+                width: "60%",
+                borderWidth: 2,
+
+                borderColor: Colors.primary,
                 marginLeft: 20,
               }}
-              placeholder="Item Name"
+              ref={nameRef}
+              placeholder="Nom de la catégorie"
               placeholderTextColor={Colors.tgry}
               onChangeText={(text) => setName(text)}
             />
@@ -94,7 +119,7 @@ const CreateToppingCategoryModel = ({ setShowCreateToppingCategoryModel }) => {
         <TouchableOpacity
           style={{
             marginTop: 40,
-            alignSelf: "flex-end",
+
             backgroundColor: Colors.primary,
             paddingHorizontal: 60,
             paddingVertical: 10,
@@ -102,7 +127,15 @@ const CreateToppingCategoryModel = ({ setShowCreateToppingCategoryModel }) => {
           }}
           onPress={saveItem}
         >
-          <Text style={styles.text}>Save</Text>
+          <Text
+            style={{
+              fontFamily: Fonts.LATO_BOLD,
+              fontSize: 20,
+              textAlign: "center",
+            }}
+          >
+            Sauvegarder
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -128,12 +161,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 40,
     paddingHorizontal: 40,
-    width: "70%",
+    width: 500,
   },
 
   text: {
-    fontFamily: Fonts.LATO_REGULAR,
-    fontSize: 22,
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 20,
   },
   name: {
     flexDirection: "row",

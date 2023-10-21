@@ -1,5 +1,7 @@
 import {
   ActivityIndicator,
+  Alert,
+  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -14,10 +16,14 @@ import { Entypo } from "@expo/vector-icons";
 import { getItemsNames } from "../../services/MenuItemServices";
 import Calender from "../Calender";
 import AddItemModel from "./AddItemMode";
-import { createOffer } from "../../services/OffersServices";
+
 import SuccessModel from "./SuccessModel";
 import { getToppings } from "../../services/ToppingsServices";
 import AddToppingModel from "./AddToppingModel";
+import * as ImagePicker from "expo-image-picker";
+
+import mime from "mime";
+import { API_URL } from "@env";
 
 const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
   const [menuItems, setMenuItems] = useState([]);
@@ -25,11 +31,13 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
   const [showAddItemModel, setShowAddItemModel] = useState(false);
   const [price, setPrice] = useState("");
   const [name, setName] = useState("");
+  const [image, setImage] = useState("");
   const [items, setItems] = useState([]);
   const [customizationsList, setCustomizationsList] = useState([]);
   const [showAddCategoryModel, setShowAddCategoryModel] = useState(false);
   const [customizationsNames, setCustomizationsNames] = useState([]);
   const [showSuccessModel, setShowSuccessModel] = useState(false);
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const fetchData = async () => {
     setIsLoading(true);
@@ -61,22 +69,79 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
   useEffect(() => {
     fetchData();
   }, []);
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
 
-  const saveItem = async () => {
-    setIsLoading(true);
-    createOffer(name, items, price, date, customizationsNames)
-      .then((response) => {
-        if (response.status) {
-          setShowSuccessModel(true);
-        } else {
-          console.log(response);
-        }
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
   };
 
+  const saveItem = async () => {
+    if (items.length < 1) {
+      setError("Choisir au moin un article");
+      return;
+    }
+    if (name.length < 1) {
+      setError("Nom de l'offre manquant");
+      return;
+    }
+    if (image.length < 1) {
+      setError("Image de l'offre manquante");
+      return;
+    }
+    if (price.length < 1) {
+      setError("Prix de l'offre manquant");
+      return;
+    }
+    if (date <= new Date()) {
+      setError("Date invalide");
+      return;
+    }
+    const formdata = new FormData();
+    if (image) {
+      formdata.append("file", {
+        uri: image,
+        type: mime.getType(image),
+        name: image.split("/").pop(),
+      });
+    }
+    formdata.append("customizations", JSON.stringify(customizationsNames));
+    formdata.append("items", JSON.stringify(items));
+    formdata.append("name", name);
+    formdata.append("price", price);
+    formdata.append("expireAt", date.toLocaleDateString());
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(`${API_URL}/offers/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        body: formdata,
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error("HTTP error " + response.status);
+      }
+      setRefresh((prev) => prev + 1);
+      setShowSuccessModel(true);
+    } catch (err) {
+      if (err.response) {
+        Alert.alert("Problème interne", err.response.message);
+      } else {
+        Alert.alert("problème internet");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
   useEffect(() => {
     if (showSuccessModel) {
       // After 1 second, reset showSuccessModel to false
@@ -91,6 +156,16 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
       return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
     }
   }, [showSuccessModel]);
+  const deleteItem = (index) => {
+    const newItems = [...items];
+    newItems.splice(index, 1);
+    setItems(newItems);
+  };
+  const deleteCustomization = (index) => {
+    const newCustomizations = [...customizationsNames];
+    newCustomizations.splice(index, 1);
+    setCustomizationsNames(newCustomizations);
+  };
 
   return (
     <View style={styles.container}>
@@ -128,59 +203,121 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
         </View>
       )}
       <View style={styles.model}>
-        <TouchableOpacity
-          style={{ alignSelf: "flex-end" }}
-          onPress={() => setShowCreateOfferModel(false)}
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
         >
-          <AntDesign name="close" size={40} color="gray" />
-        </TouchableOpacity>
-        <View>
-          <View style={styles.image}>
-            <Text style={styles.text}>Image</Text>
+          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
+            Ajouter une offre
+          </Text>
+          <TouchableOpacity onPress={() => setShowCreateOfferModel(false)}>
+            <AntDesign name="close" size={40} color="gray" />
+          </TouchableOpacity>
+        </View>
+        {error.length > 0 && (
+          <Text
+            style={{
+              fontFamily: Fonts.LATO_BOLD,
+              fontSize: 20,
+              textAlign: "center",
+              color: "red",
+            }}
+          >
+            {error}
+          </Text>
+        )}
+        <View style={{ marginTop: 40 }}>
+          <View style={{ flexDirection: "row" }}>
             <TouchableOpacity
               style={{
-                backgroundColor: Colors.primary,
-                paddingBottom: 10,
-                paddingLeft: 20,
-                paddingRight: 20,
-                paddingTop: 10,
+                width: 250,
+                height: 150,
+                borderRadius: 16,
+                backgroundColor: "gray",
+
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+              onPress={pickImage}
+            >
+              {image ? (
+                <Image
+                  source={{ uri: image }}
+                  style={{
+                    resizeMode: "cover",
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: 16,
+                  }}
+                />
+              ) : (
+                <Entypo name="camera" size={48} color="black" />
+              )}
+            </TouchableOpacity>
+            <View
+              style={{
                 marginLeft: 20,
-                borderRadius: 5,
+                justifyContent: "space-between",
               }}
             >
-              <Text style={styles.text}>Upload Image</Text>
-            </TouchableOpacity>
+              <View style={styles.name}>
+                <Text style={styles.text}>Nom</Text>
+                <TextInput
+                  style={{
+                    fontFamily: Fonts.LATO_REGULAR,
+                    fontSize: 20,
+                    padding: 5,
+                    borderWidth: 2,
+                    borderColor: Colors.primary,
+                    marginLeft: 20,
+                    flex: 1,
+                  }}
+                  placeholder="Nom de l'offre"
+                  placeholderTextColor={Colors.tgry}
+                  onChangeText={(text) => setName(text)}
+                />
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={styles.text}>Prix</Text>
+
+                <TextInput
+                  style={{
+                    borderWidth: 2,
+                    borderColor: Colors.primary,
+                    padding: 5,
+                    paddingHorizontal: 8,
+                    marginHorizontal: 10,
+                  }}
+                  onChangeText={(text) => setPrice(text)}
+                  keyboardType="numeric"
+                  placeholder="prix"
+                />
+                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                  $
+                </Text>
+              </View>
+              <View style={styles.prices}>
+                <Text style={styles.text}>Date d'éxpiration</Text>
+
+                <Calender setDate={setDate} date={date} />
+              </View>
+            </View>
           </View>
-          <View style={styles.name}>
-            <Text style={styles.text}>Name</Text>
-            <TextInput
-              style={{
-                fontFamily: Fonts.LATO_REGULAR,
-                fontSize: 18,
-                paddingBottom: 5,
-                paddingLeft: 5,
-                paddingRight: 5,
-                paddingTop: 5,
-                borderWidth: 1,
-                borderRadius: 5,
-                marginLeft: 20,
-              }}
-              placeholder="Item Name"
-              placeholderTextColor={Colors.tgry}
-              onChangeText={(text) => setName(text)}
-            />
-          </View>
+
           <View style={styles.customizations}>
-            <Text style={styles.text}>Items</Text>
+            <Text style={styles.text}>Articles</Text>
             <View
               style={{
                 flexDirection: "row",
                 flexWrap: "wrap",
-                justifyContent: "space-between",
+                gap: 20,
                 marginTop: 20,
               }}
             >
-              {items.map((item) => (
+              {items.map((item, index) => (
                 <View
                   style={{
                     borderWidth: 1,
@@ -194,7 +331,7 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
                     gap: 5,
                     marginTop: 10,
                   }}
-                  key={item._id}
+                  key={index}
                 >
                   <View
                     style={{
@@ -206,9 +343,12 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
                     <Text style={styles.text}>{item.item.name}</Text>
                     <Text style={styles.text}> x {item.quantity}</Text>
                   </View>
-                  <View style={{ alignSelf: "flex-end", marginLeft: 10 }}>
+                  <TouchableOpacity
+                    style={{ alignSelf: "flex-end", marginLeft: 10 }}
+                    onPress={() => deleteItem(index)}
+                  >
                     <AntDesign name="close" size={24} color="gray" />
-                  </View>
+                  </TouchableOpacity>
                 </View>
               ))}
               <TouchableOpacity
@@ -225,21 +365,21 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
                 onPress={() => setShowAddItemModel(true)}
               >
                 <Entypo name="plus" size={24} color="black" />
-                <Text style={styles.text}>Add</Text>
+                <Text style={styles.text}>Ajouter</Text>
               </TouchableOpacity>
             </View>
           </View>
           <View style={styles.customizations}>
-            <Text style={styles.text}>Customizations</Text>
+            <Text style={styles.text}>Personalisations</Text>
             <View
               style={{
                 flexDirection: "row",
                 flexWrap: "wrap",
-                justifyContent: "space-between",
+                gap: 20,
                 marginTop: 20,
               }}
             >
-              {customizationsNames.map((item) => (
+              {customizationsNames.map((item, index) => (
                 <View
                   style={{
                     borderWidth: 1,
@@ -253,6 +393,7 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
                     gap: 5,
                     marginTop: 10,
                   }}
+                  key={index}
                 >
                   <View
                     style={{
@@ -263,9 +404,12 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
                   >
                     <Text style={styles.text}>{item.name}</Text>
                   </View>
-                  <View style={{ alignSelf: "flex-end", marginLeft: 10 }}>
+                  <TouchableOpacity
+                    style={{ alignSelf: "flex-end", marginLeft: 10 }}
+                    onPress={() => deleteCustomization(index)}
+                  >
                     <AntDesign name="close" size={24} color="gray" />
-                  </View>
+                  </TouchableOpacity>
                 </View>
               ))}
               <TouchableOpacity
@@ -282,25 +426,9 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
                 onPress={() => setShowAddCategoryModel(true)}
               >
                 <Entypo name="plus" size={24} color="black" />
-                <Text style={styles.text}>Add</Text>
+                <Text style={styles.text}>Ajouter</Text>
               </TouchableOpacity>
             </View>
-          </View>
-          <View style={styles.prices}>
-            <Text style={styles.text}>Price</Text>
-
-            <View style={styles.priceBox}>
-              <TextInput
-                style={styles.priceInput}
-                onChangeText={(text) => setPrice(text)}
-                keyboardType="numeric"
-              />
-            </View>
-          </View>
-          <View style={styles.prices}>
-            <Text style={styles.text}>Expire Date</Text>
-
-            <Calender setDate={setDate} date={date} />
           </View>
         </View>
         <TouchableOpacity
@@ -314,7 +442,7 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
           }}
           onPress={saveItem}
         >
-          <Text style={styles.text}>Save</Text>
+          <Text style={styles.text}>Sauvegarder</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -340,16 +468,16 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 40,
     paddingHorizontal: 40,
-    width: "70%",
+    width: "80%",
   },
   image: { flexDirection: "row", marginTop: 40, alignItems: "center" },
   text: {
-    fontFamily: Fonts.LATO_REGULAR,
-    fontSize: 22,
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 20,
   },
   name: {
     flexDirection: "row",
-    marginTop: 40,
+
     alignItems: "center",
   },
 
@@ -360,9 +488,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 5,
     padding: 5,
-    marginLeft: 40,
   },
-  prices: { marginTop: 40, flexDirection: "row", alignItems: "center" },
+  prices: { flexDirection: "row", alignItems: "center" },
   priceInput: {
     fontFamily: Fonts.LATO_REGULAR,
     fontSize: 18,
@@ -370,6 +497,7 @@ const styles = StyleSheet.create({
     paddingRight: 10,
 
     borderRadius: 5,
+    marginLeft: 10,
   },
   customizations: {
     marginTop: 40,
