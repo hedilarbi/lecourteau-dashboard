@@ -24,6 +24,7 @@ import * as ImagePicker from "expo-image-picker";
 
 import mime from "mime";
 import { API_URL } from "@env";
+import FailModel from "./FailModel";
 
 const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
   const [menuItems, setMenuItems] = useState([]);
@@ -37,6 +38,7 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
   const [showAddCategoryModel, setShowAddCategoryModel] = useState(false);
   const [customizationsNames, setCustomizationsNames] = useState([]);
   const [showSuccessModel, setShowSuccessModel] = useState(false);
+  const [showFailModal, setShowFailModal] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const fetchData = async () => {
@@ -72,7 +74,7 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
+
       aspect: [4, 3],
       quality: 1,
     });
@@ -133,11 +135,7 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
       setRefresh((prev) => prev + 1);
       setShowSuccessModel(true);
     } catch (err) {
-      if (err.response) {
-        Alert.alert("Problème interne", err.response.message);
-      } else {
-        Alert.alert("problème internet");
-      }
+      setShowFailModal(true);
     } finally {
       setIsLoading(false);
     }
@@ -156,6 +154,17 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
       return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
     }
   }, [showSuccessModel]);
+  useEffect(() => {
+    if (showFailModal) {
+      // After 1 second, reset showSuccessModel to false
+
+      const timer = setTimeout(() => {
+        setShowFailModal(false);
+      }, 2000);
+
+      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+    }
+  }, [showFailModal]);
   const deleteItem = (index) => {
     const newItems = [...items];
     newItems.splice(index, 1);
@@ -184,6 +193,9 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
         />
       )}
       {showSuccessModel && <SuccessModel />}
+      {showFailModal && (
+        <FailModel message="Oops ! Quelque chose s'est mal passé" />
+      )}
       {isLoading && (
         <View
           style={{

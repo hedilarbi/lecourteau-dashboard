@@ -1,5 +1,7 @@
 import {
   ActivityIndicator,
+  Alert,
+  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -8,59 +10,67 @@ import {
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { AntDesign } from "@expo/vector-icons";
-import { Dropdown } from "react-native-element-dropdown";
 import { Colors, Fonts } from "../../constants";
-
-import { createReward } from "../../services/RewardServices";
-import { getItemsNames } from "../../services/MenuItemServices";
 import SuccessModel from "./SuccessModel";
+import { GOOGLE_MAPS_API_KEY } from "@env";
+import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
+import * as Location from "expo-location";
+import { createRestaurant } from "../../services/RestaurantServices";
 import FailModel from "./FailModel";
 
-const CreateRewardModel = ({ setShowCreateRewardModel, setRefresh }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [items, setItems] = useState([]);
-  const [item, setItem] = useState("");
-  const [points, setPoints] = useState("");
+const CreateRestaurantModal = ({
+  setShowCreateRestaurantModal,
+  setRefresh,
+}) => {
+  const [name, setName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [address, setAddress] = useState("");
   const [showSuccessModel, setShowSuccessModel] = useState(false);
-  const [error, setError] = useState("");
   const [showFailModal, setShowFailModal] = useState(false);
-  const fetchData = async () => {
-    getItemsNames().then((response) => {
-      if (response.status) {
-        let list = [];
-        response.data.map((item) =>
-          list.push({ value: item._id, label: item.name })
-        );
-        setItems(list);
-      } else {
-        console.log(response);
-      }
-    });
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handlePlaceSelect = async (data, details) => {
+    const { description } = details;
+    setAddress(description);
   };
 
-  useEffect(() => {
-    setIsLoading(true);
-    fetchData();
-    setIsLoading(false);
-  }, []);
-
   const saveItem = async () => {
-    if (Object.keys(item).length < 1) {
-      setError("Article manquant");
+    if (name.length < 1) {
+      setError("Nom du réstaurant manquant");
       return;
     }
-    if (points.length < 1) {
-      setError("Nombre de points manquant");
+    if (address.length < 1) {
+      setError("Adresse du réstaurant manquante");
       return;
     }
-    createReward(points, item.id).then((response) => {
-      if (response.status) {
-        setShowSuccessModel(true);
-        setRefresh((prev) => prev + 1);
-      } else {
-        setShowFailModal(true);
+    if (phoneNumber.length < 1) {
+      setError("Téléphone du restaurant manquant");
+      return;
+    }
+    try {
+      setIsLoading(true);
+      let location;
+      const response = await Location.geocodeAsync(address);
+      if (response.length > 0) {
+        const { latitude, longitude } = response[0];
+        location = {
+          latitude,
+          longitude,
+        };
       }
-    });
+      createRestaurant(name, address, location, phoneNumber).then(
+        (response) => {
+          if (response.status) {
+            setShowSuccessModel(true);
+          }
+        }
+      );
+    } catch (err) {
+      setShowFailModal(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
   useEffect(() => {
     if (showSuccessModel) {
@@ -69,7 +79,8 @@ const CreateRewardModel = ({ setShowCreateRewardModel, setRefresh }) => {
       const timer = setTimeout(() => {
         setShowSuccessModel(false);
         setRefresh((prev) => prev + 1);
-        setShowCreateRewardModel(false);
+
+        setShowCreateRestaurantModal(false);
       }, 1000);
 
       return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
@@ -86,6 +97,20 @@ const CreateRewardModel = ({ setShowCreateRewardModel, setRefresh }) => {
       return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
     }
   }, [showFailModal]);
+  useEffect(() => {
+    if (showSuccessModel) {
+      // After 1 second, reset showSuccessModel to false
+
+      const timer = setTimeout(() => {
+        setShowSuccessModel(false);
+        setRefresh((prev) => prev + 1);
+
+        setShowCreateRestaurantModal(false);
+      }, 1000);
+
+      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+    }
+  }, [showSuccessModel]);
 
   return (
     <View style={styles.container}>
@@ -120,9 +145,9 @@ const CreateRewardModel = ({ setShowCreateRewardModel, setRefresh }) => {
           }}
         >
           <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-            Ajouter une récompense
+            Ajouter un réstaurant
           </Text>
-          <TouchableOpacity onPress={() => setShowCreateRewardModel(false)}>
+          <TouchableOpacity onPress={() => setShowCreateRestaurantModal(false)}>
             <AntDesign name="close" size={40} color="gray" />
           </TouchableOpacity>
         </View>
@@ -138,44 +163,65 @@ const CreateRewardModel = ({ setShowCreateRewardModel, setRefresh }) => {
             {error}
           </Text>
         )}
-        <View>
-          <View style={styles.name}>
-            <Text style={styles.text}>Article</Text>
-            <Dropdown
-              style={[styles.dropdown]}
-              placeholderStyle={styles.placeholderStyle}
-              selectedTextStyle={styles.selectedTextStyle}
-              selectedStyle={styles.selectedStyle}
-              itemContainerStyle={styles.itemContainerStyle}
-              itemTextStyle={styles.itemTextStyle}
-              containerStyle={styles.containerStyle}
-              data={items}
-              maxHeight={300}
-              labelField="label"
-              valueField="label"
-              placeholder="Chosir un article"
-              value={item.name}
-              onChange={(item) => {
-                setItem({ id: item.value, name: item.label });
+        <View style={{ marginTop: 20 }}>
+          <View style={{ flexDirection: "row", marginTop: 30 }}>
+            <Text style={[styles.text, { marginTop: 10 }]}>Adresse</Text>
+
+            <GooglePlacesAutocomplete
+              placeholder="Adresse"
+              onPress={(data, details) => handlePlaceSelect(data, details)}
+              query={{
+                key: `${GOOGLE_MAPS_API_KEY}`,
+                language: "en",
+              }}
+              styles={{
+                container: {
+                  marginLeft: 20,
+                },
+                textInputContainer: {
+                  borderColor: Colors.primary,
+                  borderWidth: 2,
+                },
+                textInput: {
+                  fontSize: 20,
+                },
               }}
             />
           </View>
           <View style={styles.name}>
-            <Text style={styles.text}>Points</Text>
+            <Text style={styles.text}>Nom</Text>
             <TextInput
               style={{
                 fontFamily: Fonts.LATO_REGULAR,
-                fontSize: 18,
-                paddingHorizontal: 8,
-                paddingVertical: 5,
-                borderColor: Colors.primary,
+                fontSize: 20,
+                padding: 10,
                 borderWidth: 2,
-
+                borderColor: Colors.primary,
                 marginLeft: 20,
+                flex: 1,
               }}
-              placeholder="1200"
+              placeholder="Nom du réstaurant"
               placeholderTextColor={Colors.tgry}
-              onChangeText={(text) => setPoints(text)}
+              onChangeText={(text) => setName(text)}
+            />
+          </View>
+
+          <View style={styles.name}>
+            <Text style={styles.text}>Téléphone</Text>
+            <TextInput
+              style={{
+                fontFamily: Fonts.LATO_REGULAR,
+                fontSize: 20,
+                padding: 10,
+                borderWidth: 2,
+                borderColor: Colors.primary,
+                marginLeft: 20,
+                flex: 1,
+              }}
+              keyboardType="numeric"
+              placeholder="Téléphone"
+              placeholderTextColor={Colors.tgry}
+              onChangeText={(text) => setPhoneNumber(text)}
             />
           </View>
         </View>
@@ -197,7 +243,7 @@ const CreateRewardModel = ({ setShowCreateRewardModel, setRefresh }) => {
   );
 };
 
-export default CreateRewardModel;
+export default CreateRestaurantModal;
 
 const styles = StyleSheet.create({
   container: {
@@ -216,7 +262,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 40,
     paddingHorizontal: 40,
-    width: 500,
+    width: "80%",
   },
   image: { flexDirection: "row", marginTop: 40, alignItems: "center" },
   text: {
@@ -225,47 +271,10 @@ const styles = StyleSheet.create({
   },
   name: {
     flexDirection: "row",
-    marginTop: 40,
+    marginTop: 30,
     alignItems: "center",
   },
 
-  dropdown: {
-    height: 40,
-    width: 200,
-    borderColor: Colors.primary,
-    borderWidth: 2,
-    paddingHorizontal: 5,
-    paddingVertical: 5,
-    marginLeft: 40,
-  },
-  selectedStyle: {
-    height: 18,
-  },
-  icon: {
-    marginRight: 5,
-  },
-  itemContainerStyle: {
-    padding: 0,
-    margin: 0,
-  },
-  itemTextStyle: {
-    fontSize: 18,
-    padding: 0,
-    margin: 0,
-  },
-  containerStyle: {
-    paddingHorizontal: 0,
-    margin: 0,
-  },
-
-  placeholderStyle: {
-    fontSize: 20,
-    fontFamily: Fonts.LATO_REGULAR,
-  },
-  selectedTextStyle: {
-    fontSize: 20,
-    fontFamily: Fonts.LATO_REGULAR,
-  },
   priceBox: {
     backgroundColor: "white",
     flexDirection: "row",
@@ -273,14 +282,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 5,
     padding: 5,
-    marginLeft: 40,
   },
-  prices: { marginTop: 40, flexDirection: "row", alignItems: "center" },
+  prices: { flexDirection: "row", alignItems: "center" },
   priceInput: {
     fontFamily: Fonts.LATO_REGULAR,
     fontSize: 18,
     paddingLeft: 10,
     paddingRight: 10,
-    marginLeft: 40,
+
+    borderRadius: 5,
+    marginLeft: 10,
+  },
+  customizations: {
+    marginTop: 40,
   },
 });

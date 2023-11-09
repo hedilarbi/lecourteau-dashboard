@@ -4,11 +4,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { AntDesign } from "@expo/vector-icons";
 import { Fonts } from "../../constants";
 import SuccessModel from "./SuccessModel";
+import FailModel from "./FailModel";
 
 const DeleteWarning = ({
   id,
@@ -19,6 +21,7 @@ const DeleteWarning = ({
   deleter,
 }) => {
   const [showSuccessModel, setShowSuccessModel] = useState(false);
+  const [showFailModal, setShowFailModal] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const deleteFromList = async (id) => {
@@ -30,11 +33,14 @@ const DeleteWarning = ({
       if (deleteResponse.status) {
         setShowSuccessModel(true);
       } else {
-        console.log("oops");
+        setShowFailModal(true);
+        console.log(deleteResponse);
       }
     } catch (error) {
       console.log(error.message);
+      setShowFailModal(true);
     } finally {
+      setIsLoading(false);
     }
   };
   useEffect(() => {
@@ -50,10 +56,24 @@ const DeleteWarning = ({
       return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
     }
   }, [showSuccessModel]);
+  useEffect(() => {
+    if (showFailModal) {
+      // After 1 second, reset showSuccessModel to false
+
+      const timer = setTimeout(() => {
+        setShowFailModal(false);
+      }, 2000);
+
+      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+    }
+  }, [showFailModal]);
 
   return (
     <View style={styles.container}>
       {showSuccessModel && <SuccessModel />}
+      {showFailModal && (
+        <FailModel message="Oops ! Quelque chose s'est mal passé" />
+      )}
       {isLoading && (
         <View
           style={{

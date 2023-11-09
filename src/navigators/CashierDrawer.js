@@ -23,22 +23,45 @@ import ItemsNav from "./ItemsNav";
 
 import OffersNav from "./OffersNav";
 import RestaurantsNav from "./RestaurantsNav";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import StaffNav from "./StaffNav";
-import { useSelector } from "react-redux";
-import { selectStaffData } from "../redux/slices/StaffSlice";
-import NotificationsScreen from "../screens/NotificationsScreen";
-
-function DrawerNavigator() {
-  const { role } = useSelector(selectStaffData);
-
+import * as Notifications from "expo-notifications";
+import { useNavigation } from "@react-navigation/native";
+function CashierDrawer() {
+  const notificationListener = useRef();
+  const responseListener = useRef();
+  const navigation = useNavigation();
   useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        return;
-      }
-    })();
+    notificationListener.current =
+      Notifications.addNotificationReceivedListener((notification) => {
+        const data = notification.request.content.data;
+
+        if (data && data.order_id) {
+          navigation.navigate("OrderNav", {
+            screen: "Order",
+            params: { id: data.order_id },
+          });
+        }
+      });
+
+    responseListener.current =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        const data = response.notification.request.content.data;
+
+        if (data && data.order_id) {
+          navigation.navigate("Cashier", {
+            screen: "OrderNav ",
+            params: { id: data.order_id },
+          });
+        }
+      });
+
+    return () => {
+      Notifications.removeNotificationSubscription(
+        notificationListener.current
+      );
+      Notifications.removeNotificationSubscription(responseListener.current);
+    };
   }, []);
   const Drawer = createDrawerNavigator();
 
@@ -70,18 +93,6 @@ function DrawerNavigator() {
           headerShown: false,
           drawerIcon: ({ color }) => (
             <FontAwesome name="home" size={24} color={color} />
-          ),
-        }}
-      />
-
-      <Drawer.Screen
-        name="UsersNav"
-        component={UsersNav}
-        options={{
-          headerShown: false,
-          title: "Utilisateur",
-          drawerIcon: ({ color }) => (
-            <FontAwesome name="users" size={24} color={color} />
           ),
         }}
       />
@@ -134,40 +145,8 @@ function DrawerNavigator() {
           ),
         }}
       />
-      <Drawer.Screen
-        name="Rewards"
-        component={RewardsScreen}
-        options={{
-          title: "Récompenses",
-          headerShown: false,
-          drawerIcon: ({ color }) => (
-            <Entypo name="price-ribbon" size={24} color={color} />
-          ),
-        }}
-      />
-      <Drawer.Screen
-        name="StaffNav"
-        component={StaffNav}
-        options={{
-          title: "Employée",
-          headerShown: false,
-          drawerIcon: ({ color }) => (
-            <Fontisto name="persons" size={24} color={color} />
-          ),
-        }}
-      />
-      <Drawer.Screen
-        name="RestaurantsNav"
-        component={RestaurantsNav}
-        options={{
-          title: "Réstaurants",
-          headerShown: false,
-          drawerIcon: ({ color }) => (
-            <Ionicons name="restaurant" size={24} color={color} />
-          ),
-        }}
-      />
-      <Drawer.Screen
+
+      {/* <Drawer.Screen
         name="Paramètre"
         component={SettingsScreen}
         options={{
@@ -186,9 +165,9 @@ function DrawerNavigator() {
             <Ionicons name="notifications" size={24} color={color} />
           ),
         }}
-      />
+      /> */}
     </Drawer.Navigator>
   );
 }
 
-export default DrawerNavigator;
+export default CashierDrawer;

@@ -45,11 +45,11 @@ const AddMenuItemPrice = ({
   };
 
   const getDropdownOptions = () => {
-    switch (category) {
-      case "frites":
-      case "poutines":
-      case "poutines signatures":
-      case "pizza":
+    switch (category.toLowerCase()) {
+      case "nos frites":
+      case "nos poutines":
+      case "nos poutines signatures":
+      case "nos pizza":
         setSizes([
           { label: "petite", value: "petite" },
           { label: "moyenne", value: "moyenne" },
@@ -57,8 +57,8 @@ const AddMenuItemPrice = ({
           { label: "familiale", value: "familiale" },
         ]);
         break;
-      case "entrées":
-      case "assiettes":
+      case "les entrées":
+      case "nos assiettes":
         setSizes([
           { label: "1 morceau", value: "1 morceau" },
           { label: "2 morceaux", value: "2 morceaux" },
@@ -69,10 +69,10 @@ const AddMenuItemPrice = ({
         ]);
         break;
       case "casse-croûte":
-      case "sandwish":
+      case "nos sandwichs":
         setSizes([
-          { label: "seul", value: "assiette" },
-          { label: "2 morceaux", value: "2 morceaux" },
+          { label: "seul", value: "seul" },
+          { label: "assiette", value: "assiette" },
         ]);
         break;
       // Add other cases for different categories

@@ -71,7 +71,33 @@ const getCategories = async () => {
   } catch (error) {
     return {
       status: false,
-      message: error.message,
+      message: error.response.data.message,
+    };
+  }
+};
+
+const deleteCategory = async (id) => {
+  try {
+    let deleteCategoryResponse = await axios.delete(
+      `${API_URL}/categories/delete/${id}`
+    );
+
+    if (deleteCategoryResponse?.status === 200) {
+      return {
+        status: true,
+        message: "users data",
+        data: deleteCategoryResponse?.data,
+      };
+    } else {
+      return {
+        status: false,
+        messge: error.response.data.message,
+      };
+    }
+  } catch (error) {
+    return {
+      status: false,
+      message: error.response.data.message,
     };
   }
 };
@@ -153,7 +179,7 @@ const deleteMenuItem = async (id) => {
   } catch (error) {
     return {
       status: false,
-      message: error.message,
+      message: error.response.data.message,
     };
   }
 };
@@ -227,4 +253,5 @@ export {
   deleteMenuItem,
   getMenuItem,
   updateMenuItem,
+  deleteCategory,
 };

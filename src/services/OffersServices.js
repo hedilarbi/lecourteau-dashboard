@@ -100,7 +100,7 @@ const deleteOffer = async (id) => {
   } catch (error) {
     return {
       status: false,
-      message: error.message,
+      message: error.response.data.message,
     };
   }
 };

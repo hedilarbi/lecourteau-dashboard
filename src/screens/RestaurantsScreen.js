@@ -1,78 +1,96 @@
 import {
-  View,
-  Text,
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  Text,
   TouchableOpacity,
+  View,
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
 import React, { useEffect, useState } from "react";
-import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
-
+import { useNavigation } from "@react-navigation/native";
 import { Colors, Fonts } from "../constants";
+import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import SearchBar from "../components/SearchBar";
 import DeleteWarning from "../components/models/DeleteWarning";
-import UserModel from "../components/models/UserModel";
-import useGetUsers from "../hooks/useGetUsers";
-import { deleteUser, getUsers } from "../services/UsersServices";
-import { filterUsers } from "../utils/filters";
-import { useNavigation } from "@react-navigation/native";
+import AddButton from "../components/AddButton";
 
-const UsersScreen = () => {
+import {
+  deleteRestaurant,
+  getRestaurants,
+} from "../services/RestaurantServices";
+import CreateRestaurantModal from "../components/models/CreateRestaurantModal";
+
+const RestaurantsScreen = () => {
   const navigation = useNavigation();
-  const [deleteWarningModelState, setDeleteWarningModelState] = useState(false);
-  const [userId, setUserId] = useState("");
-  const [refresh, setRefresh] = useState(0);
-
+  const [showCreateRestaurantModal, setShowCreateRestaurantModal] =
+    useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [refresh, setRefresh] = useState(0);
+  const [restaurants, setRestaurants] = useState([]);
+  const [deleteWarningModelState, setDeleteWarningModelState] = useState(false);
+  const [restaurantId, setRestaurantId] = useState("");
 
-  const [users, setUsers] = useState([]);
-  const [usersList, setUsersList] = useState([]);
   const fetchData = async () => {
-    getUsers().then((response) => {
-      if (response?.status) {
-        setUsers(response?.data);
-        setUsersList(response?.data);
-      } else {
-        console.log("getUsers false");
-      }
-    });
-  };
-  useEffect(() => {
     setIsLoading(true);
-    fetchData();
-    setIsLoading(false);
-  }, [refresh]);
-  const handleShowUserModel = (id) => {
-    navigation.navigate("User", { id });
+    getRestaurants()
+      .then((response) => {
+        if (response.status) {
+          setRestaurants(response.data);
+        }
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   };
-
   const handleShowDeleteWarning = (id) => {
-    setUserId(id);
+    setRestaurantId(id);
     setDeleteWarningModelState(true);
   };
+  const hadnleShowRestaurantModel = (id) => {
+    navigation.navigate("Restaurant", { id });
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [refresh]);
 
   return (
     <SafeAreaView style={{ backgroundColor: Colors.screenBg, flex: 1 }}>
       {deleteWarningModelState && (
         <DeleteWarning
-          id={userId}
+          id={restaurantId}
           setDeleteWarningModelState={setDeleteWarningModelState}
-          setIsLoading={setIsLoading}
           setRefresh={setRefresh}
-          message={`Etes-vous sûr de vouloir supprimer cet utilisateur ?`}
-          deleter={deleteUser}
+          message={`Etes-vous sûr de vouloir supprimer ce réstaurant ?`}
+          deleter={deleteRestaurant}
+        />
+      )}
+      {showCreateRestaurantModal && (
+        <CreateRestaurantModal
+          setShowCreateRestaurantModal={setShowCreateRestaurantModal}
+          setRefresh={setRefresh}
         />
       )}
 
       <View style={{ flex: 1, padding: 20 }}>
         <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
-          Utilisateurs
+          Réstaurants
         </Text>
-        <View style={{ marginTop: 30 }}>
-          <SearchBar setter={setUsers} list={usersList} filter={filterUsers} />
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginTop: 30,
+            justifyContent: "space-between",
+          }}
+        >
+          {/* <SearchBar /> */}
+          <AddButton
+            setShowModel={setShowCreateRestaurantModal}
+            text="Réstaurant"
+          />
         </View>
         {isLoading ? (
           <View
@@ -87,16 +105,16 @@ const UsersScreen = () => {
           >
             <ActivityIndicator size={"large"} color="black" />
           </View>
-        ) : users.length > 0 ? (
+        ) : restaurants.length > 0 ? (
           <ScrollView
             style={{ width: "100%", marginTop: 30 }}
             refreshControl={
               <RefreshControl refreshing={isLoading} onRefresh={fetchData} />
             }
           >
-            {users.map((user, index) => (
+            {restaurants.map((restaurant, index) => (
               <View
-                key={user._id}
+                key={restaurant._id}
                 style={[
                   styles.row,
                   index % 2
@@ -104,30 +122,33 @@ const UsersScreen = () => {
                     : { backgroundColor: "rgba(247,166,0,0.3)" },
                 ]}
               >
-                <Text style={[styles.rowCell, { width: "20%" }]}>
-                  {user.name}
+                <Text style={[styles.rowCell, { width: "30%" }]}>
+                  {restaurant.name}
                 </Text>
-                <Text style={[styles.rowCell, { width: "20%" }]}>
-                  {user.phone_number}
+                <Text
+                  style={[styles.rowCell, { width: "30%" }]}
+                  numberOfLines={1}
+                >
+                  {restaurant.address}
                 </Text>
-                <Text style={[styles.rowCell, { flex: 1 }]}>{user.email}</Text>
+
                 <TouchableOpacity
                   style={{
                     justifyContent: "center",
                     alignItems: "center",
                   }}
-                  onPress={() => handleShowUserModel(user._id)}
+                  onPress={() => hadnleShowRestaurantModel(restaurant._id)}
                 >
-                  <FontAwesome name="pencil" size={24} color="#2AB2DB" />
+                  <FontAwesome name="pencil" size={30} color="#2AB2DB" />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={{
                     justifyContent: "center",
                     alignItems: "center",
                   }}
-                  onPress={() => handleShowDeleteWarning(user._id)}
+                  onPress={() => handleShowDeleteWarning(restaurant._id)}
                 >
-                  <MaterialIcons name="delete" size={24} color="#F31A1A" />
+                  <MaterialIcons name="delete" size={30} color="#F31A1A" />
                 </TouchableOpacity>
               </View>
             ))}
@@ -144,7 +165,7 @@ const UsersScreen = () => {
             }}
           >
             <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-              Aucun Utilisateur
+              Aucun Restaurant
             </Text>
           </View>
         )}
@@ -152,6 +173,9 @@ const UsersScreen = () => {
     </SafeAreaView>
   );
 };
+
+export default RestaurantsScreen;
+
 const styles = StyleSheet.create({
   row: {
     width: "100%",
@@ -159,13 +183,16 @@ const styles = StyleSheet.create({
     gap: 50,
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 10,
+  },
+  image: {
+    width: 200,
+    height: 150,
+    resizeMode: "cover",
   },
   rowCell: {
     fontFamily: Fonts.LATO_REGULAR,
-    fontSize: 20,
+    fontSize: 22,
   },
 });
-
-export default UsersScreen;

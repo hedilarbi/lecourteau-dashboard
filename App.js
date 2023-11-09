@@ -1,14 +1,13 @@
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View } from "react-native";
+
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import RootNavigation from "./src/navigators/RootNavigation";
-import { Provider, useDispatch } from "react-redux";
+import { Provider } from "react-redux";
 import { store } from "./src/redux/store";
-import { getItemAsync } from "expo-secure-store";
-import { setStaffToken } from "./src/redux/slices/StaffSlice";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 
 SplashScreen.preventAutoHideAsync();
@@ -39,18 +38,9 @@ export default function App() {
   return (
     <Provider store={store}>
       <SafeAreaView style={{ flex: 1 }}>
-        <StatusBar backgroundColor="black" style="light" />
+        <StatusBar style="light" backgroundColor="black" />
         <RootNavigation />
       </SafeAreaView>
     </Provider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});

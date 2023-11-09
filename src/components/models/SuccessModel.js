@@ -33,6 +33,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(50,44,44,0.4)",
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 100,
+    zIndex: 5000,
   },
 });

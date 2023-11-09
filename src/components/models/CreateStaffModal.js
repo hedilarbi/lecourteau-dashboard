@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  Alert,
   Image,
   StyleSheet,
   Text,
@@ -10,41 +11,48 @@ import {
 import React, { useEffect, useState } from "react";
 import { AntDesign } from "@expo/vector-icons";
 import { Dropdown } from "react-native-element-dropdown";
-import { ApiUrl, Colors, Fonts } from "../../constants";
+import { Colors, Fonts, Roles } from "../../constants";
 import { Entypo } from "@expo/vector-icons";
-import { getToppingsCategories } from "../../services/ToppingsServices";
+
 import SuccessModel from "./SuccessModel";
 import * as ImagePicker from "expo-image-picker";
 import mime from "mime";
 import { API_URL } from "@env";
+import { getRestaurants } from "../../services/RestaurantServices";
 import FailModel from "./FailModel";
 
-const CreateToppingModel = ({
-  setShowCreateToppingModel,
+const CreateStaffModal = ({
+  setShowCreateStaffModal,
 
   setRefresh,
 }) => {
-  const [category, setCategory] = useState({});
-
-  const [isLoading, setIsloading] = useState(true);
-  const [categoriesNames, setCategoriesNames] = useState([]);
-  const [name, setName] = useState("");
-  const [image, setImage] = useState("");
   const [showSuccessModel, setShowSuccessModel] = useState(false);
-  const [price, setPrice] = useState("");
-  const [error, setError] = useState("");
+  const [restaurants, setRestaurants] = useState([]);
+  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [image, setImage] = useState("");
+  const [password, setPassword] = useState("");
+  const [restaurant, setRestaurant] = useState({});
+  const [role, setRole] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const [showFailModal, setShowFailModal] = useState(false);
+  const [error, setError] = useState("");
+  const roles = [
+    { value: Roles.CASHIER, label: Roles.CASHIER },
+    { value: Roles.MANAGER, label: Roles.MANAGER },
+    { value: Roles.LIVREUR, label: Roles.LIVREUR },
+  ];
   const fetchData = async () => {
-    getToppingsCategories().then((response) => {
+    getRestaurants().then((response) => {
       if (response.status) {
         let list = [];
         response?.data.map((item) =>
           list.push({ value: item._id, label: item.name })
         );
-        setCategoriesNames(list);
+        setRestaurants(list);
       }
     });
-    setIsloading(false);
+    setIsLoading(false);
   };
   useEffect(() => {
     fetchData();
@@ -52,23 +60,28 @@ const CreateToppingModel = ({
 
   const saveItem = async () => {
     if (name.length < 1) {
-      setError("Nom de la personalisation manquant");
+      setError("Nom de l'employée manquant");
       return;
     }
-    if (image.length < 1) {
-      setError("Image de la personalisation manquante");
+    if (username.length < 1) {
+      setError("Nom d'utilisateur de l'employée manquant");
       return;
     }
-    if (Object.keys(category).length < 1) {
-      setError("Catégorie de la personalisation manquante");
+    if (password.length < 1) {
+      setError("Mot de passe de l'employée manquant");
       return;
     }
-    if (price.length < 1) {
-      setError("Prix de la personalisation manquant");
+    if (Object.keys(restaurant).length < 1) {
+      setError("Il faut choisir un restaurant");
       return;
     }
+    if (role.length < 1) {
+      setError("Il faut choisir un rôle");
+      return;
+    }
+
     const formdata = new FormData();
-    if (image) {
+    if (image.length > 0) {
       formdata.append("file", {
         uri: image,
         type: mime.getType(image),
@@ -77,12 +90,14 @@ const CreateToppingModel = ({
     }
 
     formdata.append("name", name);
-    formdata.append("category", category.id);
-    formdata.append("price", price);
+    formdata.append("username", username);
+    formdata.append("password", password);
+    formdata.append("restaurant", restaurant.id);
+    formdata.append("role", role);
 
     try {
-      setIsloading(true);
-      const response = await fetch(`${API_URL}/toppings/create`, {
+      setIsLoading(true);
+      const response = await fetch(`${API_URL}/staffs/create`, {
         method: "POST",
         headers: {
           "Content-Type": "multipart/form-data",
@@ -97,7 +112,7 @@ const CreateToppingModel = ({
     } catch (err) {
       setShowFailModal(true);
     } finally {
-      setIsloading(false);
+      setIsLoading(false);
     }
   };
 
@@ -105,7 +120,7 @@ const CreateToppingModel = ({
     // No permissions request is necessary for launching the image library
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
-
+      allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
     });
@@ -121,7 +136,7 @@ const CreateToppingModel = ({
       const timer = setTimeout(() => {
         setRefresh((prev) => prev + 1);
         setShowSuccessModel(false);
-        setShowCreateToppingModel(false);
+        setShowCreateStaffModal(false);
       }, 2000);
 
       return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
@@ -138,7 +153,6 @@ const CreateToppingModel = ({
       return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
     }
   }, [showFailModal]);
-
   return (
     <View style={styles.container}>
       {showSuccessModel && <SuccessModel />}
@@ -172,9 +186,9 @@ const CreateToppingModel = ({
           }}
         >
           <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-            Ajouter une Personalisation
+            Ajouter un emplyée
           </Text>
-          <TouchableOpacity onPress={() => setShowCreateToppingModel(false)}>
+          <TouchableOpacity onPress={() => setShowCreateStaffModal(false)}>
             <AntDesign name="close" size={40} color="gray" />
           </TouchableOpacity>
         </View>
@@ -216,7 +230,9 @@ const CreateToppingModel = ({
               <Entypo name="camera" size={38} color="black" />
             )}
           </TouchableOpacity>
-          <View style={{ marginLeft: 40, justifyContent: "space-between" }}>
+          <View
+            style={{ marginLeft: 40, justifyContent: "space-between", flex: 1 }}
+          >
             <View style={styles.name}>
               <Text style={styles.text}>Nom</Text>
               <TextInput
@@ -238,52 +254,101 @@ const CreateToppingModel = ({
               />
             </View>
             <View style={styles.name}>
-              <Text style={styles.text}>Categorie</Text>
-              <Dropdown
-                style={[styles.dropdown]}
-                placeholderStyle={styles.placeholderStyle}
-                selectedTextStyle={styles.selectedTextStyle}
-                selectedStyle={styles.selectedStyle}
-                itemContainerStyle={styles.itemContainerStyle}
-                itemTextStyle={styles.itemTextStyle}
-                containerStyle={styles.containerStyle}
-                data={categoriesNames}
-                maxHeight={300}
-                labelField="label"
-                valueField="label"
-                placeholder="Catégorie"
-                value={category.name}
-                onChange={(item) => {
-                  setCategory({ id: item.value, name: item.label });
-                }}
-              />
-            </View>
-            <View style={styles.prices}>
-              <Text style={styles.text}>Prix</Text>
-
-              <View style={styles.priceBox}>
-                <TextInput
-                  style={styles.priceInput}
-                  onChangeText={(text) => setPrice(text)}
-                  keyboardType="numeric"
-                  placeholder="Prix"
-                />
-              </View>
-              <Text
+              <Text style={styles.text}>Nom d'utilisateur</Text>
+              <TextInput
                 style={{
                   fontFamily: Fonts.LATO_REGULAR,
                   fontSize: 20,
-                  marginLeft: 10,
+                  paddingBottom: 5,
+                  paddingLeft: 5,
+                  paddingRight: 5,
+                  paddingTop: 5,
+                  borderWidth: 2,
+                  borderColor: Colors.primary,
+                  marginLeft: 20,
+                  flex: 1,
                 }}
-              >
-                $
-              </Text>
+                placeholder="Nom d'utilisateur"
+                placeholderTextColor={Colors.tgry}
+                onChangeText={(text) => setUsername(text)}
+              />
             </View>
+            <View style={styles.name}>
+              <Text style={styles.text}>Mot de passe</Text>
+              <TextInput
+                style={{
+                  fontFamily: Fonts.LATO_REGULAR,
+                  fontSize: 20,
+                  paddingBottom: 5,
+                  paddingLeft: 5,
+                  paddingRight: 5,
+                  paddingTop: 5,
+                  borderWidth: 2,
+                  borderColor: Colors.primary,
+                  marginLeft: 20,
+                  flex: 1,
+                }}
+                placeholder="Mot de passe"
+                placeholderTextColor={Colors.tgry}
+                onChangeText={(text) => setPassword(text)}
+              />
+            </View>
+          </View>
+        </View>
+        <View
+          style={{
+            marginTop: 40,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <View style={styles.name}>
+            <Text style={styles.text}>Réstaurant</Text>
+            <Dropdown
+              style={[styles.dropdown, { width: 300 }]}
+              placeholderStyle={styles.placeholderStyle}
+              selectedTextStyle={styles.selectedTextStyle}
+              selectedStyle={styles.selectedStyle}
+              itemContainerStyle={styles.itemContainerStyle}
+              itemTextStyle={styles.itemTextStyle}
+              containerStyle={styles.containerStyle}
+              data={restaurants}
+              maxHeight={300}
+              labelField="label"
+              valueField="label"
+              placeholder="Réstaurant"
+              value={restaurant.name}
+              onChange={(item) => {
+                setRestaurant({ id: item.value, name: item.label });
+              }}
+            />
+          </View>
+          <View style={styles.name}>
+            <Text style={styles.text}>Rôle</Text>
+            <Dropdown
+              style={[styles.dropdown]}
+              placeholderStyle={styles.placeholderStyle}
+              selectedTextStyle={styles.selectedTextStyle}
+              selectedStyle={styles.selectedStyle}
+              itemContainerStyle={styles.itemContainerStyle}
+              itemTextStyle={styles.itemTextStyle}
+              containerStyle={styles.containerStyle}
+              data={roles}
+              maxHeight={300}
+              labelField="label"
+              valueField="label"
+              placeholder="Rôle"
+              value={role}
+              onChange={(item) => {
+                setRole(item.value);
+              }}
+            />
           </View>
         </View>
         <TouchableOpacity
           style={{
-            marginTop: 40,
+            marginTop: 60,
             alignSelf: "flex-end",
             backgroundColor: Colors.primary,
             paddingHorizontal: 60,
@@ -299,7 +364,7 @@ const CreateToppingModel = ({
   );
 };
 
-export default CreateToppingModel;
+export default CreateStaffModal;
 
 const styles = StyleSheet.create({
   container: {
@@ -318,7 +383,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 40,
     paddingHorizontal: 40,
-    width: "70%",
+    width: "85%",
   },
   image: { flexDirection: "row", marginTop: 40, alignItems: "center" },
   text: {

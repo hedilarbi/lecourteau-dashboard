@@ -1,23 +1,28 @@
 {
   "cli": {
-    "version": ">= 5.4.0"
+    "version": ">= 3.5.1"
   },
   "build": {
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal"
-    },
     "preview": {
       "android": {
         "buildType": "apk"
       },
+      "ios": {
+        "simulator": true
+      },
       "env": {
-        "API_URL": "http://3.20.234.50:5000/api"
+        "API_URL": "http://18.216.214.29:5000/api",
+        "GOOGLE_MAPS_API_KEY": "AIzaSyC2t8GvZFa6Ld6fbKM6_m2n3M0JoOmI03w"
       }
     },
-    "production": {}
-  },
-  "submit": {
+    "preview2": {
+      "android": {
+        "gradleCommand": ":app:assembleRelease"
+      }
+    },
+    "preview3": {
+      "developmentClient": true
+    },
     "production": {}
   }
 }

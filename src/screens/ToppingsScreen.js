@@ -6,44 +6,82 @@ import {
   TouchableOpacity,
   View,
   Image,
+  Switch,
+  RefreshControl,
 } from "react-native";
 import React, { useEffect, useState } from "react";
-import { useNavigation } from "@react-navigation/native";
-import { Colors, Fonts } from "../constants";
-import { MaterialIcons } from "@expo/vector-icons";
+
+import { Colors, Fonts, Roles } from "../constants";
+import { MaterialIcons, FontAwesome } from "@expo/vector-icons";
 import SearchBar from "../components/SearchBar";
 import DeleteWarning from "../components/models/DeleteWarning";
 import AddButton from "../components/AddButton";
 import CreateToppingModel from "../components/models/CreateToppingModel";
 import CreateToppingCategoryModel from "../components/models/CreateToppingCategoryModel";
-import ToppingModel from "../components/models/ToppingModel";
+
 import { deleteTopping, getToppings } from "../services/ToppingsServices";
 import { ActivityIndicator } from "react-native";
-import { filterMenuItems } from "../utils/filters";
+import { filterRestaurantToppings, filterToppings } from "../utils/filters";
+import { useSelector } from "react-redux";
+import { selectStaffData } from "../redux/slices/StaffSlice";
+import {
+  getRestaurantToppings,
+  updateRestaurantToppingAvailability,
+} from "../services/RestaurantServices";
+import UpdateToppingModal from "../components/models/UpdateToppingModal";
 
 const ToppingsScreen = () => {
+  const { role, restaurant } = useSelector(selectStaffData);
   const [toppings, setToppings] = useState([]);
   const [toppingsList, setToppingsList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-
+  const [showUpdateToppingModal, setShowUpdateToppingModal] = useState(false);
   const [showCreateToppingModel, setShowCreateToppingModel] = useState(false);
   const [showCreateToppingCategoryModel, setShowCreateToppingCategoryModel] =
     useState(false);
   const [toppingId, setToppingId] = useState();
   const [deleteWarningModelState, setDeleteWarningModelState] = useState(false);
   const [refresh, setRefresh] = useState(0);
-
+  const [topping, setTopping] = useState(null);
   const fetchData = async () => {
-    getToppings().then((response) => {
-      if (response.status) {
-        setToppings(response.data);
-        setToppingsList(response.data);
-      } else {
-        console.log(response.message);
-      }
-    });
+    if (role === Roles.ADMIN) {
+      getToppings().then((response) => {
+        if (response.status) {
+          setToppings(response.data);
+          setToppingsList(response.data);
+        } else {
+          console.log(response.message);
+        }
+      });
+    } else {
+      getRestaurantToppings(restaurant).then((response) => {
+        if (response.status) {
+          setToppings(response.data.toppings);
+          setToppingsList(response.data.toppings);
+        } else {
+          console.log(response.message);
+        }
+      });
+    }
   };
+  const updateAvailability = async (toppingId, index) => {
+    updateRestaurantToppingAvailability(restaurant, toppingId).then(
+      (response) => {
+        if (response.status) {
+          const updatedMenuItems = [...toppings];
 
+          // Modify the availability of the specific item at the given index
+          updatedMenuItems[index] = {
+            ...updatedMenuItems[index],
+            availability: !updatedMenuItems[index].availability, // Change the availability (toggling in this example)
+          };
+
+          // Update the state with the modified array
+          setToppings(updatedMenuItems);
+        }
+      }
+    );
+  };
   useEffect(() => {
     setIsLoading(true);
     fetchData();
@@ -52,6 +90,17 @@ const ToppingsScreen = () => {
   const handleShowDeleteWarning = (id) => {
     setToppingId(id);
     setDeleteWarningModelState(true);
+  };
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="black" />
+      </View>
+    );
+  }
+  const handleShowUpdateToppingModal = (topping) => {
+    setTopping(topping);
+    setShowUpdateToppingModal(true);
   };
 
   return (
@@ -70,6 +119,13 @@ const ToppingsScreen = () => {
         <CreateToppingModel
           setShowCreateToppingModel={setShowCreateToppingModel}
           setRefresh={setRefresh}
+        />
+      )}
+      {showUpdateToppingModal && (
+        <UpdateToppingModal
+          setShowUpdateToppingModal={setShowUpdateToppingModal}
+          setRefresh={setRefresh}
+          topping={topping}
         />
       )}
       {showCreateToppingCategoryModel && (
@@ -91,71 +147,122 @@ const ToppingsScreen = () => {
             justifyContent: "space-between",
           }}
         >
-          <SearchBar
-            setter={setToppings}
-            list={toppingsList}
-            filter={filterMenuItems}
-          />
-          <AddButton
-            setShowModel={setShowCreateToppingModel}
-            text="Personalisation"
-          />
-          <AddButton
-            setShowModel={setShowCreateToppingCategoryModel}
-            text="Catégorie"
-          />
+          {role === Roles.ADMIN ? (
+            <SearchBar
+              setter={setToppings}
+              list={toppingsList}
+              filter={filterToppings}
+            />
+          ) : (
+            <SearchBar
+              setter={setToppings}
+              list={toppingsList}
+              filter={filterRestaurantToppings}
+            />
+          )}
+          {role === Roles.ADMIN && (
+            <AddButton
+              setShowModel={setShowCreateToppingModel}
+              text="Personalisation"
+            />
+          )}
+          {role === Roles.ADMIN && (
+            <AddButton
+              setShowModel={setShowCreateToppingCategoryModel}
+              text="Catégorie"
+            />
+          )}
         </View>
-        {isLoading ? (
-          <View
-            style={{
-              flex: 1,
 
-              width: "100%",
-
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <ActivityIndicator size={"large"} color="black" />
-          </View>
-        ) : (
-          <ScrollView style={{ width: "100%", marginTop: 30 }}>
-            {toppings.map((topping, index) => (
-              <View
-                key={topping._id}
-                style={[
-                  styles.row,
-                  index % 2
-                    ? { backgroundColor: "transparent" }
-                    : { backgroundColor: "rgba(247,166,0,0.3)" },
-                ]}
-              >
-                <Image style={[styles.image]} source={{ uri: topping.image }} />
-
-                <Text style={[styles.rowCell, { width: "20%" }]}>
-                  {topping.name}
-                </Text>
-
-                <Text style={[styles.rowCell, { width: "10%" }]}>
-                  {topping.category.name}
-                </Text>
-                <Text style={[styles.rowCell, { width: "10%" }]}>
-                  {topping.price} $
-                </Text>
-
-                <TouchableOpacity
-                  style={{
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                  onPress={() => handleShowDeleteWarning(topping._id)}
+        <ScrollView
+          style={{ width: "100%", marginTop: 30 }}
+          refreshControl={
+            <RefreshControl refreshing={isLoading} onRefresh={fetchData} />
+          }
+        >
+          {role === Roles.ADMIN
+            ? toppings.map((topping, index) => (
+                <View
+                  key={topping._id}
+                  style={[
+                    styles.row,
+                    index % 2
+                      ? { backgroundColor: "transparent" }
+                      : { backgroundColor: "rgba(247,166,0,0.3)" },
+                  ]}
                 >
-                  <MaterialIcons name="delete" size={24} color="#F31A1A" />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </ScrollView>
-        )}
+                  <Image
+                    style={[styles.image]}
+                    source={{ uri: topping.image }}
+                  />
+
+                  <Text style={[styles.rowCell, { width: "20%" }]}>
+                    {topping.name}
+                  </Text>
+
+                  <Text style={[styles.rowCell, { width: "10%" }]}>
+                    {topping.category.name}
+                  </Text>
+                  <Text style={[styles.rowCell, { width: "10%" }]}>
+                    {topping.price} $
+                  </Text>
+
+                  <TouchableOpacity
+                    style={{
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                    onPress={() => handleShowUpdateToppingModal(topping)}
+                  >
+                    <FontAwesome name="pencil" size={30} color="#2AB2DB" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                    onPress={() => handleShowDeleteWarning(topping._id)}
+                  >
+                    <MaterialIcons name="delete" size={24} color="#F31A1A" />
+                  </TouchableOpacity>
+                </View>
+              ))
+            : toppings.map((topping, index) => (
+                <View
+                  key={topping._id}
+                  style={[
+                    styles.row,
+                    index % 2
+                      ? { backgroundColor: "transparent" }
+                      : { backgroundColor: "rgba(247,166,0,0.3)" },
+                  ]}
+                >
+                  <Image
+                    style={[styles.image]}
+                    source={{ uri: topping.topping.image }}
+                  />
+
+                  <Text style={[styles.rowCell, { width: "20%" }]}>
+                    {topping.topping.name}
+                  </Text>
+
+                  <Text style={[styles.rowCell, { width: "10%" }]}>
+                    {topping.topping.category.name}
+                  </Text>
+                  <Text style={[styles.rowCell, { width: "10%" }]}>
+                    {topping.topping.price} $
+                  </Text>
+
+                  <Switch
+                    trackColor={{ false: "#767577", true: Colors.primary }}
+                    thumbColor="black"
+                    ios_backgroundColor="#3e3e3e"
+                    onValueChange={() => updateAvailability(topping._id, index)}
+                    value={topping.availability}
+                  />
+                </View>
+              ))}
+        </ScrollView>
       </View>
     </SafeAreaView>
   );

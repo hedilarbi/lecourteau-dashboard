@@ -9,15 +9,17 @@ import {
   View,
 } from "react-native";
 import React, { useEffect, useState } from "react";
-import { AntDesign } from "@expo/vector-icons";
+
 import { Dropdown } from "react-native-element-dropdown";
-import { Colors, Fonts } from "../constants";
-import { Entypo } from "@expo/vector-icons";
+import { Colors, Fonts, OrderStatus } from "../constants";
+
 import useGetOrder from "../hooks/useGetOrder";
 import { convertDate } from "../utils/dateHandlers";
 import { useRoute } from "@react-navigation/native";
 import { Foundation } from "@expo/vector-icons";
 import { updatePrice, updateStatus } from "../services/OrdersServices";
+import SuccessModel from "../components/models/SuccessModel";
+import FailModel from "../components/models/FailModel";
 
 const OrderScreen = () => {
   const route = useRoute();
@@ -26,6 +28,7 @@ const OrderScreen = () => {
   const [updateStatusMode, setUpdateStatusMode] = useState(false);
   const [updatePriceMode, setUpdatePriceMode] = useState(false);
   const [showSuccessModel, setShowSuccessModel] = useState(false);
+  const [showFailModal, setShowFailModal] = useState(false);
   const [status, setStatus] = useState("");
   const [price, setPrice] = useState("");
   const statusOptions = [
@@ -47,6 +50,17 @@ const OrderScreen = () => {
         return "#FF0707";
     }
   };
+  useEffect(() => {
+    if (showFailModal) {
+      // After 1 second, reset showSuccessModel to false
+
+      const timer = setTimeout(() => {
+        setShowFailModal(false);
+      }, 2000);
+
+      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+    }
+  }, [showFailModal]);
 
   const updateOrderStatus = async () => {
     setIsLoading(true);
@@ -57,7 +71,7 @@ const OrderScreen = () => {
           setUpdateStatusMode(false);
           setOrder({ ...order, status });
         } else {
-          console.log(response);
+          setShowFailModal(true);
         }
       })
       .finally(() => {
@@ -73,7 +87,7 @@ const OrderScreen = () => {
           setUpdatePriceMode(false);
           setOrder({ ...order, total_price: price });
         } else {
-          console.log(response);
+          setShowFailModal(true);
         }
       })
       .finally(() => {
@@ -91,6 +105,7 @@ const OrderScreen = () => {
       return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
     }
   }, [showSuccessModel]);
+
   if (isLoading) {
     return (
       <View
@@ -110,6 +125,10 @@ const OrderScreen = () => {
       style={{ flex: 1, backgroundColor: Colors.screenBg, padding: 16 }}
       contentContainerStyle={{ paddingBottom: 40 }}
     >
+      {showSuccessModel && <SuccessModel />}
+      {showFailModal && (
+        <FailModel message="Oops ! Quelque chose s'est mal passé" />
+      )}
       <View>
         <Text
           style={{

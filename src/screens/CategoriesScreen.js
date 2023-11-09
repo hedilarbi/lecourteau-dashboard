@@ -1,79 +1,82 @@
 import {
-  View,
-  Text,
-  SafeAreaView,
+  ActivityIndicator,
+  Image,
   ScrollView,
   StyleSheet,
+  Text,
   TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
+  View,
 } from "react-native";
 import React, { useEffect, useState } from "react";
-import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
-
-import { Colors, Fonts } from "../constants";
-import SearchBar from "../components/SearchBar";
-import DeleteWarning from "../components/models/DeleteWarning";
-import UserModel from "../components/models/UserModel";
-import useGetUsers from "../hooks/useGetUsers";
-import { deleteUser, getUsers } from "../services/UsersServices";
-import { filterUsers } from "../utils/filters";
+import { deleteCategory, getCategories } from "../services/MenuItemServices";
 import { useNavigation } from "@react-navigation/native";
+import DeleteWarning from "../components/models/DeleteWarning";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { RefreshControl } from "react-native-gesture-handler";
+import { Colors, Fonts } from "../constants";
+import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import UpdateCategoryModal from "../components/models/UpdateCategoryModal";
 
-const UsersScreen = () => {
+const CategoriesScreen = () => {
   const navigation = useNavigation();
   const [deleteWarningModelState, setDeleteWarningModelState] = useState(false);
-  const [userId, setUserId] = useState("");
+  const [showUpdateCategorygModal, setShowUpdateCategorygModal] =
+    useState(false);
   const [refresh, setRefresh] = useState(0);
-
   const [isLoading, setIsLoading] = useState(false);
+  const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState([]);
 
-  const [users, setUsers] = useState([]);
-  const [usersList, setUsersList] = useState([]);
   const fetchData = async () => {
-    getUsers().then((response) => {
-      if (response?.status) {
-        setUsers(response?.data);
-        setUsersList(response?.data);
-      } else {
-        console.log("getUsers false");
-      }
-    });
+    setIsLoading(true);
+    getCategories()
+      .then((response) => {
+        if (response?.status) {
+          setCategories(response?.data);
+        } else {
+          console.log("getUsers false");
+        }
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   };
   useEffect(() => {
-    setIsLoading(true);
     fetchData();
-    setIsLoading(false);
   }, [refresh]);
-  const handleShowUserModel = (id) => {
-    navigation.navigate("User", { id });
-  };
 
+  const handleShowUpdateCategoryModel = (category) => {
+    setCategory(category);
+    setShowUpdateCategorygModal(true);
+  };
   const handleShowDeleteWarning = (id) => {
-    setUserId(id);
+    setCategory(id);
     setDeleteWarningModelState(true);
   };
-
   return (
     <SafeAreaView style={{ backgroundColor: Colors.screenBg, flex: 1 }}>
       {deleteWarningModelState && (
         <DeleteWarning
-          id={userId}
+          id={category}
           setDeleteWarningModelState={setDeleteWarningModelState}
-          setIsLoading={setIsLoading}
           setRefresh={setRefresh}
-          message={`Etes-vous sûr de vouloir supprimer cet utilisateur ?`}
-          deleter={deleteUser}
+          message={`Etes-vous sûr de vouloir supprimer cet article ?`}
+          deleter={deleteCategory}
+        />
+      )}
+      {showUpdateCategorygModal && (
+        <UpdateCategoryModal
+          setRefresh={setRefresh}
+          setShowUpdateCategorygModal={setShowUpdateCategorygModal}
+          category={category}
         />
       )}
 
       <View style={{ flex: 1, padding: 20 }}>
         <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
-          Utilisateurs
+          Catégories
         </Text>
-        <View style={{ marginTop: 30 }}>
-          <SearchBar setter={setUsers} list={usersList} filter={filterUsers} />
-        </View>
+
         {isLoading ? (
           <View
             style={{
@@ -87,16 +90,16 @@ const UsersScreen = () => {
           >
             <ActivityIndicator size={"large"} color="black" />
           </View>
-        ) : users.length > 0 ? (
+        ) : categories.length > 0 ? (
           <ScrollView
             style={{ width: "100%", marginTop: 30 }}
             refreshControl={
               <RefreshControl refreshing={isLoading} onRefresh={fetchData} />
             }
           >
-            {users.map((user, index) => (
+            {categories.map((item, index) => (
               <View
-                key={user._id}
+                key={item._id}
                 style={[
                   styles.row,
                   index % 2
@@ -104,19 +107,14 @@ const UsersScreen = () => {
                     : { backgroundColor: "rgba(247,166,0,0.3)" },
                 ]}
               >
-                <Text style={[styles.rowCell, { width: "20%" }]}>
-                  {user.name}
-                </Text>
-                <Text style={[styles.rowCell, { width: "20%" }]}>
-                  {user.phone_number}
-                </Text>
-                <Text style={[styles.rowCell, { flex: 1 }]}>{user.email}</Text>
+                <Image style={[styles.image]} source={{ uri: item.image }} />
+                <Text style={[styles.rowCell, { flex: 1 }]}>{item.name}</Text>
                 <TouchableOpacity
                   style={{
                     justifyContent: "center",
                     alignItems: "center",
                   }}
-                  onPress={() => handleShowUserModel(user._id)}
+                  onPress={() => handleShowUpdateCategoryModel(item)}
                 >
                   <FontAwesome name="pencil" size={24} color="#2AB2DB" />
                 </TouchableOpacity>
@@ -125,7 +123,7 @@ const UsersScreen = () => {
                     justifyContent: "center",
                     alignItems: "center",
                   }}
-                  onPress={() => handleShowDeleteWarning(user._id)}
+                  onPress={() => handleShowDeleteWarning(item._id)}
                 >
                   <MaterialIcons name="delete" size={24} color="#F31A1A" />
                 </TouchableOpacity>
@@ -144,7 +142,7 @@ const UsersScreen = () => {
             }}
           >
             <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-              Aucun Utilisateur
+              Aucune Catégories
             </Text>
           </View>
         )}
@@ -152,6 +150,8 @@ const UsersScreen = () => {
     </SafeAreaView>
   );
 };
+
+export default CategoriesScreen;
 const styles = StyleSheet.create({
   row: {
     width: "100%",
@@ -159,13 +159,16 @@ const styles = StyleSheet.create({
     gap: 50,
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 10,
+  },
+  image: {
+    width: 100,
+    height: 100,
+    resizeMode: "contain",
   },
   rowCell: {
     fontFamily: Fonts.LATO_REGULAR,
     fontSize: 20,
   },
 });
-
-export default UsersScreen;

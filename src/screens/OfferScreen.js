@@ -20,6 +20,9 @@ import AddItemModel from "../components/models/AddItemMode";
 import AddToppingModel from "../components/models/AddToppingModel";
 import SuccessModel from "../components/models/SuccessModel";
 import * as ImagePicker from "expo-image-picker";
+import FailModel from "../components/models/FailModel";
+import mime from "mime";
+import { API_URL } from "@env";
 const OfferScreen = () => {
   const route = useRoute();
   const { id } = route.params;
@@ -31,11 +34,12 @@ const OfferScreen = () => {
   const [expireAt, setExpireAt] = useState("");
   const [items, setItems] = useState([]);
   const [customizations, setCustomizations] = useState([]);
-
+  const [image, setImage] = useState("");
   const [showAddItemModel, setShowAddItemModel] = useState(false);
   const [showAddToppingModel, setShowAddToppingModel] = useState(false);
   const [menuItems, setMenuItems] = useState([]);
   const [customizationsList, setCustomizationsList] = useState([]);
+  const [showFailModal, setShowFailModal] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
 
@@ -44,6 +48,8 @@ const OfferScreen = () => {
       .then((response) => {
         if (response.status) {
           setOffer(response.data);
+        } else {
+          setShowFailModal(true);
         }
       })
       .finally(() => {
@@ -63,6 +69,17 @@ const OfferScreen = () => {
       return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
     }
   }, [showSuccessModel]);
+  useEffect(() => {
+    if (showFailModal) {
+      // After 1 second, reset showSuccessModel to false
+
+      const timer = setTimeout(() => {
+        setShowFailModal(false);
+      }, 2000);
+
+      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+    }
+  }, [showFailModal]);
 
   useEffect(() => {
     fetchData();
@@ -70,7 +87,7 @@ const OfferScreen = () => {
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
+
       aspect: [4, 3],
       quality: 1,
     });
@@ -103,15 +120,15 @@ const OfferScreen = () => {
         });
         setMenuItems(list);
       } else {
-        console.log(itemsNamesResponse);
+        setShowFailModal(true);
       }
       if (toppingResponse.status) {
         setCustomizationsList(toppingResponse.data);
       } else {
-        console.log(toppingResponse);
+        setShowFailModal(true);
       }
     } catch (err) {
-      console.log(err);
+      setShowFailModal(true);
     } finally {
       const date = new Date(offer.expireAt);
       setName(offer.name);
@@ -126,27 +143,64 @@ const OfferScreen = () => {
   };
   const saveUpdates = async () => {
     setIsLoading(true);
-    updateOffer(
-      id,
+    // updateOffer(
+    //   id,
 
-      name,
-      price,
-      expireAt,
+    //   name,
+    //   price,
+    //   expireAt,
 
-      items,
-      customizations
-    )
-      .then((response) => {
-        if (response.status) {
-          setShowSuccessModel(true);
-          setOffer(response.data);
-        } else {
-          console.log(response);
-        }
-      })
-      .finally(() => {
-        setIsLoading(false);
+    //   items,
+    //   customizations
+    // )
+    //   .then((response) => {
+    //     if (response.status) {
+    //       setShowSuccessModel(true);
+    //       setOffer(response.data);
+    //     } else {
+    //       setShowFailModal(true);
+    //     }
+    //   })
+    //   .finally(() => {
+    //     setIsLoading(false);
+    //   });
+    const formdata = new FormData();
+    if (image.length > 0) {
+      formdata.append("file", {
+        uri: image,
+        type: mime.getType(image),
+        name: image.split("/").pop(),
       });
+      formdata.append("fileToDelete", offer.image);
+    }
+
+    formdata.append("name", name);
+    formdata.append("price", price);
+
+    formdata.append("customizations", JSON.stringify(customizations));
+    formdata.append("items", JSON.stringify(items));
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/offers/update/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        body: formdata,
+      });
+      if (!response.ok) {
+        throw new Error("HTTP error " + response.status);
+      }
+      const data = await response.json();
+      setOffer(data);
+      setShowSuccessModel(true);
+    } catch (err) {
+      setShowFailModal(true);
+      console.log(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isLoading) {
@@ -166,6 +220,9 @@ const OfferScreen = () => {
   return (
     <View style={{ flex: 1, backgroundColor: Colors.screenBg }}>
       {showSuccessModel && <SuccessModel />}
+      {showFailModal && (
+        <FailModel message="Oops ! Quelque chose s'est mal passé" />
+      )}
       {showAddItemModel && (
         <AddItemModel
           setShowAddItemModel={setShowAddItemModel}
@@ -234,15 +291,52 @@ const OfferScreen = () => {
             marginTop: 20,
           }}
         >
-          <Image
-            source={{ uri: offer.image }}
-            style={{
-              width: 250,
-              height: 150,
-              resizeMode: "cover",
-              borderRadius: 10,
-            }}
-          />
+          {updateMode ? (
+            <TouchableOpacity
+              style={{
+                width: 200,
+                height: 200,
+                borderRadius: 16,
+                backgroundColor: "gray",
+
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+              onPress={pickImage}
+            >
+              {image ? (
+                <Image
+                  source={{ uri: image }}
+                  style={{
+                    resizeMode: "cover",
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: 16,
+                  }}
+                />
+              ) : (
+                <Image
+                  source={{ uri: offer.image }}
+                  style={{
+                    width: 200,
+                    height: 200,
+                    resizeMode: "cover",
+                    borderRadius: 10,
+                  }}
+                />
+              )}
+            </TouchableOpacity>
+          ) : (
+            <Image
+              source={{ uri: offer.image }}
+              style={{
+                width: 200,
+                height: 200,
+                resizeMode: "cover",
+                borderRadius: 10,
+              }}
+            />
+          )}
           <View style={{ marginLeft: 20, justifyContent: "space-between" }}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
@@ -372,7 +466,7 @@ const OfferScreen = () => {
           >
             {items.map((item, index) => (
               <View
-                key={item._id}
+                key={index}
                 style={{
                   backgroundColor: Colors.primary,
 
@@ -429,9 +523,9 @@ const OfferScreen = () => {
               flexWrap: "wrap",
             }}
           >
-            {offer.items?.map((item) => (
+            {offer.items?.map((item, index) => (
               <View
-                key={item._id}
+                key={index}
                 style={{
                   backgroundColor: Colors.primary,
 

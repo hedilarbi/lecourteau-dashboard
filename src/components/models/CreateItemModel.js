@@ -22,6 +22,7 @@ import SuccessModel from "./SuccessModel";
 
 import mime from "mime";
 import AddMenuItemPrice from "./AddMenuItemPrice";
+import FailModel from "./FailModel";
 
 const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
   const [showAddCategoryModel, setShowAddCategoryModel] = useState(false);
@@ -32,6 +33,7 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
   const [categoriesNames, setCategoriesNames] = useState([]);
   const [showSuccessModel, setShowSuccessModel] = useState(false);
   const [name, setName] = useState("");
+  const [showFailModal, setShowFailModal] = useState(false);
   const [image, setImage] = useState("");
   const [categoryName, setCategoryName] = useState("");
   const [description, setDescription] = useState("");
@@ -130,32 +132,18 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
       const data = await response.json();
 
       setShowSuccessModel(true);
-      setRefresh((prev) => prev + 1);
     } catch (err) {
-      if (err.response) {
-        Alert.alert("Problème interne");
-      } else {
-        Alert.alert("problème internet");
-      }
+      console.log(err.message);
+      setShowFailModal(true);
+    } finally {
+      setIsloading(false);
     }
-    setIsloading(false);
   };
-  useEffect(() => {
-    if (showSuccessModel) {
-      const timer = setTimeout(() => {
-        setShowSuccessModel(false);
-
-        setShowCreateItemModel(false);
-      }, 1000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [showSuccessModel]);
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
+
       aspect: [4, 3],
       quality: 1,
     });
@@ -174,9 +162,34 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
     newCustomizations.splice(index, 1);
     setCustomizationsNames(newCustomizations);
   };
+  useEffect(() => {
+    if (showSuccessModel) {
+      const timer = setTimeout(() => {
+        setShowSuccessModel(false);
+        setRefresh((prev) => prev + 1);
+        setShowCreateItemModel(false);
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccessModel]);
+  useEffect(() => {
+    if (showFailModal) {
+      // After 1 second, reset showSuccessModel to false
+
+      const timer = setTimeout(() => {
+        setShowFailModal(false);
+      }, 2000);
+
+      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+    }
+  }, [showFailModal]);
   return (
     <View style={styles.container}>
       {showSuccessModel && <SuccessModel />}
+      {showFailModal && (
+        <FailModel message="Oops ! Quelque chose s'est mal passé" />
+      )}
       {isLoading && (
         <View
           style={{

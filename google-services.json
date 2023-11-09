@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "546631203765",
+    "project_id": "lecourteau-dashboard",
+    "storage_bucket": "lecourteau-dashboard.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:546631203765:android:661d03d94a80a9419eb7fc",
+        "android_client_info": {
+          "package_name": "com.hedilarbi95.lecourteaudashboard"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBb4do6AfPrYEV5ePGJQL1jbnWreeYvk9A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

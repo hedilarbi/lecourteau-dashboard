@@ -24,6 +24,7 @@ import * as SecureStore from "expo-secure-store";
 import { loginStaff } from "../services/StaffServices";
 import FailModel from "../components/models/FailModel";
 import { verifySignUpForm } from "../utils/formValidators";
+import { registerForPushNotificationsAsync } from "../services/NotifyServices";
 const SignUpScreen = () => {
   const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
@@ -32,8 +33,15 @@ const SignUpScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showErrorMsg, setShowErrorMessg] = useState(false);
   const [errorMsg, setErrorMessg] = useState("");
+  const [expoToken, setExpoToken] = useState("");
   const userNameInput = useRef(null);
   const passwordInput = useRef(null);
+  useEffect(() => {
+    registerForPushNotificationsAsync().then((token) => {
+      setExpoToken(token.data);
+    });
+  }, []);
+
   const login = async () => {
     passwordInput.current.setNativeProps({
       style: {
@@ -69,10 +77,10 @@ const SignUpScreen = () => {
       }
     }
     setIsLoading(true);
-    loginStaff(userName, password)
+    loginStaff(userName, password, expoToken)
       .then(async (response) => {
         if (response.status) {
-          dispatch(setStaffData(response.data.staff));
+          dispatch(setStaffData(response.data));
           dispatch(setStaffToken(response.data.token));
           await SecureStore.setItemAsync("token", response.data.token);
         } else {

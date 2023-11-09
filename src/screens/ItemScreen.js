@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   StyleSheet,
@@ -9,11 +10,7 @@ import {
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { Colors, Fonts } from "../constants";
-import {
-  getCategories,
-  getMenuItem,
-  updateMenuItem,
-} from "../services/MenuItemServices";
+import { getCategories, getMenuItem } from "../services/MenuItemServices";
 import { useRoute } from "@react-navigation/native";
 import { AntDesign, Entypo } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native-gesture-handler";
@@ -22,6 +19,10 @@ import AddToppingModel from "../components/models/AddToppingModel";
 import { getToppings } from "../services/ToppingsServices";
 import SuccessModel from "../components/models/SuccessModel";
 import * as ImagePicker from "expo-image-picker";
+import { API_URL } from "@env";
+import mime from "mime";
+import FailModel from "../components/models/FailModel";
+import AddMenuItemPrice from "../components/models/AddMenuItemPrice";
 const ItemScreen = () => {
   const route = useRoute();
   const { id } = route.params;
@@ -40,6 +41,8 @@ const ItemScreen = () => {
     useState(false);
   const [toppings, setToppings] = useState([]);
   const [showSuccessModel, setShowSuccessModel] = useState(false);
+  const [showFailModal, setShowFailModal] = useState(false);
+  const [showAddPriceModal, setShowAddPriceModal] = useState(false);
 
   const fetchData = async () => {
     getMenuItem(id)
@@ -47,7 +50,7 @@ const ItemScreen = () => {
         if (response.status) {
           setMenuItem(response.data);
         } else {
-          console.log(response);
+          setShowFailModal(true);
         }
       })
       .finally(() => {
@@ -57,7 +60,7 @@ const ItemScreen = () => {
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
+
       aspect: [4, 3],
       quality: 1,
     });
@@ -83,20 +86,17 @@ const ItemScreen = () => {
   useEffect(() => {
     fetchData();
   }, []);
-  if (isLoading) {
-    return (
-      <View
-        style={{
-          backgroundColor: Colors.screenBg,
-          justifyContent: "center",
-          alignItems: "center",
-          flex: 1,
-        }}
-      >
-        <ActivityIndicator size="large" color="black" />
-      </View>
-    );
-  }
+  useEffect(() => {
+    if (showFailModal) {
+      // After 1 second, reset showSuccessModel to false
+
+      const timer = setTimeout(() => {
+        setShowFailModal(false);
+      }, 2000);
+
+      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+    }
+  }, [showFailModal]);
 
   const activateUpdateMode = async () => {
     setIsLoading(true);
@@ -111,7 +111,7 @@ const ItemScreen = () => {
           categoriesNames.push({ value: item._id, label: item.name })
         );
       } else {
-        console.error("Categories data not found:", categoriesResponse.message);
+        setShowFailModal(true);
       }
 
       if (toppingResponse?.status) {
@@ -125,7 +125,7 @@ const ItemScreen = () => {
       setName(menuItem.name);
       setDescription(menuItem.description);
       setCategory({
-        labe: menuItem.category.name,
+        label: menuItem.category.name,
         value: menuItem.category._id,
       });
       setPrices(menuItem.prices);
@@ -147,6 +147,11 @@ const ItemScreen = () => {
     setCustomization(updatedList);
   };
 
+  const deleteFromPrices = (index) => {
+    const updatedList = prices.filter((item, i) => i !== index);
+    setPrices(updatedList);
+  };
+
   const saveUpdates = async () => {
     if (name.length < 1) {
       setError("Nom de l'article manquant");
@@ -160,30 +165,56 @@ const ItemScreen = () => {
       setError("Description de l'article manquante");
       return;
     }
+    const formdata = new FormData();
+    if (image.length > 0) {
+      formdata.append("file", {
+        uri: image,
+        type: mime.getType(image),
+        name: image.split("/").pop(),
+      });
+      formdata.append("fileToDelete", menuItem.image);
+    }
+    formdata.append("customization", JSON.stringify(customization));
+    formdata.append("prices", JSON.stringify(prices));
+    formdata.append("name", name);
+    formdata.append("category", category.value);
+    formdata.append("description", description);
 
     setIsLoading(true);
-    updateMenuItem(
-      id,
-      menuItem.image,
-      name,
-      description,
-      category,
-
-      prices,
-      customization
-    )
-      .then((response) => {
-        if (response.status) {
-          setShowSuccessModel(true);
-          setMenuItem(response.data);
-        } else {
-          console.log(response);
-        }
-      })
-      .finally(() => {
-        setIsLoading(false);
+    try {
+      const response = await fetch(`${API_URL}/menuItems/update/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        body: formdata,
       });
+      if (!response.ok) {
+        throw new Error("HTTP error " + response.status);
+      }
+      const data = await response.json();
+      setMenuItem(data);
+      setShowSuccessModel(true);
+    } catch (err) {
+      setShowFailModal(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
+  if (isLoading) {
+    return (
+      <View
+        style={{
+          backgroundColor: Colors.screenBg,
+          justifyContent: "center",
+          alignItems: "center",
+          flex: 1,
+        }}
+      >
+        <ActivityIndicator size="large" color="black" />
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -198,7 +229,19 @@ const ItemScreen = () => {
             toppings={toppings}
           />
         )}
+        {showAddPriceModal && (
+          <AddMenuItemPrice
+            setModalVisible={setShowAddPriceModal}
+            modalVisible={showAddPriceModal}
+            category={category.label}
+            setPrices={setPrices}
+            prices={prices}
+          />
+        )}
         {showSuccessModel && <SuccessModel />}
+        {showFailModal && (
+          <FailModel message="Oops ! Quelque chose s'est mal passé" />
+        )}
         <View
           style={{
             flexDirection: "row",
@@ -271,7 +314,7 @@ const ItemScreen = () => {
                   height: 200,
                   borderRadius: 16,
                   backgroundColor: "gray",
-                  marginTop: 20,
+
                   justifyContent: "center",
                   alignItems: "center",
                 }}
@@ -436,8 +479,8 @@ const ItemScreen = () => {
               padding: 16,
               marginTop: 10,
               flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 40,
             }}
           >
             {updateMode ? (
@@ -445,16 +488,21 @@ const ItemScreen = () => {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 40,
                   flex: 1,
                 }}
               >
                 {prices.map((item, index) => (
                   <View
-                    key={item._id}
+                    key={index}
                     style={{
-                      flexDirection: "row",
+                      backgroundColor: Colors.primary,
+                      borderRadius: 5,
+                      paddingVertical: 5,
+                      paddingHorizontal: 10,
                       alignItems: "center",
+                      flexDirection: "row",
                     }}
                   >
                     <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
@@ -475,15 +523,44 @@ const ItemScreen = () => {
                       keyboardType="numeric"
                       onChangeText={(text) => updatePrice(text, index)}
                     />
+                    <TouchableOpacity
+                      style={{ marginLeft: 5 }}
+                      onPress={() => deleteFromPrices(index)}
+                    >
+                      <AntDesign name="close" size={24} color="black" />
+                    </TouchableOpacity>
                   </View>
                 ))}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: Colors.primary,
+                    borderRadius: 5,
+                    paddingHorizontal: 10,
+                    paddingVertical: 10,
+                    alignItems: "center",
+                    flexDirection: "row",
+                  }}
+                  onPress={() => setShowAddPriceModal(true)}
+                >
+                  <Entypo name="plus" size={24} color="black" />
+                  <Text
+                    style={{
+                      fontFamily: Fonts.LATO_BOLD,
+                      fontSize: 20,
+                      marginLeft: 10,
+                    }}
+                  >
+                    Ajouter
+                  </Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <View
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 40,
                   flex: 1,
                 }}
               >

@@ -1,128 +1,48 @@
 import {
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
   ActivityIndicator,
   Image,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { AntDesign } from "@expo/vector-icons";
-import { Dropdown } from "react-native-element-dropdown";
-import { ApiUrl, Colors, Fonts } from "../../constants";
-import { Entypo } from "@expo/vector-icons";
-import { getToppingsCategories } from "../../services/ToppingsServices";
-import SuccessModel from "./SuccessModel";
+import { Colors, Fonts } from "../../constants";
 import * as ImagePicker from "expo-image-picker";
-import mime from "mime";
-import { API_URL } from "@env";
+import SuccessModel from "./SuccessModel";
 import FailModel from "./FailModel";
-
-const CreateToppingModel = ({
-  setShowCreateToppingModel,
-
+import { getToppingsCategories } from "../../services/ToppingsServices";
+import { Dropdown } from "react-native-element-dropdown";
+import { API_URL } from "@env";
+import mime from "mime";
+const UpdateToppingModal = ({
+  setShowUpdateToppingModal,
+  topping,
   setRefresh,
 }) => {
-  const [category, setCategory] = useState({});
-
-  const [isLoading, setIsloading] = useState(true);
-  const [categoriesNames, setCategoriesNames] = useState([]);
-  const [name, setName] = useState("");
-  const [image, setImage] = useState("");
-  const [showSuccessModel, setShowSuccessModel] = useState(false);
-  const [price, setPrice] = useState("");
   const [error, setError] = useState("");
+  const [name, setName] = useState("");
+  const [image, setImage] = useState(null);
+  const [showSuccessModel, setShowSuccessModel] = useState(false);
   const [showFailModal, setShowFailModal] = useState(false);
-  const fetchData = async () => {
-    getToppingsCategories().then((response) => {
-      if (response.status) {
-        let list = [];
-        response?.data.map((item) =>
-          list.push({ value: item._id, label: item.name })
-        );
-        setCategoriesNames(list);
-      }
-    });
-    setIsloading(false);
-  };
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const [price, setPrice] = useState("");
+  const [categoriesNames, setCategoriesNames] = useState([]);
+  const [category, setCategory] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
 
-  const saveItem = async () => {
-    if (name.length < 1) {
-      setError("Nom de la personalisation manquant");
-      return;
-    }
-    if (image.length < 1) {
-      setError("Image de la personalisation manquante");
-      return;
-    }
-    if (Object.keys(category).length < 1) {
-      setError("Catégorie de la personalisation manquante");
-      return;
-    }
-    if (price.length < 1) {
-      setError("Prix de la personalisation manquant");
-      return;
-    }
-    const formdata = new FormData();
-    if (image) {
-      formdata.append("file", {
-        uri: image,
-        type: mime.getType(image),
-        name: image.split("/").pop(),
-      });
-    }
-
-    formdata.append("name", name);
-    formdata.append("category", category.id);
-    formdata.append("price", price);
-
-    try {
-      setIsloading(true);
-      const response = await fetch(`${API_URL}/toppings/create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        body: formdata,
-      });
-      if (!response.ok) {
-        throw new Error("HTTP error " + response.status);
-      }
-
-      setShowSuccessModel(true);
-    } catch (err) {
-      setShowFailModal(true);
-    } finally {
-      setIsloading(false);
-    }
-  };
-
-  const pickImage = async () => {
-    // No permissions request is necessary for launching the image library
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setImage(result.assets[0].uri);
-    }
-  };
   useEffect(() => {
     if (showSuccessModel) {
       // After 1 second, reset showSuccessModel to false
 
       const timer = setTimeout(() => {
-        setRefresh((prev) => prev + 1);
         setShowSuccessModel(false);
-        setShowCreateToppingModel(false);
-      }, 2000);
+
+        setRefresh((prev) => prev + 1);
+
+        setShowUpdateToppingModal(false);
+      }, 1000);
 
       return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
     }
@@ -138,9 +58,92 @@ const CreateToppingModel = ({
       return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
     }
   }, [showFailModal]);
+  const fetchData = async () => {
+    getToppingsCategories().then((response) => {
+      if (response.status) {
+        let list = [];
+        response?.data.map((item) =>
+          list.push({ value: item._id, label: item.name })
+        );
+        setCategoriesNames(list);
+      }
+    });
+    setIsLoading(false);
+  };
+  useEffect(() => {
+    fetchData();
+  }, []);
+  const pickImage = async () => {
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  };
+
+  const saveChanges = async () => {
+    const formdata = new FormData();
+    if (image) {
+      formdata.append("file", {
+        uri: image,
+        type: mime.getType(image),
+        name: image.split("/").pop(),
+      });
+      formdata.append("fileToDelete", topping.image);
+    }
+
+    formdata.append("name", name.length > 0 ? name : topping.name);
+    formdata.append("price", price.length > 0 ? price : topping.price);
+    formdata.append(
+      "category",
+      Object.keys(category).length > 0 ? category._id : topping.category._id
+    );
+    try {
+      setIsLoading(true);
+      const response = await fetch(
+        `${API_URL}/toppings/update/${topping._id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          body: formdata,
+        }
+      );
+      if (!response.ok) {
+        throw new Error("HTTP error " + response.status);
+      }
+      const data = await response.json();
+
+      setShowSuccessModel(true);
+    } catch (err) {
+      console.log(err.message);
+      setShowFailModal(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={{
+        position: "absolute",
+        width: "100%",
+        height: "100%",
+        top: 0,
+        left: 0,
+        backgroundColor: "rgba(50,44,44,0.4)",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 100,
+      }}
+    >
       {showSuccessModel && <SuccessModel />}
       {showFailModal && (
         <FailModel message="Oops ! Quelque chose s'est mal passé" />
@@ -172,9 +175,9 @@ const CreateToppingModel = ({
           }}
         >
           <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-            Ajouter une Personalisation
+            Modifier une personalisation
           </Text>
-          <TouchableOpacity onPress={() => setShowCreateToppingModel(false)}>
+          <TouchableOpacity onPress={() => setShowUpdateToppingModal(false)}>
             <AntDesign name="close" size={40} color="gray" />
           </TouchableOpacity>
         </View>
@@ -183,58 +186,58 @@ const CreateToppingModel = ({
             style={{
               fontFamily: Fonts.LATO_BOLD,
               fontSize: 20,
-              textAlign: "center",
               color: "red",
+              textAlign: "center",
             }}
           >
             {error}
           </Text>
         )}
-        <View style={{ flexDirection: "row", marginTop: 40 }}>
+        <View style={{ flexDirection: "row", marginTop: 20 }}>
           <TouchableOpacity
-            style={{
-              width: 150,
-              height: 150,
-              borderRadius: 16,
-              backgroundColor: "gray",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
             onPress={pickImage}
+            style={{ width: 150, height: 150, backgroundColor: Colors.mgry }}
           >
-            {image ? (
-              <Image
-                source={{ uri: image }}
-                style={{
-                  resizeMode: "cover",
-                  width: "100%",
-                  height: "100%",
-                  borderRadius: 16,
-                }}
-              />
-            ) : (
-              <Entypo name="camera" size={38} color="black" />
-            )}
+            <Image
+              source={{ uri: image || topping.image }}
+              style={{ flex: 1 }}
+            />
           </TouchableOpacity>
-          <View style={{ marginLeft: 40, justifyContent: "space-between" }}>
+          <View style={{ marginLeft: 20, justifyContent: "space-between" }}>
             <View style={styles.name}>
               <Text style={styles.text}>Nom</Text>
               <TextInput
                 style={{
                   fontFamily: Fonts.LATO_REGULAR,
                   fontSize: 20,
-                  paddingBottom: 5,
-                  paddingLeft: 5,
-                  paddingRight: 5,
-                  paddingTop: 5,
+                  paddingVertical: 5,
+                  paddingHorizontal: 8,
                   borderWidth: 2,
                   borderColor: Colors.primary,
                   marginLeft: 20,
                   flex: 1,
                 }}
-                placeholder="Nom"
-                placeholderTextColor={Colors.tgry}
+                placeholder={topping.name}
                 onChangeText={(text) => setName(text)}
+              />
+            </View>
+
+            <View style={styles.name}>
+              <Text style={styles.text}>Prix</Text>
+              <TextInput
+                style={{
+                  fontFamily: Fonts.LATO_REGULAR,
+                  fontSize: 20,
+                  paddingVertical: 5,
+                  paddingHorizontal: 8,
+                  borderWidth: 2,
+                  borderColor: Colors.primary,
+                  marginLeft: 20,
+                  flex: 1,
+                }}
+                placeholder={topping.price.toString()}
+                keyboardType="numeric"
+                onChangeText={(text) => setPrice(text)}
               />
             </View>
             <View style={styles.name}>
@@ -258,27 +261,6 @@ const CreateToppingModel = ({
                 }}
               />
             </View>
-            <View style={styles.prices}>
-              <Text style={styles.text}>Prix</Text>
-
-              <View style={styles.priceBox}>
-                <TextInput
-                  style={styles.priceInput}
-                  onChangeText={(text) => setPrice(text)}
-                  keyboardType="numeric"
-                  placeholder="Prix"
-                />
-              </View>
-              <Text
-                style={{
-                  fontFamily: Fonts.LATO_REGULAR,
-                  fontSize: 20,
-                  marginLeft: 10,
-                }}
-              >
-                $
-              </Text>
-            </View>
           </View>
         </View>
         <TouchableOpacity
@@ -290,7 +272,7 @@ const CreateToppingModel = ({
             paddingVertical: 10,
             borderRadius: 5,
           }}
-          onPress={saveItem}
+          onPress={saveChanges}
         >
           <Text style={styles.text}>Sauvegarder</Text>
         </TouchableOpacity>
@@ -299,8 +281,7 @@ const CreateToppingModel = ({
   );
 };
 
-export default CreateToppingModel;
-
+export default UpdateToppingModal;
 const styles = StyleSheet.create({
   container: {
     position: "absolute",

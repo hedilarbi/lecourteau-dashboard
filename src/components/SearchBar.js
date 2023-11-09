@@ -28,6 +28,7 @@ const SearchBar = ({ setter, list, filter }) => {
           fontFamily: Fonts.LATO_REGULAR,
           fontSize: 20,
           marginLeft: 5,
+          flex: 1,
         }}
         placeholder="Chercher"
         onChangeText={(text) => filterList(text)}

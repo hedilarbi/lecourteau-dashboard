@@ -15,12 +15,14 @@ import * as ImagePicker from "expo-image-picker";
 import { API_URL } from "@env";
 import SuccessModel from "./SuccessModel";
 import mime from "mime";
+import FailModel from "./FailModel";
 const CreateCategoryModel = ({ setShowCreateCategoryModel }) => {
   const [image, setImage] = useState("");
   const [name, setName] = useState("");
   const [showSuccessModel, setShowSuccessModel] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showFailModal, setShowFailModal] = useState(false);
 
   const saveItem = async () => {
     if (name.length < 1) {
@@ -57,14 +59,8 @@ const CreateCategoryModel = ({ setShowCreateCategoryModel }) => {
       }
       const data = await response.json();
       setShowSuccessModel(true);
-      setShowCreateCategoryModel(false);
     } catch (err) {
-      if (err.response) {
-        Alert.alert(err.response.message);
-        Alert.alert("hy");
-      } else {
-        Alert.alert(err.message);
-      }
+      setShowFailModal(true);
     } finally {
       setIsLoading(false);
     }
@@ -82,11 +78,22 @@ const CreateCategoryModel = ({ setShowCreateCategoryModel }) => {
       return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
     }
   }, [showSuccessModel]);
+  useEffect(() => {
+    if (showFailModal) {
+      // After 1 second, reset showSuccessModel to false
+
+      const timer = setTimeout(() => {
+        setShowFailModal(false);
+      }, 2000);
+
+      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+    }
+  }, [showFailModal]);
   const pickImage = async () => {
     // No permissions request is necessary for launching the image library
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
+
       aspect: [4, 3],
       quality: 1,
     });
@@ -99,6 +106,9 @@ const CreateCategoryModel = ({ setShowCreateCategoryModel }) => {
   return (
     <View style={styles.container}>
       {showSuccessModel && <SuccessModel />}
+      {showFailModal && (
+        <FailModel message="Oops ! Quelque chose s'est mal passé" />
+      )}
       {isLoading && (
         <View
           style={{

@@ -12,16 +12,21 @@ import {
 import React, { useEffect, useState } from "react";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 
-import { Colors, Fonts, OrderStatus } from "../constants";
+import { Colors, Fonts, OrderStatus, Roles } from "../constants";
 import SearchBar from "../components/SearchBar";
 import DeleteWarning from "../components/models/DeleteWarning";
 
 import { deleteOrder, getOrders } from "../services/OrdersServices";
 import { useNavigation } from "@react-navigation/native";
 import { convertDate } from "../utils/dateHandlers";
+import { useSelector } from "react-redux";
+import { selectStaffData } from "../redux/slices/StaffSlice";
+import { getRestaurantOrders } from "../services/RestaurantServices";
+import { filterOrdersByCode } from "../utils/filters";
 
 const OrdersScreen = () => {
   const navigation = useNavigation();
+  const { role, restaurant } = useSelector(selectStaffData);
   const setOrderStatusColor = (status) => {
     switch (status) {
       case OrderStatus.READY:
@@ -47,14 +52,25 @@ const OrdersScreen = () => {
   const [orders, setOrders] = useState([]);
   const fetchData = async () => {
     setIsLoading(true);
-    getOrders().then((response) => {
-      if (response?.status) {
-        setOrders(response?.data);
-        setOrdersList(response.data);
-      } else {
-        Alert.alert("Something went wrong");
-      }
-    });
+    if (role === Roles.ADMIN) {
+      getOrders().then((response) => {
+        if (response?.status) {
+          setOrders(response?.data);
+          setOrdersList(response.data);
+        } else {
+          Alert.alert("Something went wrong");
+        }
+      });
+    } else {
+      getRestaurantOrders(restaurant).then((response) => {
+        if (response?.status) {
+          setOrders(response?.data.orders);
+          setOrdersList(response.data.orders);
+        } else {
+          Alert.alert("Something went wrong");
+        }
+      });
+    }
     setIsLoading(false);
   };
   useEffect(() => {
@@ -80,6 +96,13 @@ const OrdersScreen = () => {
       });
     }
   };
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="black" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={{ backgroundColor: Colors.screenBg, flex: 1 }}>
@@ -106,7 +129,11 @@ const OrdersScreen = () => {
             gap: 40,
           }}
         >
-          <SearchBar />
+          <SearchBar
+            setter={setOrders}
+            list={ordersList}
+            filter={filterOrdersByCode}
+          />
           <TouchableOpacity
             style={[
               {
@@ -184,107 +211,143 @@ const OrdersScreen = () => {
             </Text>
           </TouchableOpacity>
         </View>
-        {isLoading ? (
-          <View
-            style={{
-              flex: 1,
 
-              width: "100%",
-
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <ActivityIndicator size={"large"} color="black" />
-          </View>
-        ) : (
-          <View style={{ flex: 1 }}>
-            {orders.length > 0 ? (
-              <ScrollView
-                style={{ width: "100%", marginTop: 30 }}
-                refreshControl={
-                  <RefreshControl
-                    refreshing={isLoading}
-                    onRefresh={fetchData}
-                  />
-                }
-              >
-                {orders.map((order, index) => (
-                  <View
-                    key={order._id}
-                    style={[
-                      styles.row,
-                      index % 2
-                        ? { backgroundColor: "transparent" }
-                        : { backgroundColor: "rgba(247,166,0,0.3)" },
-                    ]}
-                  >
-                    <Text
+        <View style={{ flex: 1 }}>
+          {orders.length > 0 ? (
+            <ScrollView
+              style={{ width: "100%", marginTop: 30 }}
+              refreshControl={
+                <RefreshControl refreshing={isLoading} onRefresh={fetchData} />
+              }
+            >
+              {role === Roles.ADMIN
+                ? orders.map((order, index) => (
+                    <View
+                      key={order._id}
                       style={[
-                        styles.rowCell,
-                        {
-                          width: "10%",
-                          color: setOrderStatusColor(order.status),
-                        },
+                        styles.row,
+                        index % 2
+                          ? { backgroundColor: "transparent" }
+                          : { backgroundColor: "rgba(247,166,0,0.3)" },
                       ]}
                     >
-                      {order.status}
-                    </Text>
-                    <Text style={[styles.rowCell, { width: "15%" }]}>
-                      {order.code}
-                    </Text>
-                    <Text style={[styles.rowCell, { width: "10%" }]}>
-                      {order.type}
-                    </Text>
+                      <Text
+                        style={[
+                          styles.rowCell,
+                          {
+                            width: "10%",
+                            color: setOrderStatusColor(order.status),
+                          },
+                        ]}
+                      >
+                        {order.status}
+                      </Text>
+                      <Text style={[styles.rowCell, { width: "15%" }]}>
+                        {order.code}
+                      </Text>
+                      <Text style={[styles.rowCell, { width: "10%" }]}>
+                        {order.type}
+                      </Text>
 
-                    <Text style={[styles.rowCell, { width: "10%" }]}>
-                      {order.total_price} $
-                    </Text>
-                    <Text style={[styles.rowCell, { flex: 1 }]}>
-                      {convertDate(order.createdAt)}
-                    </Text>
+                      <Text style={[styles.rowCell, { width: "10%" }]}>
+                        {order.total_price} $
+                      </Text>
+                      <Text style={[styles.rowCell, { flex: 1 }]}>
+                        {convertDate(order.createdAt)}
+                      </Text>
 
-                    <TouchableOpacity
-                      style={{
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                      onPress={() =>
-                        navigation.navigate("Order", { id: order._id })
-                      }
+                      <TouchableOpacity
+                        style={{
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                        onPress={() =>
+                          navigation.navigate("Order", { id: order._id })
+                        }
+                      >
+                        <FontAwesome name="pencil" size={24} color="#2AB2DB" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                        onPress={() => handleShowDeleteWarning(order._id)}
+                      >
+                        <MaterialIcons
+                          name="delete"
+                          size={24}
+                          color="#F31A1A"
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  ))
+                : orders.map((order, index) => (
+                    <View
+                      key={order._id}
+                      style={[
+                        styles.row,
+                        index % 2
+                          ? { backgroundColor: "transparent" }
+                          : { backgroundColor: "rgba(247,166,0,0.3)" },
+                      ]}
                     >
-                      <FontAwesome name="pencil" size={24} color="#2AB2DB" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={{
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                      onPress={() => handleShowDeleteWarning(order._id)}
-                    >
-                      <MaterialIcons name="delete" size={24} color="#F31A1A" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </ScrollView>
-            ) : (
-              <View
-                style={{
-                  backgroundColor: "white",
-                  flex: 1,
-                  marginTop: 20,
-                  borderRadius: 10,
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <Text style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 26 }}>
-                  Vide
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
+                      <Text
+                        style={[
+                          styles.rowCell,
+                          {
+                            width: "10%",
+                            color: setOrderStatusColor(order.status),
+                          },
+                        ]}
+                      >
+                        {order.status}
+                      </Text>
+                      <Text style={[styles.rowCell, { width: "15%" }]}>
+                        {order.code}
+                      </Text>
+                      <Text style={[styles.rowCell, { width: "10%" }]}>
+                        {order.type}
+                      </Text>
+
+                      <Text style={[styles.rowCell, { width: "10%" }]}>
+                        {order.total_price} $
+                      </Text>
+                      <Text style={[styles.rowCell, { flex: 1 }]}>
+                        {convertDate(order.createdAt)}
+                      </Text>
+
+                      <TouchableOpacity
+                        style={{
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                        onPress={() =>
+                          navigation.navigate("Order", { id: order._id })
+                        }
+                      >
+                        <FontAwesome name="pencil" size={24} color="#2AB2DB" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+            </ScrollView>
+          ) : (
+            <View
+              style={{
+                backgroundColor: "white",
+                flex: 1,
+                marginTop: 20,
+                borderRadius: 10,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
+                Aucune Commande
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
     </SafeAreaView>
   );

@@ -12,6 +12,7 @@ import { AntDesign } from "@expo/vector-icons";
 import { Colors, Fonts } from "../../constants";
 import { createToppingCategory } from "../../services/ToppingsServices";
 import SuccessModel from "./SuccessModel";
+import FailModel from "./FailModel";
 
 const CreateToppingCategoryModel = ({
   setShowCreateToppingCategoryModel,
@@ -20,6 +21,7 @@ const CreateToppingCategoryModel = ({
   const [name, setName] = useState("");
   const [showSuccessModel, setShowSuccessModel] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showFailModal, setShowFailModal] = useState(false);
   const nameRef = useRef(null);
   const saveItem = async () => {
     if (name.length < 1) {
@@ -37,6 +39,8 @@ const CreateToppingCategoryModel = ({
         if (response.status) {
           setRefresh((prev) => prev + 1);
           setShowSuccessModel(true);
+        } else {
+          setShowFailModal(true);
         }
       })
       .finally(() => {
@@ -56,9 +60,23 @@ const CreateToppingCategoryModel = ({
       return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
     }
   }, [showSuccessModel]);
+  useEffect(() => {
+    if (showFailModal) {
+      // After 1 second, reset showSuccessModel to false
+
+      const timer = setTimeout(() => {
+        setShowFailModal(false);
+      }, 2000);
+
+      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+    }
+  }, [showFailModal]);
   return (
     <View style={styles.container}>
       {showSuccessModel && <SuccessModel />}
+      {showFailModal && (
+        <FailModel message="Oops ! Quelque chose s'est mal passé" />
+      )}
       {isLoading && (
         <View
           style={{
