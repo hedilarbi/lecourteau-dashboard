@@ -3,6 +3,8 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -221,7 +223,7 @@ const ItemScreen = () => {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View style={{ flex: 1, backgroundColor: Colors.screenBg }}>
+      <ScrollView style={{ flex: 1, backgroundColor: Colors.screenBg }}>
         {showAddCustomizationModel && (
           <AddToppingModel
             setShowAddCategoryModel={setShowAddCustomizationModel}
@@ -724,7 +726,7 @@ const ItemScreen = () => {
             </TouchableOpacity>
           </View>
         )}
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 };

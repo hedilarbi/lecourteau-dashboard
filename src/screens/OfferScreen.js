@@ -1,6 +1,7 @@
 import {
   ActivityIndicator,
   Image,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -218,7 +219,7 @@ const OfferScreen = () => {
     );
   }
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.screenBg }}>
+    <ScrollView style={{ flex: 1, backgroundColor: Colors.screenBg }}>
       {showSuccessModel && <SuccessModel />}
       {showFailModal && (
         <FailModel message="Oops ! Quelque chose s'est mal passé" />
@@ -672,7 +673,7 @@ const OfferScreen = () => {
           </TouchableOpacity>
         </View>
       )}
-    </View>
+    </ScrollView>
   );
 };
 

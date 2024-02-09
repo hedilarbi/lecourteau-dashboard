@@ -8,7 +8,8 @@ import {
 import React, { useState } from "react";
 import { Colors, Fonts } from "../constants";
 import { sendNotifications } from "../services/NotifyServices";
-
+import axios from "axios";
+import { API_URL } from "@env";
 const SendNotifications = ({
   setIsLoading,
   setShowSuccessModel,
@@ -19,19 +20,21 @@ const SendNotifications = ({
 
   const send = async () => {
     setIsLoading(true);
-    sendNotifications(title, body)
-      .then((response) => {
-        if (response.status) {
-          setTitle("");
-          setBody("");
-          setShowSuccessModel(true);
-        } else {
-          setShowFailModal(true);
-        }
-      })
-      .finally(() => {
-        setIsLoading(false);
+    try {
+      const response = await axios.post(`${API_URL}/notifiers/notifications`, {
+        title,
+        body,
       });
+      if (response.status) {
+        setTitle("");
+        setBody("");
+        setShowSuccessModel(true);
+      }
+    } catch (err) {
+      setShowFailModal(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
   return (
     <View style={{ flex: 1, padding: 24 }}>
@@ -46,12 +49,13 @@ const SendNotifications = ({
           placeholder="Titre"
           style={{
             padding: 10,
-            fontFamily: Fonts.LATO_LIGHT,
+            fontFamily: Fonts.LATO_REGULAR,
             fontSize: 20,
             flex: 1,
             borderWidth: 2,
             borderColor: Colors.primary,
             marginLeft: 20,
+            color: "black",
           }}
           onChangeText={(text) => setTitle(text)}
         />

@@ -2,13 +2,13 @@ import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { API_URL } from "@env";
+import { Platform } from "react-native";
 async function sendPushNotification(expoPushToken) {
   const message = {
     to: expoPushToken,
     sound: "default",
     title: "Original Title",
     body: "And here is the body!",
-    data: { someData: "goes here" },
   };
 
   const response = await fetch("https://exp.host/--/api/v2/push/send", {
@@ -44,7 +44,7 @@ async function registerForPushNotificationsAsync() {
       name: "default",
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      sound: "notification-sound.wav",
+
       lightColor: "#F25d58",
     });
   }
@@ -54,23 +54,23 @@ async function registerForPushNotificationsAsync() {
 
 const sendNotifications = async (title, body) => {
   try {
-    let deleteOfferResponse = await axios.post(
-      `${API_URL}/notifiers/notifications/`,
+    let notifyResponse = await axios.post(
+      `${API_URL}/notifiers/notifications`,
       { title, body }
     );
-
-    if (deleteOfferResponse?.status === 200) {
-      return {
-        status: true,
-        message: "users data",
-        data: deleteOfferResponse?.data,
-      };
-    } else {
-      return {
-        status: false,
-        messge: "error",
-      };
-    }
+    console.log(notifyResponse);
+    // if (deleteOfferResponse?.status === 200) {
+    //   return {
+    //     status: true,
+    //     message: "users data",
+    //     data: deleteOfferResponse?.data,
+    //   };
+    // } else {
+    //   return {
+    //     status: false,
+    //     messge: "error",
+    //   };
+    // }
   } catch (error) {
     return {
       status: false,

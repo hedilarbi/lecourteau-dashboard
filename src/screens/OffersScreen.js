@@ -10,8 +10,8 @@ import {
   RefreshControl,
   Switch,
 } from "react-native";
-import React, { useEffect, useState } from "react";
-import { useNavigation } from "@react-navigation/native";
+import React, { useCallback, useEffect, useState } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Colors, Fonts, Roles } from "../constants";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import SearchBar from "../components/SearchBar";
@@ -75,6 +75,12 @@ const OffersScreen = () => {
   useEffect(() => {
     fetchData();
   }, [refresh]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
   const updateAvailability = async (offerId, index) => {
     updateRestaurantOfferAvailability(restaurant, offerId).then((response) => {
       if (response.status) {

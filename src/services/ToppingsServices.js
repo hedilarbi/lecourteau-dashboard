@@ -32,7 +32,7 @@ const createToppingCategory = async (name) => {
       { name }
     );
 
-    if (createToppingCategoryResponse?.status === 201) {
+    if (createToppingCategoryResponse?.status === 200) {
       return {
         status: true,
         message: "users data",

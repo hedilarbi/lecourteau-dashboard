@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 
 import { Colors, Fonts, OrderStatus, Roles } from "../constants";
@@ -17,7 +17,7 @@ import SearchBar from "../components/SearchBar";
 import DeleteWarning from "../components/models/DeleteWarning";
 
 import { deleteOrder, getOrders } from "../services/OrdersServices";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { convertDate } from "../utils/dateHandlers";
 import { useSelector } from "react-redux";
 import { selectStaffData } from "../redux/slices/StaffSlice";
@@ -96,6 +96,12 @@ const OrdersScreen = () => {
       });
     }
   };
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
+
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>

@@ -15,6 +15,10 @@
         "GOOGLE_MAPS_API_KEY": "AIzaSyC2t8GvZFa6Ld6fbKM6_m2n3M0JoOmI03w"
       }
     },
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
     "preview2": {
       "android": {
         "gradleCommand": ":app:assembleRelease"

@@ -77,8 +77,10 @@ const SignUpScreen = () => {
       }
     }
     setIsLoading(true);
+
     loginStaff(userName, password, expoToken)
       .then(async (response) => {
+        console.log("aa");
         if (response.status) {
           dispatch(setStaffData(response.data));
           dispatch(setStaffToken(response.data.token));

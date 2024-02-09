@@ -33,7 +33,7 @@ const RootNavigation = () => {
     if (token) {
       getStaffByToken(token)
         .then(async (response) => {
-          if (response.status) {
+          if (response.status && response.data) {
             dispatch(setStaffData(response.data));
             dispatch(setStaffToken(token));
           } else {

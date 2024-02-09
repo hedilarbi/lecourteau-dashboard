@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 
 import { Colors, Fonts } from "../constants";
@@ -18,7 +18,7 @@ import UserModel from "../components/models/UserModel";
 import useGetUsers from "../hooks/useGetUsers";
 import { deleteUser, getUsers } from "../services/UsersServices";
 import { filterUsers } from "../utils/filters";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 const UsersScreen = () => {
   const navigation = useNavigation();
@@ -53,6 +53,12 @@ const UsersScreen = () => {
     setUserId(id);
     setDeleteWarningModelState(true);
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   return (
     <SafeAreaView style={{ backgroundColor: Colors.screenBg, flex: 1 }}>

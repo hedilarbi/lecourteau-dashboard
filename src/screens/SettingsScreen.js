@@ -10,12 +10,13 @@ import {
   TextInput,
   Switch,
 } from "react-native";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { Colors, Fonts } from "../constants";
 
 import { getSettings, updateSettings } from "../services/SettingsServices";
 import SuccessModel from "../components/models/SuccessModel";
+import { useFocusEffect } from "@react-navigation/native";
 const SettingsScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [settings, setSettings] = useState({});
@@ -27,8 +28,9 @@ const SettingsScreen = () => {
     setIsLoading(true);
     getSettings()
       .then((response) => {
+        console.log(response);
         if (response.status) {
-          setSettings(response.data[0]);
+          setSettings(response.data.settings[0]);
         } else {
           console.log(response);
         }
@@ -55,6 +57,11 @@ const SettingsScreen = () => {
         setIsLoading(false);
       });
   };
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   useEffect(() => {
     if (showSuccessModel) {
@@ -72,7 +79,7 @@ const SettingsScreen = () => {
       {showSuccessModel && <SuccessModel />}
       <View style={{ flex: 1, padding: 20 }}>
         <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
-          Settings
+          Paramètre
         </Text>
         {isLoading ? (
           <View
@@ -90,7 +97,7 @@ const SettingsScreen = () => {
         ) : (
           <View>
             <View style={{ marginTop: 20 }}>
-              <Text style={[, styles.title]}>Open-Close Times:</Text>
+              <Text style={[styles.title]}>Heures d'ouverture:</Text>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <View
                   style={{
@@ -99,7 +106,7 @@ const SettingsScreen = () => {
                     marginTop: 10,
                   }}
                 >
-                  <Text style={styles.text}>Open:</Text>
+                  <Text style={styles.text}>Ouverture:</Text>
                   <View
                     style={{
                       flexDirection: "row",
@@ -160,7 +167,7 @@ const SettingsScreen = () => {
                     marginLeft: 50,
                   }}
                 >
-                  <Text style={styles.text}>Close:</Text>
+                  <Text style={styles.text}>Fermeture:</Text>
                   <View
                     style={{
                       flexDirection: "row",
@@ -221,7 +228,7 @@ const SettingsScreen = () => {
                 marginTop: 20,
               }}
             >
-              <Text style={[styles.title]}>Open:</Text>
+              <Text style={[styles.title]}>Ouvert:</Text>
               <Switch
                 trackColor={{ false: "#767577", true: Colors.primary }}
                 thumbColor="black"
@@ -240,7 +247,7 @@ const SettingsScreen = () => {
                 marginTop: 20,
               }}
             >
-              <Text style={[styles.title]}>Delivery:</Text>
+              <Text style={[styles.title]}>Livraison:</Text>
               <Switch
                 trackColor={{ false: "#767577", true: Colors.primary }}
                 thumbColor="black"
@@ -259,7 +266,7 @@ const SettingsScreen = () => {
                 marginTop: 20,
               }}
             >
-              <Text style={[styles.title]}>Delivery Fee:</Text>
+              <Text style={[styles.title]}>Frais de livraison:</Text>
               <TextInput
                 style={[
                   styles.text,
@@ -299,7 +306,7 @@ const SettingsScreen = () => {
           }}
           onPress={saveChanges}
         >
-          <Text style={styles.title}>Save</Text>
+          <Text style={styles.title}>Sauvegarder</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

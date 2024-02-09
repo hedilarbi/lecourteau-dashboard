@@ -11,8 +11,8 @@ import {
   Switch,
   Alert,
 } from "react-native";
-import React, { useEffect, useState } from "react";
-import { useNavigation } from "@react-navigation/native";
+import React, { useCallback, useEffect, useState } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Colors, Fonts, Roles } from "../constants";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import SearchBar from "../components/SearchBar";
@@ -84,6 +84,11 @@ const ItemsScreen = () => {
     setMenuItem(id);
     setDeleteWarningModelState(true);
   };
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   const updateAvailability = async (itemId, index) => {
     updateRestaurantItemAvailability(restaurant, itemId).then((response) => {

@@ -516,7 +516,7 @@ const OrderScreen = () => {
                     marginLeft: 10,
                   }}
                 >
-                  {order.user.phone_number}
+                  {order?.user?.phone_number}
                 </Text>
               </View>
             </View>
@@ -537,7 +537,7 @@ const OrderScreen = () => {
                     marginLeft: 10,
                   }}
                 >
-                  {order.user.email}
+                  {order.user?.email}
                 </Text>
               </View>
             </View>

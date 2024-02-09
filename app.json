@@ -11,11 +11,12 @@
       "resizeMode": "contain",
       "backgroundColor": "#F7A600"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": { "NSAllowsArbitraryLoads": true }
+      }
     },
     "android": {
       "softwareKeyboardLayoutMode": "pan",
@@ -30,7 +31,8 @@
         "android.permission.FOREGROUND_SERVICE"
       ],
       "googleServicesFile": "./google-services.json",
-      "package": "com.hedilarbi95.lecourteaudashboard"
+      "package": "com.hedilarbi95.lecourteaudashboard",
+      "usesCleartextTraffic": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -43,6 +45,14 @@
         }
       ],
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification_icon.png",
+          "color": "#000000",
+          "sounds": ["./assets/sounds/notificationsound.wav"]
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "The app accesses your photos to let you share them with your friends."
@@ -52,6 +62,15 @@
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          },
+          "ios": {}
         }
       ]
     ],

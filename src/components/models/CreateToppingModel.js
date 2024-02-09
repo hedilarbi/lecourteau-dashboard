@@ -172,7 +172,7 @@ const CreateToppingModel = ({
           }}
         >
           <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-            Ajouter une Personalisation
+            Ajouter une Personnalisation
           </Text>
           <TouchableOpacity onPress={() => setShowCreateToppingModel(false)}>
             <AntDesign name="close" size={40} color="gray" />

@@ -8,23 +8,18 @@ import {
   SimpleLineIcons,
   Foundation,
   MaterialCommunityIcons,
-  Entypo,
   MaterialIcons,
-  Ionicons,
-  Fontisto,
 } from "@expo/vector-icons";
 
-import RewardsScreen from "../screens/RewardsScreen";
 import ToppingsScreen from "../screens/ToppingsScreen";
-import * as Location from "expo-location";
-import UsersNav from "./UsersNav";
+
 import OrdersNav from "./OrdersNav";
 import ItemsNav from "./ItemsNav";
 
 import OffersNav from "./OffersNav";
-import RestaurantsNav from "./RestaurantsNav";
+
 import { useEffect, useRef } from "react";
-import StaffNav from "./StaffNav";
+
 import * as Notifications from "expo-notifications";
 import { useNavigation } from "@react-navigation/native";
 function CashierDrawer() {
@@ -35,11 +30,10 @@ function CashierDrawer() {
     notificationListener.current =
       Notifications.addNotificationReceivedListener((notification) => {
         const data = notification.request.content.data;
-
+        console.log(data);
         if (data && data.order_id) {
-          navigation.navigate("OrderNav", {
-            screen: "Order",
-            params: { id: data.order_id },
+          navigation.navigate("Cashier", {
+            screen: "OrderNav",
           });
         }
       });

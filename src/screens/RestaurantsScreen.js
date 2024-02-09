@@ -8,8 +8,8 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
-import React, { useEffect, useState } from "react";
-import { useNavigation } from "@react-navigation/native";
+import React, { useCallback, useEffect, useState } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Colors, Fonts } from "../constants";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import SearchBar from "../components/SearchBar";
@@ -55,6 +55,11 @@ const RestaurantsScreen = () => {
   useEffect(() => {
     fetchData();
   }, [refresh]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   return (
     <SafeAreaView style={{ backgroundColor: Colors.screenBg, flex: 1 }}>
@@ -76,7 +81,7 @@ const RestaurantsScreen = () => {
 
       <View style={{ flex: 1, padding: 20 }}>
         <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
-          Réstaurants
+          Restaurants
         </Text>
         <View
           style={{
@@ -89,7 +94,7 @@ const RestaurantsScreen = () => {
           {/* <SearchBar /> */}
           <AddButton
             setShowModel={setShowCreateRestaurantModal}
-            text="Réstaurant"
+            text="Restaurant"
           />
         </View>
         {isLoading ? (

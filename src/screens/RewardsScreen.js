@@ -8,8 +8,8 @@ import {
   Image,
   ActivityIndicator,
 } from "react-native";
-import React, { useEffect, useState } from "react";
-import { useNavigation } from "@react-navigation/native";
+import React, { useCallback, useEffect, useState } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Colors, Fonts } from "../constants";
 import { Entypo, FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import SearchBar from "../components/SearchBar";
@@ -48,6 +48,11 @@ const RewardsScreen = () => {
     setRewardId(id);
     setDeleteWarningModelState(true);
   };
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   return (
     <SafeAreaView style={{ backgroundColor: Colors.screenBg, flex: 1 }}>

@@ -8,24 +8,26 @@ import {
 import React, { useState } from "react";
 import { Colors, Fonts } from "../constants";
 import { sendSMS } from "../services/NotifyServices";
-
+import axios from "axios";
+import { API_URL } from "@env";
 const SendSMS = ({ setIsLoading, setShowSuccessModel, setShowFailModal }) => {
   const [body, setBody] = useState("");
 
   const send = async () => {
     setIsLoading(true);
-    sendSMS(body)
-      .then((response) => {
-        if (response.status) {
-          setBody("");
-          setShowSuccessModel(true);
-        } else {
-          setShowFailModal(true);
-        }
-      })
-      .finally(() => {
-        setIsLoading(false);
+    try {
+      const response = await axios.post(`${API_URL}/notifiers/sms`, {
+        body,
       });
+      if (response.status === 200) {
+        setBody("");
+        setShowSuccessModel(true);
+      }
+    } catch (err) {
+      setShowFailModal(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
   return (
     <View style={{ flex: 1, padding: 24 }}>
@@ -43,14 +45,14 @@ const SendSMS = ({ setIsLoading, setShowSuccessModel, setShowFailModal }) => {
           placeholder="Message"
           style={{
             padding: 10,
-            fontFamily: Fonts.LATO_LIGHT,
+            fontFamily: Fonts.LATO_REGULAR,
             fontSize: 20,
             flex: 1,
             borderWidth: 2,
             borderColor: Colors.primary,
             marginLeft: 20,
           }}
-          onChangeText={(text) => setTitle(text)}
+          onChangeText={(text) => setBody(text)}
         />
       </View>
       <TouchableOpacity

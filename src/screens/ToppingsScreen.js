@@ -9,7 +9,7 @@ import {
   Switch,
   RefreshControl,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 import { Colors, Fonts, Roles } from "../constants";
 import { MaterialIcons, FontAwesome } from "@expo/vector-icons";
@@ -29,6 +29,7 @@ import {
   updateRestaurantToppingAvailability,
 } from "../services/RestaurantServices";
 import UpdateToppingModal from "../components/models/UpdateToppingModal";
+import { useFocusEffect } from "@react-navigation/native";
 
 const ToppingsScreen = () => {
   const { role, restaurant } = useSelector(selectStaffData);
@@ -103,6 +104,12 @@ const ToppingsScreen = () => {
     setShowUpdateToppingModal(true);
   };
 
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
+
   return (
     <SafeAreaView style={{ backgroundColor: Colors.screenBg, flex: 1 }}>
       {deleteWarningModelState && (
@@ -137,7 +144,7 @@ const ToppingsScreen = () => {
 
       <View style={{ flex: 1, padding: 20 }}>
         <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
-          Personalisations
+          Personnalisations
         </Text>
         <View
           style={{
@@ -163,7 +170,7 @@ const ToppingsScreen = () => {
           {role === Roles.ADMIN && (
             <AddButton
               setShowModel={setShowCreateToppingModel}
-              text="Personalisation"
+              text="Personnalisation"
             />
           )}
           {role === Roles.ADMIN && (

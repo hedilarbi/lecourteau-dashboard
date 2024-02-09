@@ -5,10 +5,11 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { getInitialStats } from "../services/statsServices";
 import { Colors, Fonts } from "../constants";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 const HomeScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [refresh, setRefresh] = useState(0);
@@ -35,6 +36,11 @@ const HomeScreen = () => {
         setIsLoading(false);
       });
   };
+  useFocusEffect(
+    useCallback(() => {
+      loadHome();
+    }, [])
+  );
   useEffect(() => {
     loadHome();
   }, [refresh]);

@@ -28,7 +28,7 @@ import StaffNav from "./StaffNav";
 import { useSelector } from "react-redux";
 import { selectStaffData } from "../redux/slices/StaffSlice";
 import NotificationsScreen from "../screens/NotificationsScreen";
-
+import SettingsScreen from "../screens/SettingsScreen";
 function DrawerNavigator() {
   const { role } = useSelector(selectStaffData);
 
@@ -68,6 +68,7 @@ function DrawerNavigator() {
         component={HomeScreen}
         options={{
           headerShown: false,
+          title: "Acceuil",
           drawerIcon: ({ color }) => (
             <FontAwesome name="home" size={24} color={color} />
           ),
@@ -79,7 +80,7 @@ function DrawerNavigator() {
         component={UsersNav}
         options={{
           headerShown: false,
-          title: "Utilisateur",
+          title: "Utilisateurs",
           drawerIcon: ({ color }) => (
             <FontAwesome name="users" size={24} color={color} />
           ),
@@ -113,7 +114,7 @@ function DrawerNavigator() {
         component={ToppingsScreen}
         options={{
           headerShown: false,
-          title: "Personalisations",
+          title: "Personnalisations",
           drawerIcon: ({ color }) => (
             <MaterialIcons name="dashboard-customize" size={24} color={color} />
           ),
@@ -149,7 +150,7 @@ function DrawerNavigator() {
         name="StaffNav"
         component={StaffNav}
         options={{
-          title: "Employée",
+          title: "Employés",
           headerShown: false,
           drawerIcon: ({ color }) => (
             <Fontisto name="persons" size={24} color={color} />
@@ -160,7 +161,7 @@ function DrawerNavigator() {
         name="RestaurantsNav"
         component={RestaurantsNav}
         options={{
-          title: "Réstaurants",
+          title: "Restaurants",
           headerShown: false,
           drawerIcon: ({ color }) => (
             <Ionicons name="restaurant" size={24} color={color} />

@@ -3,6 +3,7 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
+  Platform,
   StyleSheet,
   Text,
   TextInput,

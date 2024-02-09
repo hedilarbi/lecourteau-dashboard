@@ -7,9 +7,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { deleteCategory, getCategories } from "../services/MenuItemServices";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import DeleteWarning from "../components/models/DeleteWarning";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RefreshControl } from "react-native-gesture-handler";
@@ -44,6 +44,12 @@ const CategoriesScreen = () => {
   useEffect(() => {
     fetchData();
   }, [refresh]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   const handleShowUpdateCategoryModel = (category) => {
     setCategory(category);
