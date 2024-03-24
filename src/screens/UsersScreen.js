@@ -14,11 +14,12 @@ import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { Colors, Fonts } from "../constants";
 import SearchBar from "../components/SearchBar";
 import DeleteWarning from "../components/models/DeleteWarning";
-import UserModel from "../components/models/UserModel";
-import useGetUsers from "../hooks/useGetUsers";
+
 import { deleteUser, getUsers } from "../services/UsersServices";
 import { filterUsers } from "../utils/filters";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import ErrorScreen from "../components/ErrorScreen";
+import LoadingScreen from "../components/LoadingScreen";
 
 const UsersScreen = () => {
   const navigation = useNavigation();
@@ -27,23 +28,28 @@ const UsersScreen = () => {
   const [refresh, setRefresh] = useState(0);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(false);
 
   const [users, setUsers] = useState([]);
   const [usersList, setUsersList] = useState([]);
   const fetchData = async () => {
-    getUsers().then((response) => {
-      if (response?.status) {
-        setUsers(response?.data);
-        setUsersList(response?.data);
-      } else {
-        console.log("getUsers false");
-      }
-    });
+    setError(false);
+    getUsers()
+      .then((response) => {
+        if (response?.status) {
+          setUsers(response?.data);
+          setUsersList(response?.data);
+        } else {
+          setError(true);
+        }
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   };
   useEffect(() => {
     setIsLoading(true);
     fetchData();
-    setIsLoading(false);
   }, [refresh]);
   const handleShowUserModel = (id) => {
     navigation.navigate("User", { id });
@@ -59,6 +65,13 @@ const UsersScreen = () => {
       fetchData();
     }, [])
   );
+
+  if (error) {
+    return <ErrorScreen setRefresh={setRefresh} />;
+  }
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
 
   return (
     <SafeAreaView style={{ backgroundColor: Colors.screenBg, flex: 1 }}>
@@ -80,20 +93,7 @@ const UsersScreen = () => {
         <View style={{ marginTop: 30 }}>
           <SearchBar setter={setUsers} list={usersList} filter={filterUsers} />
         </View>
-        {isLoading ? (
-          <View
-            style={{
-              flex: 1,
-
-              width: "100%",
-
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <ActivityIndicator size={"large"} color="black" />
-          </View>
-        ) : users.length > 0 ? (
+        {users?.length > 0 ? (
           <ScrollView
             style={{ width: "100%", marginTop: 30 }}
             refreshControl={

@@ -23,6 +23,7 @@ import { useSelector } from "react-redux";
 import { selectStaffData } from "../redux/slices/StaffSlice";
 import { getRestaurantOrders } from "../services/RestaurantServices";
 import { filterOrdersByCode } from "../utils/filters";
+import ErrorScreen from "../components/ErrorScreen";
 
 const OrdersScreen = () => {
   const navigation = useNavigation();
@@ -49,29 +50,37 @@ const OrdersScreen = () => {
   const [refresh, setRefresh] = useState(0);
   const [filter, setFilter] = useState("All");
   const [ordersList, setOrdersList] = useState([]);
+  const [error, setError] = useState(false);
   const [orders, setOrders] = useState([]);
   const fetchData = async () => {
     setIsLoading(true);
     if (role === Roles.ADMIN) {
-      getOrders().then((response) => {
-        if (response?.status) {
-          setOrders(response?.data);
-          setOrdersList(response.data);
-        } else {
-          Alert.alert("Something went wrong");
-        }
-      });
+      getOrders()
+        .then((response) => {
+          if (response?.status) {
+            setOrders(response?.data);
+            setOrdersList(response.data);
+          } else {
+            setError(true);
+          }
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     } else {
-      getRestaurantOrders(restaurant).then((response) => {
-        if (response?.status) {
-          setOrders(response?.data.orders);
-          setOrdersList(response.data.orders);
-        } else {
-          Alert.alert("Something went wrong");
-        }
-      });
+      getRestaurantOrders(restaurant)
+        .then((response) => {
+          if (response?.status) {
+            setOrders(response?.data);
+            setOrdersList(response?.data);
+          } else {
+            setError(true);
+          }
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     }
-    setIsLoading(false);
   };
   useEffect(() => {
     fetchData();
@@ -108,6 +117,10 @@ const OrdersScreen = () => {
         <ActivityIndicator size="large" color="black" />
       </View>
     );
+  }
+
+  if (error) {
+    return <ErrorScreen setRefresh={setRefresh} />;
   }
 
   return (

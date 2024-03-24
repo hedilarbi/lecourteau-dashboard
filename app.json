@@ -24,12 +24,12 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "permissions": [
-        "android.permission.RECORD_AUDIO",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.FOREGROUND_SERVICE"
-      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyC2t8GvZFa6Ld6fbKM6_m2n3M0JoOmI03w"
+        }
+      },
+
       "googleServicesFile": "./google-services.json",
       "package": "com.hedilarbi95.lecourteaudashboard",
       "usesCleartextTraffic": true

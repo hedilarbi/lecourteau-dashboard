@@ -13,18 +13,16 @@ import React, { useEffect, useState } from "react";
 import { Colors, Fonts, Roles } from "../constants";
 
 import { useRoute } from "@react-navigation/native";
-import { AntDesign, Entypo } from "@expo/vector-icons";
+
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { Dropdown } from "react-native-element-dropdown";
 
 import SuccessModel from "../components/models/SuccessModel";
 import * as ImagePicker from "expo-image-picker";
-import { API_URL } from "@env";
-import mime from "mime";
 import { getStaffMember, updateStaffMember } from "../services/StaffServices";
 import { getRestaurants } from "../services/RestaurantServices";
 import FailModel from "../components/models/FailModel";
-import { Col } from "react-native-table-component";
+
 const EmployeeScreen = () => {
   const route = useRoute();
   const { id } = route.params;
@@ -72,26 +70,22 @@ const EmployeeScreen = () => {
   };
   useEffect(() => {
     if (showFailModal) {
-      // After 1 second, reset showSuccessModel to false
-
       const timer = setTimeout(() => {
         setShowFailModal(false);
       }, 2000);
 
-      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+      return () => clearTimeout(timer);
     }
   }, [showFailModal]);
   useEffect(() => {
     if (showSuccessModel) {
-      // After 1 second, reset showSuccessModel to false
-
       const timer = setTimeout(() => {
         setShowSuccessModel(false);
 
         setUpdateMode(false);
       }, 1000);
 
-      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+      return () => clearTimeout(timer);
     }
   }, [showSuccessModel]);
 

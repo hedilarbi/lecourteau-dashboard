@@ -1,10 +1,8 @@
 import {
   ActivityIndicator,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import React from "react";
@@ -15,19 +13,12 @@ import useGetUser from "../hooks/useGetUser";
 import { convertDate } from "../utils/dateHandlers";
 import { useRoute } from "@react-navigation/native";
 
+import ErrorScreen from "../components/ErrorScreen";
+
 const UserScreen = () => {
   const route = useRoute();
   const { id } = route.params;
-  const { user, isLoading } = useGetUser(id);
-  const setOrderColor = (status) => {
-    switch (status) {
-      case "Delivered":
-        return "#0A8D37";
-
-      case "onGoing":
-        return "#C28E09";
-    }
-  };
+  const { user, isLoading, error, setRefresh } = useGetUser(id);
 
   if (isLoading) {
     return (
@@ -42,6 +33,10 @@ const UserScreen = () => {
         <ActivityIndicator size="large" color="black" />
       </View>
     );
+  }
+
+  if (error) {
+    return <ErrorScreen setRefresh={setRefresh} />;
   }
 
   return (
@@ -202,7 +197,7 @@ const UserScreen = () => {
                     fontSize: 20,
                   }}
                 >
-                  Nomber de commande:
+                  Nombre de commande:
                 </Text>
                 <Text
                   style={{

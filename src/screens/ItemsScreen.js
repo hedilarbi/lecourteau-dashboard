@@ -10,11 +10,22 @@ import {
   RefreshControl,
   Switch,
   Alert,
+  PanResponder,
+  FlatList,
+  Animated,
+  Button,
 } from "react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, {
+  createRef,
+  memo,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Colors, Fonts, Roles } from "../constants";
-import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import { FontAwesome, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import SearchBar from "../components/SearchBar";
 import DeleteWarning from "../components/models/DeleteWarning";
 import CreateItemModel from "../components/models/CreateItemModel";
@@ -22,13 +33,21 @@ import AddButton from "../components/AddButton";
 import CreateCategoryModel from "../components/models/CreateCategoryModel";
 
 import { filterMenuItems, filterRestaurantMenuItems } from "../utils/filters";
-import { deleteMenuItem, getMenuItems } from "../services/MenuItemServices";
+import {
+  deleteMenuItem,
+  getCategories,
+  getMenuItems,
+  menuTri,
+} from "../services/MenuItemServices";
 import { useSelector } from "react-redux";
 import { selectStaffData } from "../redux/slices/StaffSlice";
 import {
   getRestaurantItems,
   updateRestaurantItemAvailability,
 } from "../services/RestaurantServices";
+import ErrorScreen from "../components/ErrorScreen";
+import MenuItemsFilter from "../components/MenuItemsFilter";
+import RenderMenuItem from "../components/RenderMenuItem";
 
 const ItemsScreen = () => {
   const { role, restaurant } = useSelector(selectStaffData);
@@ -37,46 +56,212 @@ const ItemsScreen = () => {
   const [deleteWarningModelState, setDeleteWarningModelState] = useState(false);
   const [showCreateItemModel, setShowCreateItemModel] = useState(false);
   const [showCreateCategoryModel, setShowCreateCategoryModel] = useState(false);
-
+  const [categories, setCategories] = useState([]);
   const [refresh, setRefresh] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isTriLoading, setIsTriLoading] = useState(false);
   const [menuItem, setMenuItem] = useState("");
+  const [menuItemFilter, setMenuItemFilter] = useState("Toutes les catégories");
   const [menuItems, setMenuItems] = useState([]);
+  const [draggingIdx, setDraggingIdx] = useState(-1);
   const [menuItemsList, setMenuItemsList] = useState([]);
+  const [error, setError] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const point = useRef(new Animated.ValueXY()).current;
+  const scrollOffset = useRef(0);
+  const flatlistTopOffset = useRef(0);
+  const rowHeight = useRef(0);
+  const currentIdx = useRef(-1);
+  const active = useRef(false);
+  const currentY = useRef(0);
+  const flatListHeight = useRef(0);
+  const flatList = useRef();
+
+  const indexB = useRef(-1);
+  const initialIndex = useRef(-1);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: (evt, gestureState) => true,
+      onStartShouldSetPanResponderCapture: (evt, gestureState) => true,
+      onMoveShouldSetPanResponder: (evt, gestureState) => true,
+      onMoveShouldSetPanResponderCapture: (evt, gestureState) => true,
+
+      onPanResponderGrant: (evt, gestureState) => {
+        currentIdx.current = yToIndex(gestureState.y0);
+        initialIndex.current = currentIdx.current;
+        currentY.current = gestureState.y0;
+
+        Animated.event([{ y: point.y }], { useNativeDriver: false })({
+          y: gestureState.y0 - rowHeight.current / 2,
+        });
+        active.current = true;
+        setDragging(true);
+        setDraggingIdx(currentIdx.current);
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        currentY.current = gestureState.moveY;
+
+        Animated.event([{ y: point.y }], { useNativeDriver: false })({
+          y: gestureState.moveY,
+        });
+      },
+      onPanResponderTerminationRequest: (evt, gestureState) => true,
+      onPanResponderRelease: () => {
+        reset();
+      },
+      //onPanResponderTerminate: () => reset(),
+      onShouldBlockNativeResponder: (evt, gestureState) => {
+        return true;
+      },
+    })
+  ).current;
+  const immutableMove = (arr, from, to) => {
+    return arr
+      .reduce((prev, current, idx, self) => {
+        if (from === to) {
+          prev.push({ ...current, order: idx });
+        }
+        if (idx === from) {
+          return prev;
+        }
+        if (from < to) {
+          prev.push({ ...current, order: idx });
+
+          indexB.current = to;
+        }
+        if (idx === to) {
+          prev.push({ ...self[from], order: to });
+        }
+        if (from > to) {
+          prev.push({ ...current, order: idx });
+
+          indexB.current = to;
+        }
+        return prev;
+      }, [])
+      .map((item, idx) => ({ ...item, order: idx }));
+  };
+
+  const animateList = () => {
+    if (!active.current) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      if (currentY.current + 100 > flatListHeight.current) {
+        flatList.current.scrollToOffset({
+          offset: scrollOffset.current + 10,
+          animated: false,
+        });
+      } else if (currentY.current < 100) {
+        flatList.current.scrollToOffset({
+          offset: scrollOffset.current - 10,
+          animated: false,
+        });
+      }
+      const newIdx = yToIndex(currentY.current);
+      if (currentIdx.current !== newIdx) {
+        setMenuItems((prevData) =>
+          immutableMove(prevData, currentIdx.current, newIdx)
+        );
+        setDraggingIdx(newIdx);
+        currentIdx.current = newIdx;
+      }
+
+      animateList();
+    });
+  };
+
+  const yToIndex = (y) => {
+    const value = Math.floor(
+      (scrollOffset.current + y - flatlistTopOffset.current) / rowHeight.current
+    );
+
+    if (value < 0) {
+      return 0;
+    }
+
+    return value;
+  };
+  const reset = async () => {
+    active.current = false;
+
+    setDragging(false);
+    setDraggingIdx(-1);
+    setIsTriLoading(true);
+
+    menuTri(initialIndex.current, indexB.current)
+      .then((response) => {
+        console.log(response.data);
+      })
+      .catch((err) => {
+        console.log(err.message);
+      })
+      .finally(() => {
+        setIsTriLoading(false);
+      });
+  };
+
   const fetchData = async () => {
     setIsLoading(true);
-    if (role === Roles.ADMIN) {
-      getMenuItems()
-        .then((response) => {
-          if (response?.status) {
-            setMenuItems(response?.data);
-            setMenuItemsList(response?.data);
-          } else {
-            console.log("getUsers false");
-          }
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-    } else {
-      getRestaurantItems(restaurant)
-        .then((response) => {
-          if (response.status) {
-            setMenuItems(response?.data.menu_items);
-            setMenuItemsList(response?.data.menu_items);
-          } else {
-            Alert.alert("Intern Error");
-          }
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+    try {
+      if (role === Roles.ADMIN) {
+        const [categoriesResponse, menuItemResponse] = await Promise.all([
+          getCategories(),
+          getMenuItems(),
+        ]);
+
+        if (menuItemResponse?.status) {
+          setMenuItems(menuItemResponse?.data);
+          setMenuItemsList(menuItemResponse?.data);
+        } else {
+          setError(true);
+        }
+        if (categoriesResponse?.status) {
+          setCategories(categoriesResponse?.data);
+        } else {
+          setError(true);
+        }
+      } else {
+        const [categoriesResponse, menuItemResponse] = await Promise.all([
+          getCategories(),
+          getRestaurantItems(restaurant),
+        ]);
+
+        if (menuItemResponse.status) {
+          setMenuItems(menuItemResponse?.data.menu_items);
+          setMenuItemsList(menuItemResponse?.data.menu_items);
+        } else {
+          setError(true);
+        }
+        if (categoriesResponse.status) {
+          setCategories(categoriesResponse?.data);
+        } else {
+          setError(true);
+        }
+      }
+    } catch (error) {
+      console.error("An error occurred:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
   useEffect(() => {
+    setIsLoading(true);
     fetchData();
   }, [refresh]);
 
+  useEffect(() => {
+    if (dragging) {
+      animateList();
+    }
+  }, [dragging]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
   const handleShowMenuItemModel = (id) => {
     navigation.navigate("Item", { id });
   };
@@ -84,24 +269,15 @@ const ItemsScreen = () => {
     setMenuItem(id);
     setDeleteWarningModelState(true);
   };
-  useFocusEffect(
-    useCallback(() => {
-      fetchData();
-    }, [])
-  );
 
   const updateAvailability = async (itemId, index) => {
     updateRestaurantItemAvailability(restaurant, itemId).then((response) => {
       if (response.status) {
         const updatedMenuItems = [...menuItems];
-
-        // Modify the availability of the specific item at the given index
         updatedMenuItems[index] = {
           ...updatedMenuItems[index],
-          availability: !updatedMenuItems[index].availability, // Change the availability (toggling in this example)
+          availability: !updatedMenuItems[index].availability,
         };
-
-        // Update the state with the modified array
         setMenuItems(updatedMenuItems);
       }
     });
@@ -113,6 +289,10 @@ const ItemsScreen = () => {
         <ActivityIndicator size="large" color="black" />
       </View>
     );
+  }
+
+  if (error) {
+    return <ErrorScreen setRefresh={setRefresh} />;
   }
 
   return (
@@ -137,6 +317,24 @@ const ItemsScreen = () => {
           setShowCreateItemModel={setShowCreateItemModel}
           setRefresh={setRefresh}
         />
+      )}
+      {isTriLoading && (
+        <View
+          style={{
+            flex: 1,
+            position: "absolute",
+            top: 0,
+            width: "100%",
+            height: "100%",
+            left: 0,
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100000,
+            backgroundColor: "rgba(0,0,0,0.4)",
+          }}
+        >
+          <ActivityIndicator size={"large"} color="black" />
+        </View>
       )}
       <View style={{ flex: 1, padding: 20 }}>
         <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
@@ -200,111 +398,65 @@ const ItemsScreen = () => {
             </TouchableOpacity>
           )}
         </View>
-        {menuItems.length > 0 ? (
-          <ScrollView
-            style={{ width: "100%", marginTop: 30 }}
-            refreshControl={
-              <RefreshControl refreshing={isLoading} onRefresh={fetchData} />
-            }
+
+        <MenuItemsFilter
+          categories={categories}
+          setMenuItemFilter={setMenuItemFilter}
+          menuItemFilter={menuItemFilter}
+          menuItemsList={menuItemsList}
+          setMenuItems={setMenuItems}
+        />
+        {dragging && (
+          <Animated.View
+            style={{
+              backgroundColor: "black",
+              zIndex: 2,
+              position: "absolute",
+              width: "100%",
+              top: point.getLayout().top,
+              left: 24,
+            }}
           >
-            {role === Roles.ADMIN
-              ? menuItems.map((item, index) => (
-                  <View
-                    key={item._id}
-                    style={[
-                      styles.row,
-                      index % 2
-                        ? { backgroundColor: "transparent" }
-                        : { backgroundColor: "rgba(247,166,0,0.3)" },
-                    ]}
-                  >
-                    <Image
-                      style={[styles.image]}
-                      source={{ uri: item.image }}
-                    />
-                    <Text style={[styles.rowCell, { width: "15%" }]}>
-                      {item.name}
-                    </Text>
-
-                    <Text style={[styles.rowCell, { width: "15%" }]}>
-                      {item.prices.map((price, index) =>
-                        index !== item.prices.length - 1
-                          ? price.size[0] + "/"
-                          : price.size[0]
-                      )}
-                    </Text>
-                    <Text style={[styles.rowCell, { flex: 1 }]}>
-                      {item.prices.map((price, index) =>
-                        index != item.prices.length - 1
-                          ? price.price + "/"
-                          : price.price
-                      )}{" "}
-                    </Text>
-
-                    <TouchableOpacity
-                      style={{
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                      onPress={() => handleShowMenuItemModel(item._id)}
-                    >
-                      <FontAwesome name="pencil" size={24} color="#2AB2DB" />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={{
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                      onPress={() => handleShowDeleteWarning(item._id)}
-                    >
-                      <MaterialIcons name="delete" size={24} color="#F31A1A" />
-                    </TouchableOpacity>
-                  </View>
-                ))
-              : menuItems.map((item, index) => (
-                  <View
-                    key={item._id}
-                    style={[
-                      styles.row,
-                      index % 2
-                        ? { backgroundColor: "transparent" }
-                        : { backgroundColor: "rgba(247,166,0,0.3)" },
-                    ]}
-                  >
-                    <Image
-                      style={[styles.image]}
-                      source={{ uri: item.menuItem.image }}
-                    />
-                    <Text style={[styles.rowCell, { width: "20%" }]}>
-                      {item.menuItem.name}
-                    </Text>
-
-                    <Text style={[styles.rowCell, { width: "15%" }]}>
-                      {item.menuItem.prices.map((price, index) =>
-                        index !== item.menuItem.prices.length - 1
-                          ? price.size[0] + "/"
-                          : price.size[0]
-                      )}
-                    </Text>
-                    <Text style={[styles.rowCell, { flex: 1 }]}>
-                      {item.menuItem.prices.map((price, index) =>
-                        index != item.menuItem.prices.length - 1
-                          ? price.price + "/"
-                          : price.price
-                      )}{" "}
-                    </Text>
-
-                    <Switch
-                      trackColor={{ false: "#767577", true: Colors.primary }}
-                      thumbColor="black"
-                      ios_backgroundColor="#3e3e3e"
-                      onValueChange={() => updateAvailability(item._id, index)}
-                      value={item.availability}
-                    />
-                  </View>
-                ))}
-          </ScrollView>
+            <RenderMenuItem
+              item={menuItems[draggingIdx]}
+              rowHeight={rowHeight}
+              role={role} // Make sure 'role' is accessible in this scope
+              draggingIdx={draggingIdx} // Ensure 'draggingIdx' is accessible
+              handleShowMenuItemModel={handleShowMenuItemModel} // Provide necessary functions
+              handleShowDeleteWarning={handleShowDeleteWarning}
+              updateAvailability={updateAvailability}
+              panResponder={panResponder}
+            />
+          </Animated.View>
+        )}
+        {menuItems.length > 0 ? (
+          <FlatList
+            data={menuItems}
+            keyExtractor={(item) => item._id}
+            renderItem={({ item, index }) => (
+              <RenderMenuItem
+                item={item}
+                index={index}
+                rowHeight={rowHeight}
+                role={role} // Make sure 'role' is accessible in this scope
+                draggingIdx={draggingIdx} // Ensure 'draggingIdx' is accessible
+                handleShowMenuItemModel={handleShowMenuItemModel} // Provide necessary functions
+                handleShowDeleteWarning={handleShowDeleteWarning}
+                updateAvailability={updateAvailability}
+                panResponder={panResponder}
+              />
+            )}
+            ref={flatList}
+            style={{ marginTop: 24 }}
+            scrollEventThrottle={30}
+            onScroll={(e) => {
+              scrollOffset.current = e.nativeEvent.contentOffset.y;
+            }}
+            onLayout={(e) => {
+              flatlistTopOffset.current = e.nativeEvent.layout.y;
+              flatListHeight.current = e.nativeEvent.layout.height;
+            }}
+          />
         ) : (
           <View
             style={{

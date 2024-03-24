@@ -169,7 +169,7 @@ function DrawerNavigator() {
         }}
       />
       <Drawer.Screen
-        name="Paramètre"
+        name="Paramètres"
         component={SettingsScreen}
         options={{
           headerShown: false,

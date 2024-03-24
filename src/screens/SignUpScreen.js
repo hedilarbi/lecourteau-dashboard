@@ -35,6 +35,7 @@ const SignUpScreen = () => {
   const [errorMsg, setErrorMessg] = useState("");
   const [expoToken, setExpoToken] = useState("");
   const userNameInput = useRef(null);
+
   const passwordInput = useRef(null);
   useEffect(() => {
     registerForPushNotificationsAsync().then((token) => {
@@ -77,10 +78,9 @@ const SignUpScreen = () => {
       }
     }
     setIsLoading(true);
-
+    console.log(expoToken);
     loginStaff(userName, password, expoToken)
       .then(async (response) => {
-        console.log("aa");
         if (response.status) {
           dispatch(setStaffData(response.data));
           dispatch(setStaffToken(response.data.token));

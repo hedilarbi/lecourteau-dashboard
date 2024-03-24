@@ -43,8 +43,8 @@ async function registerForPushNotificationsAsync() {
     Notifications.setNotificationChannelAsync("default", {
       name: "default",
       importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-
+      vibrationPattern: [250, 250, 250, 250],
+      sound: "notification-sound.wav",
       lightColor: "#F25d58",
     });
   }

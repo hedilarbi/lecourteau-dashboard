@@ -41,7 +41,7 @@ function CashierDrawer() {
     responseListener.current =
       Notifications.addNotificationResponseReceivedListener((response) => {
         const data = response.notification.request.content.data;
-
+        console.log(response.notification);
         if (data && data.order_id) {
           navigation.navigate("Cashier", {
             screen: "OrderNav ",

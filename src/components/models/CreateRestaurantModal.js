@@ -97,20 +97,6 @@ const CreateRestaurantModal = ({
       return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
     }
   }, [showFailModal]);
-  useEffect(() => {
-    if (showSuccessModel) {
-      // After 1 second, reset showSuccessModel to false
-
-      const timer = setTimeout(() => {
-        setShowSuccessModel(false);
-        setRefresh((prev) => prev + 1);
-
-        setShowCreateRestaurantModal(false);
-      }, 1000);
-
-      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
-    }
-  }, [showSuccessModel]);
 
   return (
     <View style={styles.container}>
@@ -129,7 +115,7 @@ const CreateRestaurantModal = ({
             left: 0,
             alignItems: "center",
             justifyContent: "center",
-            zIndex: 100000,
+            zIndex: 50,
             backgroundColor: "rgba(0,0,0,0.4)",
           }}
         >

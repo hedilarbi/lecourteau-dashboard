@@ -244,6 +244,30 @@ const updateMenuItem = async (
   }
 };
 
+const menuTri = async (from, to) => {
+  try {
+    let response = await axios.put(`${API_URL}/menuItems/tri`, { from, to });
+
+    if (response?.status === 200) {
+      return {
+        status: true,
+        message: "users data",
+        data: response?.data,
+      };
+    } else {
+      return {
+        status: false,
+        messge: "error",
+      };
+    }
+  } catch (error) {
+    return {
+      status: false,
+      message: error.message,
+    };
+  }
+};
+
 export {
   getMenuItems,
   createMenuItemsCategory,
@@ -254,4 +278,5 @@ export {
   getMenuItem,
   updateMenuItem,
   deleteCategory,
+  menuTri,
 };
