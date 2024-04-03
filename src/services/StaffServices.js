@@ -3,11 +3,17 @@ import axios from "axios";
 
 const loginStaff = async (username, password, expoToken) => {
   try {
-    let loginStaffResponse = await axios.post(`${API_URL}/staffs/login`, {
-      username,
-      password,
-      expoToken,
-    });
+    let loginStaffResponse = await axios.post(
+      `${API_URL}/staffs/login`,
+      {
+        username,
+        password,
+        expoToken,
+      },
+      {
+        timeout: 10000, // 10 seconds
+      }
+    );
 
     if (loginStaffResponse?.status === 200) {
       return {

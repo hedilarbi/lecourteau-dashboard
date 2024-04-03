@@ -189,7 +189,6 @@ const ItemsScreen = () => {
 
     setDragging(false);
     setDraggingIdx(-1);
-    setIsTriLoading(true);
 
     menuTri(initialIndex.current, indexB.current)
       .then((response) => {
@@ -197,9 +196,6 @@ const ItemsScreen = () => {
       })
       .catch((err) => {
         console.log(err.message);
-      })
-      .finally(() => {
-        setIsTriLoading(false);
       });
   };
 
@@ -273,12 +269,7 @@ const ItemsScreen = () => {
   const updateAvailability = async (itemId, index) => {
     updateRestaurantItemAvailability(restaurant, itemId).then((response) => {
       if (response.status) {
-        const updatedMenuItems = [...menuItems];
-        updatedMenuItems[index] = {
-          ...updatedMenuItems[index],
-          availability: !updatedMenuItems[index].availability,
-        };
-        setMenuItems(updatedMenuItems);
+        setRefresh(refresh + 1);
       }
     });
   };
@@ -405,6 +396,7 @@ const ItemsScreen = () => {
           menuItemFilter={menuItemFilter}
           menuItemsList={menuItemsList}
           setMenuItems={setMenuItems}
+          role={role}
         />
         {dragging && (
           <Animated.View

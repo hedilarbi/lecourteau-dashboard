@@ -71,8 +71,8 @@ const OrdersScreen = () => {
       getRestaurantOrders(restaurant)
         .then((response) => {
           if (response?.status) {
-            setOrders(response?.data);
-            setOrdersList(response?.data);
+            setOrders(response?.data.orders);
+            setOrdersList(response?.data.orders);
           } else {
             setError(true);
           }
@@ -269,7 +269,7 @@ const OrdersScreen = () => {
                       </Text>
 
                       <Text style={[styles.rowCell, { width: "10%" }]}>
-                        {order.total_price} $
+                        {order.total_price.toFixed(2)} $
                       </Text>
                       <Text style={[styles.rowCell, { flex: 1 }]}>
                         {convertDate(order.createdAt)}
@@ -330,7 +330,7 @@ const OrdersScreen = () => {
                       </Text>
 
                       <Text style={[styles.rowCell, { width: "10%" }]}>
-                        {order.total_price} $
+                        {order.total_price.toFixed(2)} $
                       </Text>
                       <Text style={[styles.rowCell, { flex: 1 }]}>
                         {convertDate(order.createdAt)}

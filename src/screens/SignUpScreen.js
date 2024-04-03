@@ -78,20 +78,21 @@ const SignUpScreen = () => {
       }
     }
     setIsLoading(true);
-    console.log(expoToken);
+
     loginStaff(userName, password, expoToken)
       .then(async (response) => {
         if (response.status) {
           dispatch(setStaffData(response.data));
           dispatch(setStaffToken(response.data.token));
           await SecureStore.setItemAsync("token", response.data.token);
+          setIsLoading(false);
         } else {
           setErrorMessg(response.message);
           setShowErrorMessg(true);
+          setIsLoading(false);
         }
       })
-      .catch((err) => {})
-      .finally(() => {
+      .catch((err) => {
         setIsLoading(false);
       });
   };

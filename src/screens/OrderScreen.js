@@ -189,7 +189,7 @@ const OrderScreen = () => {
                         maxHeight={300}
                         labelField="label"
                         valueField="label"
-                        placeholder={""}
+                        placeholder={order.status}
                         value={status}
                         onChange={(item) => setStatus(item.label)}
                       />
@@ -335,6 +335,7 @@ const OrderScreen = () => {
                           flex: 1,
                         }}
                         keyboardType="numeric"
+                        placeholder={order.total_price.toFixed(2)}
                         onChangeText={(text) => setPrice(text)}
                       />
                       <TouchableOpacity
@@ -364,7 +365,7 @@ const OrderScreen = () => {
                           flex: 1,
                         }}
                       >
-                        {order.total_price} $
+                        {order.total_price.toFixed(2)} $
                       </Text>
                       <TouchableOpacity
                         style={{ marginRight: 15 }}

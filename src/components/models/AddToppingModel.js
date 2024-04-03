@@ -12,7 +12,7 @@ import { AntDesign } from "@expo/vector-icons";
 
 const AddToppingModel = ({
   setShowAddCategoryModel,
-
+  customizationsNames,
   setCustomizationsNames,
   toppings,
 }) => {
@@ -30,8 +30,14 @@ const AddToppingModel = ({
       setError("Chosir une personalisation");
       return;
     }
+
+    if (customizationsNames.find((c) => c._id === name._id)) {
+      setError("La personalisation existe déjà");
+      return;
+    }
     setCustomizationsNames((prevCusto) => [...prevCusto, name]);
     setShowAddCategoryModel(false);
+    setError("");
   };
   return (
     <View

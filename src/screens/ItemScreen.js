@@ -47,6 +47,8 @@ const ItemScreen = () => {
   const [showAddPriceModal, setShowAddPriceModal] = useState(false);
 
   const fetchData = async () => {
+    7;
+    console.log("fetching data");
     getMenuItem(id)
       .then((response) => {
         if (response.status) {
@@ -125,7 +127,7 @@ const ItemScreen = () => {
       console.error("Error fetching data:", error);
     } finally {
       setName(menuItem.name);
-      setDescription(menuItem.description);
+      setDescription(menuItem.description || "");
       setCategory({
         label: menuItem.category.name,
         value: menuItem.category._id,
@@ -181,8 +183,8 @@ const ItemScreen = () => {
     formdata.append("name", name);
     formdata.append("category", category.value);
     formdata.append("description", description);
-
     setIsLoading(true);
+    setError("");
     try {
       const response = await fetch(`${API_URL}/menuItems/update/${id}`, {
         method: "PUT",
@@ -195,6 +197,7 @@ const ItemScreen = () => {
         throw new Error("HTTP error " + response.status);
       }
       const data = await response.json();
+      console.log(data.customization);
       setMenuItem(data);
       setShowSuccessModel(true);
     } catch (err) {
@@ -223,27 +226,28 @@ const ItemScreen = () => {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
+      {showAddCustomizationModel && (
+        <AddToppingModel
+          setShowAddCategoryModel={setShowAddCustomizationModel}
+          setCustomizationsNames={setCustomization}
+          toppings={toppings}
+          customizationsNames={customization}
+        />
+      )}
+      {showAddPriceModal && (
+        <AddMenuItemPrice
+          setModalVisible={setShowAddPriceModal}
+          modalVisible={showAddPriceModal}
+          category={category.label}
+          setPrices={setPrices}
+          prices={prices}
+        />
+      )}
+      {showSuccessModel && <SuccessModel />}
+      {showFailModal && (
+        <FailModel message="Oops ! Quelque chose s'est mal passé" />
+      )}
       <ScrollView style={{ flex: 1, backgroundColor: Colors.screenBg }}>
-        {showAddCustomizationModel && (
-          <AddToppingModel
-            setShowAddCategoryModel={setShowAddCustomizationModel}
-            setCustomizationsNames={setCustomization}
-            toppings={toppings}
-          />
-        )}
-        {showAddPriceModal && (
-          <AddMenuItemPrice
-            setModalVisible={setShowAddPriceModal}
-            modalVisible={showAddPriceModal}
-            category={category.label}
-            setPrices={setPrices}
-            prices={prices}
-          />
-        )}
-        {showSuccessModel && <SuccessModel />}
-        {showFailModal && (
-          <FailModel message="Oops ! Quelque chose s'est mal passé" />
-        )}
         <View
           style={{
             flexDirection: "row",
@@ -501,7 +505,7 @@ const ItemScreen = () => {
                     style={{
                       backgroundColor: Colors.primary,
                       borderRadius: 5,
-                      paddingVertical: 5,
+                      paddingVertical: 0,
                       paddingHorizontal: 10,
                       alignItems: "center",
                       flexDirection: "row",
@@ -517,10 +521,11 @@ const ItemScreen = () => {
                         borderRadius: 5,
                         paddingHorizontal: 5,
                         marginVertical: 10,
-                        fontFamily: Fonts.LATO_REGULAR,
+                        fontFamily: Fonts.LATO_BOLD,
                         fontSize: 20,
                         marginLeft: 10,
-                        width: 70,
+                        backgroundColor: "black",
+                        color: Colors.primary,
                       }}
                       keyboardType="numeric"
                       onChangeText={(text) => updatePrice(text, index)}
@@ -584,7 +589,7 @@ const ItemScreen = () => {
                         marginLeft: 10,
                       }}
                     >
-                      {price.price} $
+                      {price.price.toFixed(2)} $
                     </Text>
                   </View>
                 ))}
@@ -675,29 +680,35 @@ const ItemScreen = () => {
                 gap: 20,
               }}
             >
-              {menuItem.customization?.map((custo, index) => (
-                <View
-                  key={custo._id}
-                  style={{
-                    backgroundColor: Colors.primary,
-                    borderRadius: 5,
-                    paddingVertical: 10,
-                    paddingHorizontal: 20,
-                    alignItems: "center",
-                    flexDirection: "row",
-                  }}
-                >
-                  <Text
+              {menuItem.customization?.length > 0 ? (
+                menuItem.customization?.map((custo, index) => (
+                  <View
+                    key={custo._id}
                     style={{
-                      fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 20,
-                      marginLeft: 10,
+                      backgroundColor: Colors.primary,
+                      borderRadius: 5,
+                      paddingVertical: 10,
+                      paddingHorizontal: 20,
+                      alignItems: "center",
+                      flexDirection: "row",
                     }}
                   >
-                    {custo.name}
-                  </Text>
-                </View>
-              ))}
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        marginLeft: 10,
+                      }}
+                    >
+                      {custo.name}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 20 }}>
+                  Aucune personalisation
+                </Text>
+              )}
             </View>
           )}
         </View>

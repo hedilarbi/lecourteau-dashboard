@@ -51,7 +51,7 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
       if (itemsNamesResponse.status) {
         let list = [];
         itemsNamesResponse.data.map((item) => {
-          list.push({ value: item._id, label: item.name });
+          list.push({ value: item._id, label: item.name, prices: item.prices });
         });
         setMenuItems(list);
       } else {

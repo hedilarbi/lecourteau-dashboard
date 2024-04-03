@@ -5,7 +5,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AntDesign } from "@expo/vector-icons";
 import { Dropdown } from "react-native-element-dropdown";
 import { Colors, Fonts } from "../../constants";
@@ -16,12 +16,20 @@ const AddItemModel = ({ setItems, menuItems, setShowAddItemModel }) => {
   const sizeRef = useRef(null);
   const itemRef = useRef(null);
   const quantityRef = useRef(null);
-  const sizes = [
-    { value: "Petite", label: "Petite" },
-    { value: "Moyenne", label: "Moyenne" },
-    { value: "Familliale", label: "Familliale" },
-  ];
+  const [sizes, setSizes] = useState([]);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (Object.keys(item).length > 0) {
+      const selectedItem = menuItems.find((i) => i.value === item._id);
+      const dropdownSizes = selectedItem.prices.map((l) => ({
+        label: l.size,
+        value: l.size,
+      }));
+      setSizes(dropdownSizes);
+    }
+  }, [item]);
+
   const addItem = () => {
     quantityRef.current.setNativeProps({
       style: { borderColor: Colors.primary, borderWidth: 2 },
@@ -175,7 +183,7 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     height: 40,
-    width: 200,
+    width: 300,
     borderColor: Colors.primary,
     borderWidth: 2,
     paddingHorizontal: 5,

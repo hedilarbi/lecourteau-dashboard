@@ -68,7 +68,7 @@ function DrawerNavigator() {
         component={HomeScreen}
         options={{
           headerShown: false,
-          title: "Acceuil",
+          title: "Accueil",
           drawerIcon: ({ color }) => (
             <FontAwesome name="home" size={24} color={color} />
           ),

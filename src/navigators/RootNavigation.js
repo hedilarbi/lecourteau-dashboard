@@ -26,13 +26,14 @@ const RootNavigation = () => {
   const dispatch = useDispatch();
 
   const getStaffToken = async () => {
+    setIsLoading(true);
     let token;
     try {
       token = await getItemAsync("token");
-    } catch (err) {}
-    if (token) {
-      getStaffByToken(token)
-        .then(async (response) => {
+
+      if (token) {
+        try {
+          const response = await getStaffByToken(token);
           if (response.status && response.data) {
             dispatch(setStaffData(response.data));
             dispatch(setStaffToken(token));
@@ -41,12 +42,21 @@ const RootNavigation = () => {
             dispatch(setStaffData({}));
             dispatch(setStaffToken(null));
           }
-        })
-        .finally(async () => {
-          await SplashScreen.hideAsync();
           setIsLoading(false);
-        });
-    } else {
+        } catch (error) {
+          console.error("Error getting staff data by token:", error);
+          await deleteItemAsync("token");
+          dispatch(setStaffData({}));
+          dispatch(setStaffToken(null));
+          setIsLoading(false);
+        }
+      } else {
+        dispatch(setStaffData({}));
+        dispatch(setStaffToken(null));
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error("Error getting token:", error);
       dispatch(setStaffData({}));
       dispatch(setStaffToken(null));
       setIsLoading(false);

@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import React from "react";
 import { TouchableOpacity } from "react-native-gesture-handler";
-import { Colors, Fonts } from "../constants";
+import { Colors, Fonts, Roles } from "../constants";
 
 const MenuItemsFilter = ({
   categories,
@@ -9,12 +9,20 @@ const MenuItemsFilter = ({
   setMenuItemFilter,
   menuItemsList,
   setMenuItems,
+  role,
 }) => {
   const handleMenuItemFiltering = (categoryName) => {
     if (categoryName !== "Toutes les catégories") {
-      const list = menuItemsList.filter(
-        (item) => item.category.name === categoryName
-      );
+      let list = null;
+      if (role === Roles.ADMIN) {
+        list = menuItemsList.filter(
+          (item) => item.category.name === categoryName
+        );
+      } else {
+        list = menuItemsList.filter(
+          (item) => item.menuItem.category.name === categoryName
+        );
+      }
 
       setMenuItems(list);
       setMenuItemFilter(categoryName);

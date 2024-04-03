@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Fonts, Roles } from "../constants";
+import { Colors, Fonts, Roles } from "../constants";
 import {
   Image,
   StyleSheet,
