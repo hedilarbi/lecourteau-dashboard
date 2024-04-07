@@ -127,646 +127,668 @@ const OrderScreen = () => {
     return <ErrorScreen setRefresh={setRefresh} />;
   }
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: Colors.screenBg }}
-      contentContainerStyle={{ paddingBottom: 40 }}
-    >
+    <View style={{ flex: 1 }}>
       {showSuccessModel && <SuccessModel />}
       {showFailModal && (
         <FailModel message="Oops ! Quelque chose s'est mal passé" />
       )}
-      <View style={{ flex: 1, padding: 16 }}>
-        <View>
-          <Text
-            style={{
-              fontFamily: Fonts.LATO_BOLD,
-              fontSize: 24,
-              marginVertical: 10,
-            }}
-          >
-            Informations générale
-          </Text>
-          <View
-            style={{
-              backgroundColor: "white",
-              borderRadius: 10,
-              padding: 20,
-              marginTop: 10,
-            }}
-          >
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-              }}
-            >
-              <View style={{ flex: 1 / 2 }}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_BOLD,
-                      fontSize: 20,
-                    }}
-                  >
-                    Etat:
-                  </Text>
-                  {updateStatusMode ? (
-                    <>
-                      <Dropdown
-                        style={[styles.dropdown]}
-                        placeholderStyle={styles.placeholderStyle}
-                        selectedTextStyle={styles.selectedTextStyle}
-                        selectedStyle={styles.selectedStyle}
-                        itemContainerStyle={styles.itemContainerStyle}
-                        itemTextStyle={styles.itemTextStyle}
-                        containerStyle={styles.containerStyle}
-                        data={statusOptions}
-                        maxHeight={300}
-                        labelField="label"
-                        valueField="label"
-                        placeholder={order.status}
-                        value={status}
-                        onChange={(item) => setStatus(item.label)}
-                      />
-                      <TouchableOpacity
-                        style={{
-                          marginRight: 15,
-                          backgroundColor: Colors.primary,
-                          borderRadius: 5,
-                          alignItems: "center",
-                          paddingHorizontal: 15,
-                          paddingVertical: 5,
-                        }}
-                        onPress={updateOrderStatus}
-                      >
-                        <Text style={{ fontFamily: Fonts.LATO_BOLD }}>
-                          Save
-                        </Text>
-                      </TouchableOpacity>
-                    </>
-                  ) : (
-                    <>
-                      <Text
-                        style={{
-                          fontFamily: Fonts.LATO_REGULAR,
-                          fontSize: 20,
-                          marginLeft: 10,
-                          flex: 1,
-                          color: setOrderStatusColor(order.status),
-                        }}
-                      >
-                        {order.status}
-                      </Text>
-                      <TouchableOpacity
-                        style={{ marginRight: 15 }}
-                        onPress={() => setUpdateStatusMode(true)}
-                      >
-                        <Foundation
-                          name="pencil"
-                          size={28}
-                          color={Colors.primary}
-                        />
-                      </TouchableOpacity>
-                    </>
-                  )}
-                </View>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginTop: 10,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_BOLD,
-                      fontSize: 20,
-                    }}
-                  >
-                    Code
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 20,
-                      marginLeft: 10,
-                    }}
-                  >
-                    {order.code}
-                  </Text>
-                </View>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginTop: 10,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_BOLD,
-                      fontSize: 20,
-                    }}
-                  >
-                    Type
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 20,
-                      marginLeft: 10,
-                    }}
-                  >
-                    {order.type}
-                  </Text>
-                </View>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginTop: 10,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_BOLD,
-                      fontSize: 20,
-                    }}
-                  >
-                    Crée le:
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 20,
-                      marginLeft: 10,
-                    }}
-                  >
-                    {convertDate(order.createdAt)}
-                  </Text>
-                </View>
-              </View>
-              <View style={{ flex: 1 / 2 }}>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_BOLD,
-                      fontSize: 20,
-                    }}
-                  >
-                    Totale:
-                  </Text>
-                  {updatePriceMode ? (
-                    <>
-                      <TextInput
-                        style={{
-                          fontFamily: Fonts.LATO_REGULAR,
-                          fontSize: 20,
-                          borderWidth: 1,
-                          paddingHorizontal: 5,
-                          paddingVertical: 2,
-                          marginLeft: 10,
-                          borderRadius: 5,
-                          flex: 1,
-                        }}
-                        keyboardType="numeric"
-                        placeholder={order.total_price.toFixed(2)}
-                        onChangeText={(text) => setPrice(text)}
-                      />
-                      <TouchableOpacity
-                        style={{
-                          marginRight: 15,
-                          marginLeft: 10,
-                          backgroundColor: Colors.primary,
-                          borderRadius: 5,
-                          alignItems: "center",
-                          paddingHorizontal: 15,
-                          paddingVertical: 5,
-                        }}
-                        onPress={updateOrderPrice}
-                      >
-                        <Text style={{ fontFamily: Fonts.LATO_BOLD }}>
-                          Save
-                        </Text>
-                      </TouchableOpacity>
-                    </>
-                  ) : (
-                    <>
-                      <Text
-                        style={{
-                          fontFamily: Fonts.LATO_REGULAR,
-                          fontSize: 20,
-                          marginLeft: 10,
-                          flex: 1,
-                        }}
-                      >
-                        {order.total_price.toFixed(2)} $
-                      </Text>
-                      <TouchableOpacity
-                        style={{ marginRight: 15 }}
-                        onPress={() => setUpdatePriceMode(true)}
-                      >
-                        <Foundation
-                          name="pencil"
-                          size={28}
-                          color={Colors.primary}
-                        />
-                      </TouchableOpacity>
-                    </>
-                  )}
-                </View>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    marginTop: 10,
-
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_BOLD,
-                      fontSize: 20,
-                    }}
-                  >
-                    Sous-totale:
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 20,
-                      marginLeft: 10,
-                    }}
-                  >
-                    {order.sub_total} $
-                  </Text>
-                </View>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginTop: 10,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_BOLD,
-                      fontSize: 20,
-                    }}
-                  >
-                    Nombre d'article:
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 20,
-                      marginLeft: 10,
-                    }}
-                  >
-                    {order.orderItems?.length +
-                      order.offers?.length +
-                      order.rewards?.length}{" "}
-                    article(s)
-                  </Text>
-                </View>
-                <View
-                  style={{
-                    flexDirection: "row",
-
-                    marginTop: 10,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_BOLD,
-                      fontSize: 20,
-                    }}
-                  >
-                    Adresse:
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 20,
-                      marginLeft: 10,
-                      width: "70%",
-                      flexWrap: "wrap",
-                    }}
-                    numberOfLines={2}
-                  >
-                    {order.address}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        </View>
-        <View>
-          <Text
-            style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24, marginTop: 20 }}
-          >
-            Informations Client
-          </Text>
-          <View
-            style={{
-              backgroundColor: "white",
-              borderRadius: 10,
-              padding: 20,
-              marginTop: 10,
-            }}
-          >
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-              }}
-            >
-              <View style={{ flex: 1 / 2 }}>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_BOLD,
-                      fontSize: 20,
-                    }}
-                  >
-                    Nom & prénom:
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 20,
-                      marginLeft: 10,
-                    }}
-                  >
-                    {order.user?.name}
-                  </Text>
-                </View>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginTop: 10,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_BOLD,
-                      fontSize: 20,
-                    }}
-                  >
-                    Téléphone:
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 20,
-                      marginLeft: 10,
-                    }}
-                  >
-                    {order?.user?.phone_number}
-                  </Text>
-                </View>
-              </View>
-              <View style={{ flex: 1 / 2 }}>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_BOLD,
-                      fontSize: 20,
-                    }}
-                  >
-                    E-mail:
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 20,
-                      marginLeft: 10,
-                    }}
-                  >
-                    {order.user?.email}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        </View>
-        <View>
-          <Text
-            style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24, marginTop: 20 }}
-          >
-            Instructions
-          </Text>
-          <View
-            style={{
-              backgroundColor: "white",
-              borderRadius: 10,
-              padding: 15,
-              marginTop: 10,
-            }}
-          >
+      <ScrollView
+        style={{ flex: 1, backgroundColor: Colors.screenBg }}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
+        <View style={{ flex: 1, padding: 16 }}>
+          <View>
             <Text
               style={{
-                fontFamily: Fonts.LATO_REGULAR,
-                fontSize: 20,
-                marginLeft: 10,
-                textAlign: "center",
+                fontFamily: Fonts.LATO_BOLD,
+                fontSize: 24,
+                marginVertical: 10,
               }}
             >
-              {order.instructions ? order.instructions : "Aucune"}
+              Informations générale
             </Text>
-          </View>
-        </View>
-
-        <View>
-          <Text
-            style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24, marginTop: 20 }}
-          >
-            Articles
-          </Text>
-
-          {order.orderItems?.length > 0 ? (
-            <ScrollView
-              style={{
-                marginTop: 20,
-                backgroundColor: "white",
-              }}
-            >
-              {order.orderItems?.map((item, index) => (
-                <View
-                  key={item._id}
-                  style={[
-                    styles.row,
-                    index % 2
-                      ? { backgroundColor: "transparent" }
-                      : { backgroundColor: "rgba(247,166,0,0.3)" },
-                  ]}
-                >
-                  <Text
-                    style={[styles.rowCell, { width: "25%" }]}
-                    numberOfLines={1}
-                  >
-                    {item.item.name}
-                  </Text>
-                  <Text style={[styles.rowCell, { width: "15%" }]}>
-                    {item.size}
-                  </Text>
-                  <Text style={[styles.rowCell, { width: "15%" }]}>
-                    {item.price} $
-                  </Text>
-                  <Text style={[styles.rowCell, { flex: 1 }]}>
-                    {item.customizations?.map((custo) => {
-                      return custo.name;
-                    })}
-                  </Text>
-                </View>
-              ))}
-            </ScrollView>
-          ) : (
             <View
               style={{
                 backgroundColor: "white",
                 borderRadius: 10,
-                paddingVertical: 10,
-                alignItems: "center",
-                marginTop: 20,
+                padding: 20,
+                marginTop: 10,
               }}
             >
-              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                Vide
-              </Text>
-            </View>
-          )}
-        </View>
-        <View>
-          <Text
-            style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24, marginTop: 20 }}
-          >
-            Offres
-          </Text>
-
-          {order.offers?.length > 0 ? (
-            <ScrollView
-              style={{
-                marginTop: 20,
-                backgroundColor: "white",
-              }}
-            >
-              {order.offers?.map((item, index) => (
-                <View
-                  key={item._id}
-                  style={[
-                    styles.row,
-                    index % 2
-                      ? { backgroundColor: "transparent" }
-                      : { backgroundColor: "rgba(247,166,0,0.3)" },
-                  ]}
-                >
-                  <Text style={[styles.rowCell]} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                </View>
-              ))}
-            </ScrollView>
-          ) : (
-            <View
-              style={{
-                backgroundColor: "white",
-                borderRadius: 10,
-                paddingVertical: 10,
-                alignItems: "center",
-                marginTop: 20,
-              }}
-            >
-              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                Vide
-              </Text>
-            </View>
-          )}
-        </View>
-        <View>
-          <Text
-            style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24, marginTop: 20 }}
-          >
-            Review
-          </Text>
-          <View
-            style={{
-              backgroundColor: "white",
-              borderRadius: 10,
-              paddingVertical: 10,
-              alignItems: "center",
-              marginTop: 20,
-            }}
-          >
-            {order.review.status ? (
               <View
                 style={{
                   flexDirection: "row",
-                  alignItems: "center",
-
-                  width: "100%",
-                  paddingHorizontal: 12,
+                  justifyContent: "space-between",
                 }}
               >
+                <View style={{ flex: 1 / 2 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 20,
+                      }}
+                    >
+                      Etat:
+                    </Text>
+                    {updateStatusMode ? (
+                      <>
+                        <Dropdown
+                          style={[styles.dropdown]}
+                          placeholderStyle={styles.placeholderStyle}
+                          selectedTextStyle={styles.selectedTextStyle}
+                          selectedStyle={styles.selectedStyle}
+                          itemContainerStyle={styles.itemContainerStyle}
+                          itemTextStyle={styles.itemTextStyle}
+                          containerStyle={styles.containerStyle}
+                          data={statusOptions}
+                          maxHeight={300}
+                          labelField="label"
+                          valueField="label"
+                          placeholder={order.status}
+                          value={status}
+                          onChange={(item) => setStatus(item.label)}
+                        />
+                        <TouchableOpacity
+                          style={{
+                            marginRight: 15,
+                            backgroundColor: Colors.primary,
+                            borderRadius: 5,
+                            alignItems: "center",
+                            paddingHorizontal: 15,
+                            paddingVertical: 5,
+                          }}
+                          onPress={updateOrderStatus}
+                        >
+                          <Text style={{ fontFamily: Fonts.LATO_BOLD }}>
+                            Save
+                          </Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <>
+                        <Text
+                          style={{
+                            fontFamily: Fonts.LATO_REGULAR,
+                            fontSize: 20,
+                            marginLeft: 10,
+                            flex: 1,
+                            color: setOrderStatusColor(order.status),
+                          }}
+                        >
+                          {order.status}
+                        </Text>
+                        <TouchableOpacity
+                          style={{ marginRight: 15 }}
+                          onPress={() => setUpdateStatusMode(true)}
+                        >
+                          <Foundation
+                            name="pencil"
+                            size={28}
+                            color={Colors.primary}
+                          />
+                        </TouchableOpacity>
+                      </>
+                    )}
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      marginTop: 10,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 20,
+                      }}
+                    >
+                      Code
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        marginLeft: 10,
+                      }}
+                    >
+                      {order.code}
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      marginTop: 10,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 20,
+                      }}
+                    >
+                      Type
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        marginLeft: 10,
+                      }}
+                    >
+                      {order.type}
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      marginTop: 10,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 20,
+                      }}
+                    >
+                      Crée le:
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        marginLeft: 10,
+                      }}
+                    >
+                      {convertDate(order.createdAt)}
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ flex: 1 / 2 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 20,
+                      }}
+                    >
+                      Totale:
+                    </Text>
+                    {updatePriceMode ? (
+                      <>
+                        <TextInput
+                          style={{
+                            fontFamily: Fonts.LATO_REGULAR,
+                            fontSize: 20,
+                            borderWidth: 1,
+                            paddingHorizontal: 5,
+                            paddingVertical: 2,
+                            marginLeft: 10,
+                            borderRadius: 5,
+                            flex: 1,
+                          }}
+                          keyboardType="numeric"
+                          placeholder={order.total_price.toFixed(2)}
+                          onChangeText={(text) => setPrice(text)}
+                        />
+                        <TouchableOpacity
+                          style={{
+                            marginRight: 15,
+                            marginLeft: 10,
+                            backgroundColor: Colors.primary,
+                            borderRadius: 5,
+                            alignItems: "center",
+                            paddingHorizontal: 15,
+                            paddingVertical: 5,
+                          }}
+                          onPress={updateOrderPrice}
+                        >
+                          <Text style={{ fontFamily: Fonts.LATO_BOLD }}>
+                            Save
+                          </Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <>
+                        <Text
+                          style={{
+                            fontFamily: Fonts.LATO_REGULAR,
+                            fontSize: 20,
+                            marginLeft: 10,
+                            flex: 1,
+                          }}
+                        >
+                          {order.total_price.toFixed(2)} $
+                        </Text>
+                        <TouchableOpacity
+                          style={{ marginRight: 15 }}
+                          onPress={() => setUpdatePriceMode(true)}
+                        >
+                          <Foundation
+                            name="pencil"
+                            size={28}
+                            color={Colors.primary}
+                          />
+                        </TouchableOpacity>
+                      </>
+                    )}
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      marginTop: 10,
+
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 20,
+                      }}
+                    >
+                      Sous-totale:
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        marginLeft: 10,
+                      }}
+                    >
+                      {order.sub_total} $
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      marginTop: 10,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 20,
+                      }}
+                    >
+                      Nombre d'article:
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        marginLeft: 10,
+                      }}
+                    >
+                      {order.orderItems?.length +
+                        order.offers?.length +
+                        order.rewards?.length}{" "}
+                      article(s)
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+
+                      marginTop: 10,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 20,
+                      }}
+                    >
+                      Adresse:
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        marginLeft: 10,
+                        width: "70%",
+                        flexWrap: "wrap",
+                      }}
+                      numberOfLines={2}
+                    >
+                      {order.address}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+          <View>
+            <Text
+              style={{
+                fontFamily: Fonts.LATO_BOLD,
+                fontSize: 24,
+                marginTop: 20,
+              }}
+            >
+              Informations Client
+            </Text>
+            <View
+              style={{
+                backgroundColor: "white",
+                borderRadius: 10,
+                padding: 20,
+                marginTop: 10,
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                }}
+              >
+                <View style={{ flex: 1 / 2 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 20,
+                      }}
+                    >
+                      Nom & prénom:
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        marginLeft: 10,
+                      }}
+                    >
+                      {order.user?.name}
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      marginTop: 10,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 20,
+                      }}
+                    >
+                      Téléphone:
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        marginLeft: 10,
+                      }}
+                    >
+                      {order?.user?.phone_number}
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ flex: 1 / 2 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 20,
+                      }}
+                    >
+                      E-mail:
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        marginLeft: 10,
+                      }}
+                    >
+                      {order.user?.email}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+          <View>
+            <Text
+              style={{
+                fontFamily: Fonts.LATO_BOLD,
+                fontSize: 24,
+                marginTop: 20,
+              }}
+            >
+              Instructions
+            </Text>
+            <View
+              style={{
+                backgroundColor: "white",
+                borderRadius: 10,
+                padding: 15,
+                marginTop: 10,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: Fonts.LATO_REGULAR,
+                  fontSize: 20,
+                  marginLeft: 10,
+                  textAlign: "center",
+                }}
+              >
+                {order.instructions ? order.instructions : "Aucune"}
+              </Text>
+            </View>
+          </View>
+
+          <View>
+            <Text
+              style={{
+                fontFamily: Fonts.LATO_BOLD,
+                fontSize: 24,
+                marginTop: 20,
+              }}
+            >
+              Articles
+            </Text>
+
+            {order.orderItems?.length > 0 ? (
+              <ScrollView
+                style={{
+                  marginTop: 20,
+                  backgroundColor: "white",
+                }}
+              >
+                {order.orderItems?.map((item, index) => (
+                  <View
+                    key={item._id}
+                    style={[
+                      styles.row,
+                      index % 2
+                        ? { backgroundColor: "transparent" }
+                        : { backgroundColor: "rgba(247,166,0,0.3)" },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.rowCell, { width: "25%" }]}
+                      numberOfLines={1}
+                    >
+                      {item.item.name}
+                    </Text>
+                    <Text style={[styles.rowCell, { width: "15%" }]}>
+                      {item.size}
+                    </Text>
+                    <Text style={[styles.rowCell, { width: "15%" }]}>
+                      {item.price} $
+                    </Text>
+                    <Text style={[styles.rowCell, { flex: 1 }]}>
+                      {item.customizations?.map((custo) => {
+                        return custo.name;
+                      })}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <View
+                style={{
+                  backgroundColor: "white",
+                  borderRadius: 10,
+                  paddingVertical: 10,
+                  alignItems: "center",
+                  marginTop: 20,
+                }}
+              >
+                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                  Vide
+                </Text>
+              </View>
+            )}
+          </View>
+          <View>
+            <Text
+              style={{
+                fontFamily: Fonts.LATO_BOLD,
+                fontSize: 24,
+                marginTop: 20,
+              }}
+            >
+              Offres
+            </Text>
+
+            {order.offers?.length > 0 ? (
+              <ScrollView
+                style={{
+                  marginTop: 20,
+                  backgroundColor: "white",
+                }}
+              >
+                {order.offers?.map((item, index) => (
+                  <View
+                    key={item._id}
+                    style={[
+                      styles.row,
+                      index % 2
+                        ? { backgroundColor: "transparent" }
+                        : { backgroundColor: "rgba(247,166,0,0.3)" },
+                    ]}
+                  >
+                    <Text style={[styles.rowCell]} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <View
+                style={{
+                  backgroundColor: "white",
+                  borderRadius: 10,
+                  paddingVertical: 10,
+                  alignItems: "center",
+                  marginTop: 20,
+                }}
+              >
+                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                  Vide
+                </Text>
+              </View>
+            )}
+          </View>
+          <View>
+            <Text
+              style={{
+                fontFamily: Fonts.LATO_BOLD,
+                fontSize: 24,
+                marginTop: 20,
+              }}
+            >
+              Review
+            </Text>
+            <View
+              style={{
+                backgroundColor: "white",
+                borderRadius: 10,
+                paddingVertical: 10,
+                alignItems: "center",
+                marginTop: 20,
+              }}
+            >
+              {order.review.status ? (
                 <View
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    flex: 1 / 3,
+
+                    width: "100%",
+                    paddingHorizontal: 12,
                   }}
                 >
-                  <Text
+                  <View
                     style={{
-                      fontFamily: Fonts.LATO_BOLD,
-                      fontSize: 24,
-                      marginRight: 12,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      flex: 1 / 3,
                     }}
                   >
-                    Note:
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_BOLD,
-                      fontSize: 24,
-                      marginRight: 12,
-                    }}
-                  >
-                    {order.review.rating}
-                  </Text>
-                  <Entypo name="star" size={32} color="gold" />
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 24,
+                        marginRight: 12,
+                      }}
+                    >
+                      Note:
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 24,
+                        marginRight: 12,
+                      }}
+                    >
+                      {order.review.rating}
+                    </Text>
+                    <Entypo name="star" size={32} color="gold" />
+                  </View>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 24,
+                        marginRight: 12,
+                      }}
+                    >
+                      Commentaire:
+                    </Text>
+                    <Text
+                      style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 24 }}
+                    >
+                      {order.review.comment}
+                    </Text>
+                  </View>
                 </View>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_BOLD,
-                      fontSize: 24,
-                      marginRight: 12,
-                    }}
-                  >
-                    Commentaire:
-                  </Text>
-                  <Text
-                    style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 24 }}
-                  >
-                    {order.review.comment}
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                Aucune review
-              </Text>
-            )}
+              ) : (
+                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                  Aucune review
+                </Text>
+              )}
+            </View>
           </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
