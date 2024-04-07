@@ -1,5 +1,5 @@
 import * as Notifications from "expo-notifications";
-import * as Device from "expo-device";
+
 import Constants from "expo-constants";
 import { API_URL } from "@env";
 import { Platform } from "react-native";

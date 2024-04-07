@@ -1,8 +1,6 @@
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -15,16 +13,13 @@ import FullLogo from "../../assets/icons/FullLogo.svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { useDispatch } from "react-redux";
-import {
-  selectStaffToken,
-  setStaffData,
-  setStaffToken,
-} from "../redux/slices/StaffSlice";
+import { setStaffData, setStaffToken } from "../redux/slices/StaffSlice";
 import * as SecureStore from "expo-secure-store";
 import { loginStaff } from "../services/StaffServices";
 import FailModel from "../components/models/FailModel";
 import { verifySignUpForm } from "../utils/formValidators";
 import { registerForPushNotificationsAsync } from "../services/NotifyServices";
+import * as Device from "expo-device";
 const SignUpScreen = () => {
   const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
@@ -109,7 +104,10 @@ const SignUpScreen = () => {
   }, [showErrorMsg]);
 
   return (
-    <View style={{ flex: 1 }}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
       {showErrorMsg && <FailModel message={errorMsg} />}
       {isLoading && (
         <View
@@ -129,6 +127,7 @@ const SignUpScreen = () => {
           <ActivityIndicator size="large" color="black" />
         </View>
       )}
+
       <SafeAreaView style={{ flex: 1, backgroundColor: Colors.primary }}>
         <View
           style={{
@@ -141,15 +140,27 @@ const SignUpScreen = () => {
           <FullLogo />
         </View>
         <View
-          style={{
-            width: "40%",
-            backgroundColor: "#EBEBEB",
-            position: "absolute",
-            alignSelf: "center",
-            bottom: "40%",
-            borderRadius: 12,
-            padding: 16,
-          }}
+          style={
+            Device.deviceType === 2
+              ? {
+                  width: "40%",
+                  backgroundColor: "#EBEBEB",
+                  position: "absolute",
+                  alignSelf: "center",
+                  bottom: "40%",
+                  borderRadius: 12,
+                  padding: 16,
+                }
+              : {
+                  width: "80%",
+                  backgroundColor: "#EBEBEB",
+                  position: "absolute",
+                  alignSelf: "center",
+                  bottom: "30%",
+                  borderRadius: 12,
+                  padding: 16,
+                }
+          }
         >
           <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 18 }}>
             Se connecter avec le nom d'utilisateur
@@ -227,7 +238,7 @@ const SignUpScreen = () => {
           </TouchableOpacity>
         </View>
       </SafeAreaView>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 

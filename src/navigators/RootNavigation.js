@@ -6,7 +6,7 @@ import SignUpScreen from "../screens/SignUpScreen";
 import DrawerNavigator from "./DrawerNavigator";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect, useState } from "react";
-import * as SplashScreen from "expo-splash-screen";
+
 import { deleteItemAsync, getItemAsync } from "expo-secure-store";
 import {
   selectStaffData,
@@ -17,6 +17,7 @@ import {
 import { getStaffByToken } from "../services/StaffServices";
 import { Roles } from "../constants";
 import CashierDrawer from "./CashierDrawer";
+import DriverScreen from "../screens/DriverScreen";
 
 const RootNavigation = () => {
   const RootStack = createNativeStackNavigator();
@@ -69,27 +70,55 @@ const RootNavigation = () => {
   if (isLoading) {
     return null;
   }
+
   return (
     <NavigationContainer>
       <RootStack.Navigator>
         {staffToken ? (
-          staff.role === Roles.ADMIN ? (
-            <RootStack.Screen
-              name="Main"
-              component={DrawerNavigator}
-              options={{
-                headerShown: false,
-              }}
-            />
-          ) : (
-            <RootStack.Screen
-              name="Cashier"
-              component={CashierDrawer}
-              options={{
-                headerShown: false,
-              }}
-            />
-          )
+          (() => {
+            switch (staff.role) {
+              case Roles.ADMIN:
+                return (
+                  <RootStack.Screen
+                    name="Main"
+                    component={DrawerNavigator}
+                    options={{
+                      headerShown: false,
+                    }}
+                  />
+                );
+              case Roles.CASHIER:
+                return (
+                  <RootStack.Screen
+                    name="Cashier"
+                    component={CashierDrawer}
+                    options={{
+                      headerShown: false,
+                    }}
+                  />
+                );
+              case Roles.LIVREUR: // Replace with your third role
+                return (
+                  <RootStack.Screen
+                    name="Driver" // Replace with your third component's name
+                    component={DriverScreen} // Replace with your third component
+                    options={{
+                      headerShown: false,
+                    }}
+                  />
+                );
+              default:
+                return (
+                  <RootStack.Screen
+                    name="Driver"
+                    component={DriverScreen} // Replace with your default screen
+                    options={{
+                      headerShown: false,
+                    }}
+                  />
+                );
+            }
+          })()
         ) : (
           <RootStack.Screen
             name="SignUp"

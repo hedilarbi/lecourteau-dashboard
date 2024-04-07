@@ -165,6 +165,7 @@ const OfferScreen = () => {
     //   .finally(() => {
     //     setIsLoading(false);
     //   });
+
     const formdata = new FormData();
     if (image.length > 0) {
       formdata.append("file", {
@@ -219,7 +220,7 @@ const OfferScreen = () => {
     );
   }
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: Colors.screenBg }}>
+    <View style={{ flex: 1 }}>
       {showSuccessModel && <SuccessModel />}
       {showFailModal && (
         <FailModel message="Oops ! Quelque chose s'est mal passé" />
@@ -233,171 +234,135 @@ const OfferScreen = () => {
       )}
       {showAddToppingModel && (
         <AddToppingModel
+          customizationsNames={customizations}
           setShowAddCategoryModel={setShowAddToppingModel}
           setCustomizationsNames={setCustomizations}
           toppings={customizationsList}
         />
       )}
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "flex-end",
-          marginTop: 20,
-          marginHorizontal: 20,
-        }}
-      >
-        {updateMode ? (
-          <TouchableOpacity
-            style={{
-              backgroundColor: Colors.gry,
-              borderRadius: 5,
-              alignItems: "center",
-              paddingHorizontal: 30,
-              paddingVertical: 10,
-            }}
-            onPress={() => setUpdateMode(false)}
-          >
-            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-              Annuler
-            </Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={{
-              backgroundColor: Colors.primary,
-              borderRadius: 5,
-              alignItems: "center",
-              paddingHorizontal: 30,
-              paddingVertical: 10,
-            }}
-            onPress={activateUpdateMode}
-          >
-            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-              Modifier
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      <View style={{ paddingHorizontal: 20 }}>
-        <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-          Informations
-        </Text>
+      <ScrollView style={{ flex: 1, backgroundColor: Colors.screenBg }}>
         <View
           style={{
-            backgroundColor: "white",
-            borderRadius: 10,
-            padding: 16,
             flexDirection: "row",
+            justifyContent: "flex-end",
             marginTop: 20,
+            marginHorizontal: 20,
           }}
         >
           {updateMode ? (
             <TouchableOpacity
               style={{
-                width: 200,
-                height: 200,
-                borderRadius: 16,
-                backgroundColor: "gray",
-
-                justifyContent: "center",
+                backgroundColor: Colors.gry,
+                borderRadius: 5,
                 alignItems: "center",
+                paddingHorizontal: 30,
+                paddingVertical: 10,
               }}
-              onPress={pickImage}
+              onPress={() => setUpdateMode(false)}
             >
-              {image ? (
-                <Image
-                  source={{ uri: image }}
-                  style={{
-                    resizeMode: "cover",
-                    width: "100%",
-                    height: "100%",
-                    borderRadius: 16,
-                  }}
-                />
-              ) : (
-                <Image
-                  source={{ uri: offer.image }}
-                  style={{
-                    width: 200,
-                    height: 200,
-                    resizeMode: "cover",
-                    borderRadius: 10,
-                  }}
-                />
-              )}
+              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                Annuler
+              </Text>
             </TouchableOpacity>
           ) : (
-            <Image
-              source={{ uri: offer.image }}
+            <TouchableOpacity
               style={{
-                width: 200,
-                height: 200,
-                resizeMode: "cover",
-                borderRadius: 10,
-              }}
-            />
-          )}
-          <View style={{ marginLeft: 20, justifyContent: "space-between" }}>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                Nom:
-              </Text>
-              {updateMode ? (
-                <TextInput
-                  style={{
-                    borderWidth: 2,
-
-                    paddingHorizontal: 8,
-                    paddingVertical: 5,
-                    borderColor: Colors.primary,
-                    fontFamily: Fonts.LATO_REGULAR,
-                    fontSize: 20,
-                    marginLeft: 10,
-                    width: "70%",
-                  }}
-                  value={name}
-                  onChangeText={(text) => setName(text)}
-                />
-              ) : (
-                <Text
-                  style={{
-                    fontFamily: Fonts.LATO_REGULAR,
-                    fontSize: 20,
-                    marginLeft: 10,
-                  }}
-                >
-                  {offer.name}
-                </Text>
-              )}
-            </View>
-            <View
-              style={{
-                flexDirection: "row",
+                backgroundColor: Colors.primary,
+                borderRadius: 5,
                 alignItems: "center",
-                marginTop: 10,
+                paddingHorizontal: 30,
+                paddingVertical: 10,
               }}
+              onPress={activateUpdateMode}
             >
               <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                Prix:
+                Modifier
               </Text>
-              {updateMode ? (
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={{ paddingHorizontal: 20 }}>
+          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
+            Informations
+          </Text>
+          <View
+            style={{
+              backgroundColor: "white",
+              borderRadius: 10,
+              padding: 16,
+              flexDirection: "row",
+              marginTop: 20,
+            }}
+          >
+            {updateMode ? (
+              <TouchableOpacity
+                style={{
+                  width: 200,
+                  height: 200,
+                  borderRadius: 16,
+                  backgroundColor: "gray",
+
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+                onPress={pickImage}
+              >
+                {image ? (
+                  <Image
+                    source={{ uri: image }}
+                    style={{
+                      resizeMode: "cover",
+                      width: "100%",
+                      height: "100%",
+                      borderRadius: 16,
+                    }}
+                  />
+                ) : (
+                  <Image
+                    source={{ uri: offer.image }}
+                    style={{
+                      width: 200,
+                      height: 200,
+                      resizeMode: "cover",
+                      borderRadius: 10,
+                    }}
+                  />
+                )}
+              </TouchableOpacity>
+            ) : (
+              <Image
+                source={{ uri: offer.image }}
+                style={{
+                  width: 200,
+                  height: 200,
+                  resizeMode: "cover",
+                  borderRadius: 10,
+                }}
+              />
+            )}
+            <View style={{ marginLeft: 20, justifyContent: "space-between" }}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                  Nom:
+                </Text>
+                {updateMode ? (
                   <TextInput
                     style={{
                       borderWidth: 2,
 
-                      paddingHorizontal: 5,
-                      paddingVertical: 5,
                       paddingHorizontal: 8,
+                      paddingVertical: 5,
                       borderColor: Colors.primary,
                       fontFamily: Fonts.LATO_REGULAR,
                       fontSize: 20,
                       marginLeft: 10,
+                      width: "70%",
                     }}
-                    value={price.toString()}
-                    onChangeText={(text) => setPrice(text)}
+                    value={name}
+                    onChangeText={(text) => setName(text)}
                   />
+                ) : (
                   <Text
                     style={{
                       fontFamily: Fonts.LATO_REGULAR,
@@ -405,275 +370,318 @@ const OfferScreen = () => {
                       marginLeft: 10,
                     }}
                   >
-                    $
+                    {offer.name}
                   </Text>
-                </View>
-              ) : (
-                <Text
-                  style={{
-                    fontFamily: Fonts.LATO_REGULAR,
-                    fontSize: 20,
-                    marginLeft: 10,
-                  }}
-                >
-                  {offer.price} $
+                )}
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginTop: 10,
+                }}
+              >
+                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                  Prix:
                 </Text>
-              )}
+                {updateMode ? (
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <TextInput
+                      style={{
+                        borderWidth: 2,
+
+                        paddingHorizontal: 5,
+                        paddingVertical: 5,
+                        paddingHorizontal: 8,
+                        borderColor: Colors.primary,
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        marginLeft: 10,
+                      }}
+                      value={price.toString()}
+                      onChangeText={(text) => setPrice(text)}
+                    />
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        marginLeft: 10,
+                      }}
+                    >
+                      $
+                    </Text>
+                  </View>
+                ) : (
+                  <Text
+                    style={{
+                      fontFamily: Fonts.LATO_REGULAR,
+                      fontSize: 20,
+                      marginLeft: 10,
+                    }}
+                  >
+                    {offer.price} $
+                  </Text>
+                )}
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginTop: 10,
+                }}
+              >
+                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                  Date d'éxpiration:
+                </Text>
+                {updateMode ? (
+                  <Calender setDate={setExpireAt} date={expireAt} />
+                ) : (
+                  <Text
+                    style={{
+                      fontFamily: Fonts.LATO_REGULAR,
+                      fontSize: 20,
+                      marginLeft: 10,
+                    }}
+                  >
+                    {convertDateToDate(offer.expireAt)}
+                  </Text>
+                )}
+              </View>
             </View>
+          </View>
+        </View>
+
+        <View style={{ marginTop: 20, paddingHorizontal: 20 }}>
+          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
+            Articles
+          </Text>
+          {updateMode ? (
             <View
               style={{
+                backgroundColor: "white",
+                borderRadius: 10,
+                padding: 16,
+                marginTop: 10,
                 flexDirection: "row",
                 alignItems: "center",
-                marginTop: 10,
+                gap: 20,
+                flexWrap: "wrap",
               }}
+            >
+              {items.map((item, index) => (
+                <View
+                  key={index}
+                  style={{
+                    backgroundColor: Colors.primary,
+
+                    paddingVertical: 10,
+                    paddingHorizontal: 20,
+                    alignItems: "center",
+                    flexDirection: "row",
+                  }}
+                >
+                  <Text
+                    style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 20 }}
+                  >
+                    {item.item.name} x {item.quantity}
+                  </Text>
+                  <TouchableOpacity
+                    style={{ marginLeft: 20 }}
+                    onPress={() => deleteFromItems(index)}
+                  >
+                    <AntDesign name="close" size={24} color="black" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity
+                style={{
+                  backgroundColor: Colors.primary,
+                  borderRadius: 5,
+                  paddingHorizontal: 10,
+                  paddingVertical: 10,
+                  alignItems: "center",
+                  flexDirection: "row",
+                }}
+                onPress={() => setShowAddItemModel(true)}
+              >
+                <Entypo name="plus" size={24} color="black" />
+                <Text
+                  style={{
+                    fontFamily: Fonts.LATO_BOLD,
+                    fontSize: 20,
+                    marginLeft: 10,
+                  }}
+                >
+                  Ajouter
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View
+              style={{
+                backgroundColor: "white",
+
+                padding: 16,
+                marginTop: 10,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 20,
+                flexWrap: "wrap",
+              }}
+            >
+              {offer.items?.map((item, index) => (
+                <View
+                  key={index}
+                  style={{
+                    backgroundColor: Colors.primary,
+
+                    paddingVertical: 10,
+                    paddingHorizontal: 20,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 20 }}
+                  >
+                    {item.item.name} x {item.quantity}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+        <View style={{ marginTop: 20, paddingHorizontal: 20 }}>
+          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
+            Personalisations
+          </Text>
+          {updateMode ? (
+            <View
+              style={{
+                backgroundColor: "white",
+
+                padding: 16,
+                marginTop: 10,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 20,
+              }}
+            >
+              {customizations.map((custo, index) => (
+                <View
+                  key={custo._id}
+                  style={{
+                    backgroundColor: Colors.primary,
+
+                    paddingVertical: 10,
+                    paddingHorizontal: 20,
+                    alignItems: "center",
+                    flexDirection: "row",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: Fonts.LATO_REGULAR,
+                      fontSize: 20,
+                      marginLeft: 10,
+                    }}
+                  >
+                    {custo.name}
+                  </Text>
+                  <TouchableOpacity
+                    style={{ marginLeft: 10 }}
+                    onPress={() => deleteFromCustomizations(index)}
+                  >
+                    <AntDesign name="close" size={24} color="black" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity
+                style={{
+                  backgroundColor: Colors.primary,
+                  borderRadius: 5,
+                  paddingHorizontal: 10,
+                  paddingVertical: 10,
+                  alignItems: "center",
+                  flexDirection: "row",
+                }}
+                onPress={() => setShowAddToppingModel(true)}
+              >
+                <Entypo name="plus" size={24} color="black" />
+                <Text
+                  style={{
+                    fontFamily: Fonts.LATO_BOLD,
+                    fontSize: 20,
+                    marginLeft: 10,
+                  }}
+                >
+                  Ajouter
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View
+              style={{
+                backgroundColor: "white",
+
+                padding: 16,
+                marginTop: 10,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              {offer.customizations?.map((custo) => (
+                <View
+                  key={custo._id}
+                  style={{
+                    backgroundColor: Colors.primary,
+
+                    paddingVertical: 10,
+                    paddingHorizontal: 20,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: Fonts.LATO_REGULAR,
+                      fontSize: 20,
+                      marginLeft: 10,
+                    }}
+                  >
+                    {custo.name}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+        {updateMode && (
+          <View
+            style={{
+              marginTop: 20,
+              flexDirection: "row",
+              justifyContent: "flex-end",
+              paddingHorizontal: 20,
+            }}
+          >
+            <TouchableOpacity
+              style={{
+                backgroundColor: Colors.primary,
+                borderRadius: 10,
+                alignItems: "center",
+                paddingHorizontal: 20,
+                paddingVertical: 10,
+              }}
+              onPress={() => saveUpdates()}
             >
               <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                Date d'éxpiration:
-              </Text>
-              {updateMode ? (
-                <Calender setDate={setExpireAt} date={expireAt} />
-              ) : (
-                <Text
-                  style={{
-                    fontFamily: Fonts.LATO_REGULAR,
-                    fontSize: 20,
-                    marginLeft: 10,
-                  }}
-                >
-                  {convertDateToDate(offer.expireAt)}
-                </Text>
-              )}
-            </View>
-          </View>
-        </View>
-      </View>
-
-      <View style={{ marginTop: 20, paddingHorizontal: 20 }}>
-        <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-          Articles
-        </Text>
-        {updateMode ? (
-          <View
-            style={{
-              backgroundColor: "white",
-              borderRadius: 10,
-              padding: 16,
-              marginTop: 10,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 20,
-              flexWrap: "wrap",
-            }}
-          >
-            {items.map((item, index) => (
-              <View
-                key={index}
-                style={{
-                  backgroundColor: Colors.primary,
-
-                  paddingVertical: 10,
-                  paddingHorizontal: 20,
-                  alignItems: "center",
-                  flexDirection: "row",
-                }}
-              >
-                <Text style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 20 }}>
-                  {item.item.name} x {item.quantity}
-                </Text>
-                <TouchableOpacity
-                  style={{ marginLeft: 20 }}
-                  onPress={() => deleteFromItems(index)}
-                >
-                  <AntDesign name="close" size={24} color="black" />
-                </TouchableOpacity>
-              </View>
-            ))}
-            <TouchableOpacity
-              style={{
-                backgroundColor: Colors.primary,
-                borderRadius: 5,
-                paddingHorizontal: 10,
-                paddingVertical: 10,
-                alignItems: "center",
-                flexDirection: "row",
-              }}
-              onPress={() => setShowAddItemModel(true)}
-            >
-              <Entypo name="plus" size={24} color="black" />
-              <Text
-                style={{
-                  fontFamily: Fonts.LATO_BOLD,
-                  fontSize: 20,
-                  marginLeft: 10,
-                }}
-              >
-                Ajouter
+                Sauvergarder
               </Text>
             </TouchableOpacity>
           </View>
-        ) : (
-          <View
-            style={{
-              backgroundColor: "white",
-
-              padding: 16,
-              marginTop: 10,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 20,
-              flexWrap: "wrap",
-            }}
-          >
-            {offer.items?.map((item, index) => (
-              <View
-                key={index}
-                style={{
-                  backgroundColor: Colors.primary,
-
-                  paddingVertical: 10,
-                  paddingHorizontal: 20,
-                  alignItems: "center",
-                }}
-              >
-                <Text style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 20 }}>
-                  {item.item.name} x {item.quantity}
-                </Text>
-              </View>
-            ))}
-          </View>
         )}
-      </View>
-      <View style={{ marginTop: 20, paddingHorizontal: 20 }}>
-        <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-          Personalisations
-        </Text>
-        {updateMode ? (
-          <View
-            style={{
-              backgroundColor: "white",
-
-              padding: 16,
-              marginTop: 10,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 20,
-            }}
-          >
-            {customizations.map((custo, index) => (
-              <View
-                key={custo._id}
-                style={{
-                  backgroundColor: Colors.primary,
-
-                  paddingVertical: 10,
-                  paddingHorizontal: 20,
-                  alignItems: "center",
-                  flexDirection: "row",
-                }}
-              >
-                <Text
-                  style={{
-                    fontFamily: Fonts.LATO_REGULAR,
-                    fontSize: 20,
-                    marginLeft: 10,
-                  }}
-                >
-                  {custo.name}
-                </Text>
-                <TouchableOpacity
-                  style={{ marginLeft: 10 }}
-                  onPress={() => deleteFromCustomizations(index)}
-                >
-                  <AntDesign name="close" size={24} color="black" />
-                </TouchableOpacity>
-              </View>
-            ))}
-            <TouchableOpacity
-              style={{
-                backgroundColor: Colors.primary,
-                borderRadius: 5,
-                paddingHorizontal: 10,
-                paddingVertical: 10,
-                alignItems: "center",
-                flexDirection: "row",
-              }}
-              onPress={() => setShowAddToppingModel(true)}
-            >
-              <Entypo name="plus" size={24} color="black" />
-              <Text
-                style={{
-                  fontFamily: Fonts.LATO_BOLD,
-                  fontSize: 20,
-                  marginLeft: 10,
-                }}
-              >
-                Ajouter
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View
-            style={{
-              backgroundColor: "white",
-
-              padding: 16,
-              marginTop: 10,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            {offer.customizations?.map((custo) => (
-              <View
-                key={custo._id}
-                style={{
-                  backgroundColor: Colors.primary,
-
-                  paddingVertical: 10,
-                  paddingHorizontal: 20,
-                  alignItems: "center",
-                }}
-              >
-                <Text
-                  style={{
-                    fontFamily: Fonts.LATO_REGULAR,
-                    fontSize: 20,
-                    marginLeft: 10,
-                  }}
-                >
-                  {custo.name}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
-      {updateMode && (
-        <View
-          style={{
-            marginTop: 20,
-            flexDirection: "row",
-            justifyContent: "flex-end",
-            paddingHorizontal: 20,
-          }}
-        >
-          <TouchableOpacity
-            style={{
-              backgroundColor: Colors.primary,
-              borderRadius: 10,
-              alignItems: "center",
-              paddingHorizontal: 20,
-              paddingVertical: 10,
-            }}
-            onPress={() => saveUpdates()}
-          >
-            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-              Sauvergarder
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 

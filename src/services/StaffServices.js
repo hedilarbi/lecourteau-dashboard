@@ -34,6 +34,34 @@ const loginStaff = async (username, password, expoToken) => {
     };
   }
 };
+const affectOrderToStaff = async (orderId, staffId) => {
+  try {
+    let affectOrderToStaffResponse = await axios.put(
+      `${API_URL}/staffs/affectOrder/${staffId}`,
+      {
+        orderId,
+      }
+    );
+
+    if (affectOrderToStaffResponse?.status === 200) {
+      return {
+        status: true,
+        message: "user deleted",
+        data: affectOrderToStaffResponse.data,
+      };
+    } else {
+      return {
+        status: false,
+        message: "error",
+      };
+    }
+  } catch (error) {
+    return {
+      status: false,
+      message: error.response.data.message,
+    };
+  }
+};
 const getStaffByToken = async (token) => {
   try {
     let getStaffByTokenResponse = await axios.get(
@@ -159,6 +187,55 @@ const deleteStaffMember = async (id) => {
   }
 };
 
+const getAvailableDrivers = async () => {
+  try {
+    let getAvailableDriversResponse = await axios.get(
+      `${API_URL}/staffs/available`
+    );
+    if (getAvailableDriversResponse.status === 200) {
+      return {
+        status: true,
+
+        data: getAvailableDriversResponse.data,
+      };
+    } else {
+      return {
+        status: false,
+        message: "didn't found",
+      };
+    }
+  } catch (error) {
+    return {
+      status: false,
+      message: error.response.data.message,
+    };
+  }
+};
+const getStaffOrder = async (id) => {
+  try {
+    let getStaffOrderResponse = await axios.get(
+      `${API_URL}/staffs/${id}/order`
+    );
+    if (getStaffOrderResponse.status === 200) {
+      return {
+        status: true,
+
+        data: getStaffOrderResponse.data,
+      };
+    } else {
+      return {
+        status: false,
+        message: "didn't found",
+      };
+    }
+  } catch (error) {
+    return {
+      status: false,
+      message: error.response.data.message,
+    };
+  }
+};
+
 export {
   loginStaff,
   getStaffByToken,
@@ -166,4 +243,7 @@ export {
   getStaffMember,
   deleteStaffMember,
   updateStaffMember,
+  affectOrderToStaff,
+  getAvailableDrivers,
+  getStaffOrder,
 };

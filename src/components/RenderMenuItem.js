@@ -105,7 +105,7 @@ const RenderMenuItem = ({
             <MaterialIcons name="delete" size={24} color="#F31A1A" />
           </TouchableOpacity>
         )}
-        {role === Roles.ADMIN && (
+        {/* {role === Roles.ADMIN && (
           <View {...panResponder.panHandlers} style={{}}>
             <View
               style={{
@@ -118,7 +118,7 @@ const RenderMenuItem = ({
               <FontAwesome5 name="grip-lines" size={24} color="black" />
             </View>
           </View>
-        )}
+        )} */}
       </View>
     ),
     [index, draggingIdx, item]

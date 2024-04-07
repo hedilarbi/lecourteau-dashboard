@@ -7,7 +7,8 @@ import { useEffect } from "react";
 import RootNavigation from "./src/navigators/RootNavigation";
 import { Provider } from "react-redux";
 import { store } from "./src/redux/store";
-
+import * as Device from "expo-device";
+import * as ScreenOrientation from "expo-screen-orientation";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 SplashScreen.preventAutoHideAsync();
@@ -37,6 +38,14 @@ export default function App() {
 
     hideSplashScreen();
   }, [fontsLoaded]);
+
+  useEffect(() => {
+    if (Device.deviceType === 2) {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+    } else {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
+    }
+  }, []);
 
   if (!fontsLoaded) {
     return null;
