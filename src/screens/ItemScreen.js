@@ -247,7 +247,7 @@ const ItemScreen = () => {
       {showFailModal && (
         <FailModel message="Oops ! Quelque chose s'est mal passé" />
       )}
-      <ScrollView style={{ flex: 1, backgroundColor: Colors.screenBg }}>
+      <ScrollView style={{ flex: 1, backgroundColor: Colors.screenBg }} contentContainerStyle={{paddingBottom:12}}>
         <View
           style={{
             flexDirection: "row",
@@ -727,7 +727,7 @@ const ItemScreen = () => {
                 borderRadius: 10,
                 alignItems: "center",
                 paddingHorizontal: 20,
-                paddingVertical: 10,
+                paddingVertical: 10, marginBottom: 20
               }}
               onPress={() => saveUpdates()}
             >

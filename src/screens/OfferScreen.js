@@ -571,7 +571,7 @@ const OfferScreen = () => {
                   key={custo._id}
                   style={{
                     backgroundColor: Colors.primary,
-
+                    flexWrap: "wrap",
                     paddingVertical: 10,
                     paddingHorizontal: 20,
                     alignItems: "center",
@@ -627,7 +627,8 @@ const OfferScreen = () => {
                 marginTop: 10,
                 flexDirection: "row",
                 alignItems: "center",
-                justifyContent: "space-between",
+                gap: 20,
+                flexWrap: "wrap",
               }}
             >
               {offer.customizations?.map((custo) => (
