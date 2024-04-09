@@ -12,12 +12,12 @@ const useGetOrder = (id) => {
     try {
       const response = await getOrder(id);
       if (response.status) {
-        
         setOrder(response.data);
       } else {
         setError(true);
       }
     } catch (error) {
+      console.log(error);
       setError(true);
     } finally {
       setIsLoading(false);

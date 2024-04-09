@@ -1,5 +1,6 @@
 import { API_URL } from "@env";
 import axios from "axios";
+import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 
 const getOrders = async () => {
   try {
@@ -38,7 +39,7 @@ const getOrder = async (id) => {
     } else {
       return {
         status: false,
-        messge: "error",
+        messge: getOrderResponse?.data?.error || "error",
       };
     }
   } catch (error) {

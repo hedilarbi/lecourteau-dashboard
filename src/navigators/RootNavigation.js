@@ -18,6 +18,7 @@ import { getStaffByToken } from "../services/StaffServices";
 import { Roles } from "../constants";
 import CashierDrawer from "./CashierDrawer";
 import DriverScreen from "../screens/DriverScreen";
+import DriverNavigator from "./DriverNavigator";
 
 const RootNavigation = () => {
   const RootStack = createNativeStackNavigator();
@@ -101,7 +102,7 @@ const RootNavigation = () => {
                 return (
                   <RootStack.Screen
                     name="Driver" // Replace with your third component's name
-                    component={DriverScreen} // Replace with your third component
+                    component={DriverNavigator} // Replace with your third component
                     options={{
                       headerShown: false,
                     }}

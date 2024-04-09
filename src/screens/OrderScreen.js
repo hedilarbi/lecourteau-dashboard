@@ -21,6 +21,10 @@ import { updatePrice, updateStatus } from "../services/OrdersServices";
 import SuccessModel from "../components/models/SuccessModel";
 import FailModel from "../components/models/FailModel";
 import ErrorScreen from "../components/ErrorScreen";
+import {
+  affectOrderToStaff,
+  getAvailableDrivers,
+} from "../services/StaffServices";
 
 const OrderScreen = () => {
   const route = useRoute();
@@ -33,6 +37,9 @@ const OrderScreen = () => {
   const [showFailModal, setShowFailModal] = useState(false);
   const [status, setStatus] = useState("");
   const [price, setPrice] = useState("");
+  const [driversList, setDriversList] = useState([]);
+  const [driver, setDriver] = useState({});
+  const [updateDriverMode, setUpdateDriverMode] = useState(false);
   const statusOptions = [
     { label: OrderStatus.READY, value: OrderStatus.READY },
     { label: OrderStatus.DONE, value: OrderStatus.DONE },
@@ -107,6 +114,41 @@ const OrderScreen = () => {
       return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
     }
   }, [showSuccessModel]);
+
+  const handleUpdateDriverMode = async () => {
+    setIsLoading(true);
+    try {
+      const list = await getAvailableDrivers();
+      const driver = list.data.map((driver) => {
+        return { label: driver.name, value: driver._id };
+      });
+      setDriversList(driver);
+      setIsLoading(false);
+      setUpdateDriverMode(true);
+    } catch (err) {
+      console.log(err);
+      setIsLoading(false);
+    }
+  };
+
+  const updateDriver = async () => {
+    setIsLoading(true);
+    try {
+      const response = await affectOrderToStaff(order._id, driver.id);
+      if (response.status) {
+        setShowSuccessModel(true);
+        setUpdateDriverMode(false);
+        setOrder({ ...order, delivery_by: driver.name });
+        setIsLoading(false);
+      } else {
+        console.log(response.message);
+        setIsLoading(false);
+      }
+    } catch (err) {
+      console.log(err.message);
+      setIsLoading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -240,6 +282,82 @@ const OrderScreen = () => {
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 20,
+                      }}
+                    >
+                      Livreur:
+                    </Text>
+                    {updateDriverMode ? (
+                      <>
+                        <Dropdown
+                          style={[styles.dropdown]}
+                          placeholderStyle={styles.placeholderStyle}
+                          selectedTextStyle={styles.selectedTextStyle}
+                          selectedStyle={styles.selectedStyle}
+                          itemContainerStyle={styles.itemContainerStyle}
+                          itemTextStyle={styles.itemTextStyle}
+                          containerStyle={styles.containerStyle}
+                          data={driversList}
+                          maxHeight={300}
+                          labelField="label"
+                          valueField="label"
+                          placeholder={order.delivery_by || "Non assigné"}
+                          value={order.delivery_by || "Non assigné"}
+                          onChange={(item) =>
+                            setDriver({ id: item.value, name: item.label })
+                          }
+                        />
+                        <TouchableOpacity
+                          style={{
+                            marginRight: 15,
+                            backgroundColor: Colors.primary,
+                            borderRadius: 5,
+                            alignItems: "center",
+                            paddingHorizontal: 15,
+                            paddingVertical: 5,
+                          }}
+                          onPress={updateDriver}
+                        >
+                          <Text style={{ fontFamily: Fonts.LATO_BOLD }}>
+                            Save
+                          </Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <>
+                        <Text
+                          style={{
+                            fontFamily: Fonts.LATO_REGULAR,
+                            fontSize: 20,
+                            marginLeft: 10,
+                            flex: 1,
+                            color: "black",
+                          }}
+                        >
+                          {order.delivery_by || "Non assigné"}
+                        </Text>
+                        <TouchableOpacity
+                          style={{ marginRight: 15 }}
+                          onPress={handleUpdateDriverMode}
+                        >
+                          <Foundation
+                            name="pencil"
+                            size={28}
+                            color={Colors.primary}
+                          />
+                        </TouchableOpacity>
+                      </>
+                    )}
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
                       marginTop: 10,
                     }}
                   >
@@ -286,6 +404,7 @@ const OrderScreen = () => {
                       {order.type}
                     </Text>
                   </View>
+
                   <View
                     style={{
                       flexDirection: "row",
