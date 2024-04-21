@@ -47,8 +47,6 @@ const ItemScreen = () => {
   const [showAddPriceModal, setShowAddPriceModal] = useState(false);
 
   const fetchData = async () => {
-    7;
-    console.log("fetching data");
     getMenuItem(id)
       .then((response) => {
         if (response.status) {
@@ -197,7 +195,7 @@ const ItemScreen = () => {
         throw new Error("HTTP error " + response.status);
       }
       const data = await response.json();
-      console.log(data.customization);
+
       setMenuItem(data);
       setShowSuccessModel(true);
     } catch (err) {
@@ -247,7 +245,10 @@ const ItemScreen = () => {
       {showFailModal && (
         <FailModel message="Oops ! Quelque chose s'est mal passé" />
       )}
-      <ScrollView style={{ flex: 1, backgroundColor: Colors.screenBg }} contentContainerStyle={{paddingBottom:12}}>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: Colors.screenBg }}
+        contentContainerStyle={{ paddingBottom: 12 }}
+      >
         <View
           style={{
             flexDirection: "row",
@@ -727,7 +728,8 @@ const ItemScreen = () => {
                 borderRadius: 10,
                 alignItems: "center",
                 paddingHorizontal: 20,
-                paddingVertical: 10, marginBottom: 20
+                paddingVertical: 10,
+                marginBottom: 20,
               }}
               onPress={() => saveUpdates()}
             >

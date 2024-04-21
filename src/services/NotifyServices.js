@@ -58,19 +58,19 @@ const sendNotifications = async (title, body) => {
       `${API_URL}/notifiers/notifications`,
       { title, body }
     );
-    console.log(notifyResponse);
-    // if (deleteOfferResponse?.status === 200) {
-    //   return {
-    //     status: true,
-    //     message: "users data",
-    //     data: deleteOfferResponse?.data,
-    //   };
-    // } else {
-    //   return {
-    //     status: false,
-    //     messge: "error",
-    //   };
-    // }
+
+    if (notifyResponse?.status === 200) {
+      return {
+        status: true,
+        message: "users data",
+        data: notifyResponse?.data,
+      };
+    } else {
+      return {
+        status: false,
+        messge: "error",
+      };
+    }
   } catch (error) {
     return {
       status: false,

@@ -34,7 +34,6 @@ const CategoriesScreen = () => {
         if (response?.status) {
           setCategories(response?.data);
         } else {
-          console.log("getUsers false");
         }
       })
       .finally(() => {

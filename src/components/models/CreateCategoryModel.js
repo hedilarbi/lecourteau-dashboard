@@ -67,30 +67,25 @@ const CreateCategoryModel = ({ setShowCreateCategoryModel }) => {
   };
   useEffect(() => {
     if (showSuccessModel) {
-      // After 1 second, reset showSuccessModel to false
-
       const timer = setTimeout(() => {
         setShowSuccessModel(false);
 
         setShowCreateCategoryModel(false);
       }, 2000);
 
-      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+      return () => clearTimeout(timer);
     }
   }, [showSuccessModel]);
   useEffect(() => {
     if (showFailModal) {
-      // After 1 second, reset showSuccessModel to false
-
       const timer = setTimeout(() => {
         setShowFailModal(false);
       }, 2000);
 
-      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+      return () => clearTimeout(timer);
     }
   }, [showFailModal]);
   const pickImage = async () => {
-    // No permissions request is necessary for launching the image library
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
 

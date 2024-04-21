@@ -5,18 +5,18 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Image,
   ActivityIndicator,
 } from "react-native";
 import React, { useCallback, useEffect, useState } from "react";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
 import { Colors, Fonts } from "../constants";
-import { Entypo, FontAwesome, MaterialIcons } from "@expo/vector-icons";
-import SearchBar from "../components/SearchBar";
+import { MaterialIcons } from "@expo/vector-icons";
+
 import DeleteWarning from "../components/models/DeleteWarning";
 import AddButton from "../components/AddButton";
 import CreateRewardModel from "../components/models/CreateRewardModel";
 import { deleteReward, getRewards } from "../services/RewardServices";
+import ErrorScreen from "../components/ErrorScreen";
 const RewardsScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [rewards, setRewards] = useState([]);
@@ -24,20 +24,23 @@ const RewardsScreen = () => {
   const [showCreateRewardModel, setShowCreateRewardModel] = useState(false);
   const [refresh, setRefresh] = useState(0);
   const [rewardId, setRewardId] = useState(0);
+  const [error, setError] = useState(false);
 
   const fetchData = async () => {
-    setIsLoading(true);
-    getRewards()
-      .then((response) => {
-        if (response.status) {
-          setRewards(response.data);
-        } else {
-          console.log(response);
-        }
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+    try {
+      setIsLoading(true);
+      const response = await getRewards();
+
+      if (response.status) {
+        setRewards(response.data);
+      } else {
+        setError(true);
+      }
+    } catch (error) {
+      setError(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -54,6 +57,9 @@ const RewardsScreen = () => {
     }, [])
   );
 
+  if (error) {
+    return <ErrorScreen setRefresh={setRefresh} />;
+  }
   return (
     <SafeAreaView style={{ backgroundColor: Colors.screenBg, flex: 1 }}>
       {deleteWarningModelState && (
@@ -103,7 +109,7 @@ const RewardsScreen = () => {
             <ActivityIndicator size={"large"} color="black" />
           </View>
         ) : (
-          <ScrollView style={{ width: "50%", marginTop: 30 }}>
+          <ScrollView style={{ width: "60%", marginTop: 30 }}>
             {rewards.map((reward, index) => (
               <View
                 key={reward._id}
@@ -114,7 +120,12 @@ const RewardsScreen = () => {
                     : { backgroundColor: "rgba(247,166,0,0.3)" },
                 ]}
               >
-                <Text style={[styles.rowCell]}>{reward.item.name}</Text>
+                <Text
+                  style={[styles.rowCell, { width: "50%" }]}
+                  numberOfLines={1}
+                >
+                  {reward.item.name}
+                </Text>
                 <Text style={[styles.rowCell]}>{reward.points}</Text>
 
                 <TouchableOpacity

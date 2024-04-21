@@ -9,7 +9,6 @@ const useGetOrders = (setIsLoading, refresh) => {
       if (response?.status) {
         setOrders(response?.data);
       } else {
-        console.log("getUsers false");
       }
     });
   };

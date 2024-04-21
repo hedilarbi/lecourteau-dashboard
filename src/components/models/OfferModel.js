@@ -22,7 +22,6 @@ const OfferModel = ({ setShowOfferModel, id }) => {
     getOffer(id)
       .then((response) => {
         if (response.status) {
-          console.log(response.data.items);
           setOffer(response.data);
         }
       })

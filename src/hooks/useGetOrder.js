@@ -17,7 +17,6 @@ const useGetOrder = (id) => {
         setError(true);
       }
     } catch (error) {
-      console.log(error);
       setError(true);
     } finally {
       setIsLoading(false);

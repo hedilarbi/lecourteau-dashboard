@@ -52,7 +52,6 @@ const ItemModel = ({ setShowMenuItemModel, id }) => {
           setMenuItem(response.data);
           setCategorizedList(groupByCategory(response.data.customization));
         } else {
-          console.log(response);
         }
       })
       .finally(() => {

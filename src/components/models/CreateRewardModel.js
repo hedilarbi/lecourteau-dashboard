@@ -33,7 +33,6 @@ const CreateRewardModel = ({ setShowCreateRewardModel, setRefresh }) => {
         );
         setItems(list);
       } else {
-        console.log(response);
       }
     });
   };

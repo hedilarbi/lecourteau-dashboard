@@ -30,12 +30,13 @@ import {
 } from "../services/RestaurantServices";
 import UpdateToppingModal from "../components/models/UpdateToppingModal";
 import { useFocusEffect } from "@react-navigation/native";
+import ErrorScreen from "../components/ErrorScreen";
 
 const ToppingsScreen = () => {
   const { role, restaurant } = useSelector(selectStaffData);
   const [toppings, setToppings] = useState([]);
   const [toppingsList, setToppingsList] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [showUpdateToppingModal, setShowUpdateToppingModal] = useState(false);
   const [showCreateToppingModel, setShowCreateToppingModel] = useState(false);
   const [showCreateToppingCategoryModel, setShowCreateToppingCategoryModel] =
@@ -44,25 +45,36 @@ const ToppingsScreen = () => {
   const [deleteWarningModelState, setDeleteWarningModelState] = useState(false);
   const [refresh, setRefresh] = useState(0);
   const [topping, setTopping] = useState(null);
+  const [error, setError] = useState(false);
   const fetchData = async () => {
-    if (role === Roles.ADMIN) {
-      getToppings().then((response) => {
+    try {
+      setIsLoading(true);
+
+      if (role === Roles.ADMIN) {
+        const response = await getToppings();
+
         if (response.status) {
           setToppings(response.data);
           setToppingsList(response.data);
+          setError(false);
         } else {
-          console.log(response.message);
+          setError(true);
         }
-      });
-    } else {
-      getRestaurantToppings(restaurant).then((response) => {
+      } else {
+        const response = await getRestaurantToppings(restaurant);
+
         if (response.status) {
           setToppings(response.data.toppings);
           setToppingsList(response.data.toppings);
+          setError(false);
         } else {
-          console.log(response.message);
+          setError(true);
         }
-      });
+      }
+    } catch (error) {
+      setError(true);
+    } finally {
+      setIsLoading(false);
     }
   };
   const updateAvailability = async (toppingId, index) => {
@@ -71,22 +83,17 @@ const ToppingsScreen = () => {
         if (response.status) {
           const updatedMenuItems = [...toppings];
 
-          // Modify the availability of the specific item at the given index
           updatedMenuItems[index] = {
             ...updatedMenuItems[index],
-            availability: !updatedMenuItems[index].availability, // Change the availability (toggling in this example)
+            availability: !updatedMenuItems[index].availability,
           };
-
-          // Update the state with the modified array
           setToppings(updatedMenuItems);
         }
       }
     );
   };
   useEffect(() => {
-    setIsLoading(true);
-    fetchData();
-    setIsLoading(false);
+    fetchData().then(() => setIsLoading(false));
   }, [refresh]);
   const handleShowDeleteWarning = (id) => {
     setToppingId(id);
@@ -104,11 +111,15 @@ const ToppingsScreen = () => {
     setShowUpdateToppingModal(true);
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchData();
-    }, [])
-  );
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     fetchData();
+  //   }, [])
+  // );
+
+  if (error) {
+    return <ErrorScreen setRefresh={setRefresh} />;
+  }
 
   return (
     <SafeAreaView style={{ backgroundColor: Colors.screenBg, flex: 1 }}>

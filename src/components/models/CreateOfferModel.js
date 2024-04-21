@@ -1,6 +1,5 @@
 import {
   ActivityIndicator,
-  Alert,
   Image,
   StyleSheet,
   Text,
@@ -55,15 +54,12 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
         });
         setMenuItems(list);
       } else {
-        console.log(itemsNamesResponse);
       }
       if (toppingResponse.status) {
         setCustomizationsList(toppingResponse.data);
       } else {
-        console.log(toppingResponse);
       }
     } catch (err) {
-      console.log(err);
     } finally {
       setIsLoading(false);
     }
@@ -132,7 +128,7 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
       if (!response.ok) {
         throw new Error("HTTP error " + response.status);
       }
-      setRefresh((prev) => prev + 1);
+
       setShowSuccessModel(true);
     } catch (err) {
       setShowFailModal(true);
@@ -142,27 +138,22 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
   };
   useEffect(() => {
     if (showSuccessModel) {
-      // After 1 second, reset showSuccessModel to false
-
       const timer = setTimeout(() => {
         setShowSuccessModel(false);
         setRefresh((prev) => prev + 1);
-
         setShowCreateOfferModel(false);
       }, 1000);
 
-      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+      return () => clearTimeout(timer);
     }
   }, [showSuccessModel]);
   useEffect(() => {
     if (showFailModal) {
-      // After 1 second, reset showSuccessModel to false
-
       const timer = setTimeout(() => {
         setShowFailModal(false);
       }, 2000);
 
-      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+      return () => clearTimeout(timer);
     }
   }, [showFailModal]);
   const deleteItem = (index) => {
@@ -190,6 +181,7 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
           setShowAddCategoryModel={setShowAddCategoryModel}
           toppings={customizationsList}
           setCustomizationsNames={setCustomizationsNames}
+          customizationsNames={customizationsNames}
         />
       )}
       {showSuccessModel && <SuccessModel />}

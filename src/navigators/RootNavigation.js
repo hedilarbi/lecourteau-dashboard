@@ -46,7 +46,6 @@ const RootNavigation = () => {
           }
           setIsLoading(false);
         } catch (error) {
-          console.error("Error getting staff data by token:", error);
           await deleteItemAsync("token");
           dispatch(setStaffData({}));
           dispatch(setStaffToken(null));
@@ -111,8 +110,8 @@ const RootNavigation = () => {
               default:
                 return (
                   <RootStack.Screen
-                    name="Driver"
-                    component={DriverScreen} // Replace with your default screen
+                    name="Cashier"
+                    component={CashierDrawer} // Replace with your default screen
                     options={{
                       headerShown: false,
                     }}

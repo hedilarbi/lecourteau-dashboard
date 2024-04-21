@@ -123,7 +123,6 @@ const UpdateToppingModal = ({
 
       setShowSuccessModel(true);
     } catch (err) {
-      console.log(err.message);
       setShowFailModal(true);
     } finally {
       setIsLoading(false);
@@ -254,7 +253,7 @@ const UpdateToppingModal = ({
                 maxHeight={300}
                 labelField="label"
                 valueField="label"
-                placeholder="Catégorie"
+                placeholder={topping.category.name}
                 value={category.name}
                 onChange={(item) => {
                   setCategory({ id: item.value, name: item.label });

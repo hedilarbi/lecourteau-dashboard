@@ -10,7 +10,6 @@ const useGetUsers = (setIsLoading, refresh) => {
         setUsers(response?.data);
         setUsersList(response?.data);
       } else {
-        console.log("getUsers false");
       }
     });
   };

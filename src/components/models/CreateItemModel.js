@@ -133,7 +133,6 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
 
       setShowSuccessModel(true);
     } catch (err) {
-      console.log(err.message);
       setShowFailModal(true);
     } finally {
       setIsloading(false);
@@ -213,6 +212,7 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
           setShowAddCategoryModel={setShowAddCategoryModel}
           toppings={toppings}
           setCustomizationsNames={setCustomizationsNames}
+          customizationsNames={customizationsNames}
         />
       )}
       <AddMenuItemPrice

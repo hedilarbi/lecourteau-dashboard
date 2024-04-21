@@ -43,7 +43,8 @@ const CreateStaffModal = ({
     { value: Roles.LIVREUR, label: Roles.LIVREUR },
   ];
   const fetchData = async () => {
-    getRestaurants().then((response) => {
+    try {
+      const response = await getRestaurants();
       if (response.status) {
         let list = [];
         response?.data.map((item) =>
@@ -51,7 +52,7 @@ const CreateStaffModal = ({
         );
         setRestaurants(list);
       }
-    });
+    } catch (error) {}
     setIsLoading(false);
   };
   useEffect(() => {

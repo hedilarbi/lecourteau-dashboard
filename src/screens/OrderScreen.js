@@ -40,6 +40,7 @@ const OrderScreen = () => {
   const [driversList, setDriversList] = useState([]);
   const [driver, setDriver] = useState({});
   const [updateDriverMode, setUpdateDriverMode] = useState(false);
+
   const statusOptions = [
     { label: OrderStatus.READY, value: OrderStatus.READY },
     { label: OrderStatus.DONE, value: OrderStatus.DONE },
@@ -61,13 +62,11 @@ const OrderScreen = () => {
   };
   useEffect(() => {
     if (showFailModal) {
-      // After 1 second, reset showSuccessModel to false
-
       const timer = setTimeout(() => {
         setShowFailModal(false);
       }, 2000);
 
-      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+      return () => clearTimeout(timer);
     }
   }, [showFailModal]);
 
@@ -89,29 +88,29 @@ const OrderScreen = () => {
   };
   const updateOrderPrice = async () => {
     setIsLoading(true);
-    updatePrice(order._id, price)
-      .then((response) => {
-        if (response.status) {
-          setShowSuccessModel(true);
-          setUpdatePriceMode(false);
-          setOrder({ ...order, total_price: price });
-        } else {
-          setShowFailModal(true);
-        }
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+
+    try {
+      const response = await updatePrice(order._id, price);
+      if (response.status) {
+        setShowSuccessModel(true);
+        setUpdatePriceMode(false);
+        setOrder({ ...order, total_price: price });
+      } else {
+        setShowFailModal(true);
+      }
+    } catch (error) {
+      setShowFailModal(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
   useEffect(() => {
     if (showSuccessModel) {
-      // After 1 second, reset showSuccessModel to false
-
       const timer = setTimeout(() => {
         setShowSuccessModel(false);
       }, 1000);
 
-      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+      return () => clearTimeout(timer);
     }
   }, [showSuccessModel]);
 
@@ -119,33 +118,35 @@ const OrderScreen = () => {
     setIsLoading(true);
     try {
       const list = await getAvailableDrivers();
-      const driver = list.data.map((driver) => {
+
+      const drivers = list.data.map((driver) => {
         return { label: driver.name, value: driver._id };
       });
-      setDriversList(driver);
+      setDriversList(drivers);
       setIsLoading(false);
       setUpdateDriverMode(true);
     } catch (err) {
-      console.log(err);
       setIsLoading(false);
     }
   };
 
   const updateDriver = async () => {
     setIsLoading(true);
+    if (!driver.id) {
+      setIsLoading(false);
+      return;
+    }
     try {
       const response = await affectOrderToStaff(order._id, driver.id);
       if (response.status) {
         setShowSuccessModel(true);
         setUpdateDriverMode(false);
-        setOrder({ ...order, delivery_by: driver.name });
+        setOrder({ ...order, delivery_by: driver });
         setIsLoading(false);
       } else {
-        console.log(response.message);
         setIsLoading(false);
       }
     } catch (err) {
-      console.log(err.message);
       setIsLoading(false);
     }
   };
@@ -278,82 +279,86 @@ const OrderScreen = () => {
                       </>
                     )}
                   </View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
+                  {order.type === "delivery" && (
+                    <View
                       style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 20,
+                        flexDirection: "row",
+                        alignItems: "center",
                       }}
                     >
-                      Livreur:
-                    </Text>
-                    {updateDriverMode ? (
-                      <>
-                        <Dropdown
-                          style={[styles.dropdown]}
-                          placeholderStyle={styles.placeholderStyle}
-                          selectedTextStyle={styles.selectedTextStyle}
-                          selectedStyle={styles.selectedStyle}
-                          itemContainerStyle={styles.itemContainerStyle}
-                          itemTextStyle={styles.itemTextStyle}
-                          containerStyle={styles.containerStyle}
-                          data={driversList}
-                          maxHeight={300}
-                          labelField="label"
-                          valueField="label"
-                          placeholder={order.delivery_by || "Non assigné"}
-                          value={order.delivery_by || "Non assigné"}
-                          onChange={(item) =>
-                            setDriver({ id: item.value, name: item.label })
-                          }
-                        />
-                        <TouchableOpacity
-                          style={{
-                            marginRight: 15,
-                            backgroundColor: Colors.primary,
-                            borderRadius: 5,
-                            alignItems: "center",
-                            paddingHorizontal: 15,
-                            paddingVertical: 5,
-                          }}
-                          onPress={updateDriver}
-                        >
-                          <Text style={{ fontFamily: Fonts.LATO_BOLD }}>
-                            Save
-                          </Text>
-                        </TouchableOpacity>
-                      </>
-                    ) : (
-                      <>
-                        <Text
-                          style={{
-                            fontFamily: Fonts.LATO_REGULAR,
-                            fontSize: 20,
-                            marginLeft: 10,
-                            flex: 1,
-                            color: "black",
-                          }}
-                        >
-                          {order.delivery_by || "Non assigné"}
-                        </Text>
-                        <TouchableOpacity
-                          style={{ marginRight: 15 }}
-                          onPress={handleUpdateDriverMode}
-                        >
-                          <Foundation
-                            name="pencil"
-                            size={28}
-                            color={Colors.primary}
+                      <Text
+                        style={{
+                          fontFamily: Fonts.LATO_BOLD,
+                          fontSize: 20,
+                        }}
+                      >
+                        Livreur:
+                      </Text>
+                      {updateDriverMode ? (
+                        <>
+                          <Dropdown
+                            style={[styles.dropdown]}
+                            placeholderStyle={styles.placeholderStyle}
+                            selectedTextStyle={styles.selectedTextStyle}
+                            selectedStyle={styles.selectedStyle}
+                            itemContainerStyle={styles.itemContainerStyle}
+                            itemTextStyle={styles.itemTextStyle}
+                            containerStyle={styles.containerStyle}
+                            data={driversList}
+                            maxHeight={300}
+                            labelField="label"
+                            valueField="label"
+                            placeholder={
+                              order.delivery_by?.name || "Non assigné"
+                            }
+                            value={order.delivery_by?.name || "Non assigné"}
+                            onChange={(item) =>
+                              setDriver({ id: item.value, name: item.label })
+                            }
                           />
-                        </TouchableOpacity>
-                      </>
-                    )}
-                  </View>
+                          <TouchableOpacity
+                            style={{
+                              marginRight: 15,
+                              backgroundColor: Colors.primary,
+                              borderRadius: 5,
+                              alignItems: "center",
+                              paddingHorizontal: 15,
+                              paddingVertical: 5,
+                            }}
+                            onPress={updateDriver}
+                          >
+                            <Text style={{ fontFamily: Fonts.LATO_BOLD }}>
+                              Save
+                            </Text>
+                          </TouchableOpacity>
+                        </>
+                      ) : (
+                        <>
+                          <Text
+                            style={{
+                              fontFamily: Fonts.LATO_REGULAR,
+                              fontSize: 20,
+                              marginLeft: 10,
+                              flex: 1,
+                              color: "black",
+                            }}
+                          >
+                            {order.delivery_by?.name || "Non assigné"}
+                          </Text>
+                          <TouchableOpacity
+                            style={{ marginRight: 15 }}
+                            onPress={handleUpdateDriverMode}
+                          >
+                            <Foundation
+                              name="pencil"
+                              size={28}
+                              color={Colors.primary}
+                            />
+                          </TouchableOpacity>
+                        </>
+                      )}
+                    </View>
+                  )}
                   <View
                     style={{
                       flexDirection: "row",
@@ -455,7 +460,7 @@ const OrderScreen = () => {
                             flex: 1,
                           }}
                           keyboardType="numeric"
-                          placeholder={order.total_price.toFixed(2)}
+                          placeholder={parseFloat(order.total_price).toFixed(2)}
                           onChangeText={(text) => setPrice(text)}
                         />
                         <TouchableOpacity
@@ -485,7 +490,7 @@ const OrderScreen = () => {
                             flex: 1,
                           }}
                         >
-                          {order.total_price.toFixed(2)} $
+                          {parseFloat(order.total_price).toFixed(2)} $
                         </Text>
                         <TouchableOpacity
                           style={{ marginRight: 15 }}
@@ -804,7 +809,65 @@ const OrderScreen = () => {
                     ]}
                   >
                     <Text style={[styles.rowCell]} numberOfLines={1}>
-                      {item.name}
+                      {item.offer.name}
+                    </Text>
+                    <Text style={[styles.rowCell]} numberOfLines={1}>
+                      {item.offer.price} $
+                    </Text>
+                    <Text style={[styles.rowCell]}>
+                      {item.customizations?.map((custo) => {
+                        return custo.name + " ";
+                      })}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <View
+                style={{
+                  backgroundColor: "white",
+                  borderRadius: 10,
+                  paddingVertical: 10,
+                  alignItems: "center",
+                  marginTop: 20,
+                }}
+              >
+                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                  Vide
+                </Text>
+              </View>
+            )}
+          </View>
+          <View>
+            <Text
+              style={{
+                fontFamily: Fonts.LATO_BOLD,
+                fontSize: 24,
+                marginTop: 20,
+              }}
+            >
+              Récompense
+            </Text>
+
+            {order.rewards?.length > 0 ? (
+              <ScrollView
+                style={{
+                  marginTop: 20,
+                  backgroundColor: "white",
+                }}
+              >
+                {order.rewards?.map((item, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.row,
+                      index % 2
+                        ? { backgroundColor: "transparent" }
+                        : { backgroundColor: "rgba(247,166,0,0.3)" },
+                    ]}
+                  >
+                    <Text style={[styles.rowCell]} numberOfLines={1}>
+                      {item.item.name}
                     </Text>
                   </View>
                 ))}

@@ -34,10 +34,8 @@ const DeleteWarning = ({
         setShowSuccessModel(true);
       } else {
         setShowFailModal(true);
-        console.log(deleteResponse);
       }
     } catch (error) {
-      console.log(error.message);
       setShowFailModal(true);
     } finally {
       setIsLoading(false);

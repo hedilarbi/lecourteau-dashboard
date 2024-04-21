@@ -103,7 +103,6 @@ const UpdateCategoryModal = ({
 
       setShowSuccessModel(true);
     } catch (err) {
-      console.log(err.message);
       setShowFailModal(true);
     } finally {
       setIsLoading(false);

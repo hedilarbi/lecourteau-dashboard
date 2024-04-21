@@ -191,9 +191,7 @@ const ItemsScreen = () => {
     setDraggingIdx(-1);
 
     menuTri(initialIndex.current, indexB.current)
-      .then((response) => {
-        console.log(response.data);
-      })
+      .then((response) => {})
       .catch((err) => {
         console.log(err.message);
       });

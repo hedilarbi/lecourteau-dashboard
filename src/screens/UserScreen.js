@@ -295,7 +295,7 @@ const UserScreen = () => {
                   {order.type}
                 </Text>
                 <Text style={[styles.rowCell, { width: "10%" }]}>
-                  {order.total_price} $
+                  {order.total_price.toFixed(2)} $
                 </Text>
                 <Text style={[styles.rowCell, { width: "10  %" }]}>
                   {order.orderItems?.length +

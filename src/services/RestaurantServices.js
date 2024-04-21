@@ -14,7 +14,7 @@ const getRestaurants = async () => {
     } else {
       return {
         status: false,
-        messge: "error",
+        messge: getRestaurantsResponse.data.error,
       };
     }
   } catch (error) {

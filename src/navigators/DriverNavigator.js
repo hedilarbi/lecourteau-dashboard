@@ -6,6 +6,7 @@ import * as Notifications from "expo-notifications";
 
 import DriverScreen from "../screens/DriverScreen";
 import DriverProfileScreen from "../screens/DriverProfileScreen";
+import DriverProfileNavigator from "./DriverProfileNavigator";
 
 const DriverNavigator = () => {
   const MainTab = createBottomTabNavigator();
@@ -91,7 +92,7 @@ const DriverNavigator = () => {
         />
         <MainTab.Screen
           name="Profile"
-          component={DriverProfileScreen}
+          component={DriverProfileNavigator}
           options={{ headerShown: false }}
         />
       </MainTab.Navigator>

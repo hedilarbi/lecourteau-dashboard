@@ -117,7 +117,7 @@ const OfferScreen = () => {
       if (itemsNamesResponse.status) {
         let list = [];
         itemsNamesResponse.data.map((item) => {
-          list.push({ value: item._id, label: item.name });
+          list.push({ value: item._id, label: item.name, prices: item.prices });
         });
         setMenuItems(list);
       } else {
@@ -199,7 +199,6 @@ const OfferScreen = () => {
       setShowSuccessModel(true);
     } catch (err) {
       setShowFailModal(true);
-      console.log(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -240,7 +239,12 @@ const OfferScreen = () => {
           toppings={customizationsList}
         />
       )}
-      <ScrollView style={{ flex: 1, backgroundColor: Colors.screenBg }}>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: Colors.screenBg }}
+        contentContainerStyle={{ paddingBottom: 12 }}
+        bounces={false}
+        showsVerticalScrollIndicator={false}
+      >
         <View
           style={{
             flexDirection: "row",

@@ -24,15 +24,17 @@ const SettingsScreen = () => {
   const openMinutesInput = useRef(null);
   const closeMinutesInput = useRef(null);
   const [showSuccessModel, setShowSuccessModel] = useState(false);
+  const [showFailModal, setShowFailModal] = useState(false);
+  const [error, setError] = useState(false);
   const fetchData = async () => {
     setIsLoading(true);
     getSettings()
       .then((response) => {
-        console.log(response);
         if (response.status) {
           setSettings(response.data.settings[0]);
+          setError(false);
         } else {
-          console.log(response);
+          setError(true);
         }
       })
       .finally(() => {
@@ -45,17 +47,22 @@ const SettingsScreen = () => {
   }, [refresh]);
 
   const saveChanges = async () => {
-    setIsLoading(true);
-    updateSettings(settings)
-      .then((response) => {
-        if (response.status) {
-          setSettings(response.data);
-        }
-      })
-      .finally(() => {
+    try {
+      setIsLoading(true);
+      const response = await updateSettings(settings);
+
+      if (response.status) {
+        console.log(response.data);
+        setSettings(response.data);
         setShowSuccessModel(true);
-        setIsLoading(false);
-      });
+      } else {
+        setShowFailModal(true);
+      }
+    } catch (error) {
+      setShowFailModal(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
   useFocusEffect(
     useCallback(() => {
@@ -74,6 +81,9 @@ const SettingsScreen = () => {
       return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
     }
   }, [showSuccessModel]);
+  if (error) {
+    return <ErrorScreen setRefresh={setRefresh} />;
+  }
   return (
     <SafeAreaView style={{ backgroundColor: Colors.screenBg, flex: 1 }}>
       {showSuccessModel && <SuccessModel />}

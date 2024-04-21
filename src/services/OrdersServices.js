@@ -1,6 +1,5 @@
 import { API_URL } from "@env";
 import axios from "axios";
-import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 
 const getOrders = async () => {
   try {
@@ -11,6 +10,32 @@ const getOrders = async () => {
         status: true,
         message: "users data",
         data: getOrdersResponse?.data,
+      };
+    } else {
+      return {
+        status: false,
+        messge: "error",
+      };
+    }
+  } catch (error) {
+    return {
+      status: false,
+      message: error.message,
+    };
+  }
+};
+
+const orderDelivered = async (id, staffId) => {
+  try {
+    let orderDeliveredResponse = await axios.put(
+      `${API_URL}/orders/update/delivered/${id}`,
+      { staffId }
+    );
+
+    if (orderDeliveredResponse?.status === 200) {
+      return {
+        status: true,
+        message: "order delivered",
       };
     } else {
       return {
@@ -127,4 +152,11 @@ const updatePrice = async (id, price) => {
   }
 };
 
-export { getOrders, getOrder, deleteOrder, updatePrice, updateStatus };
+export {
+  getOrders,
+  getOrder,
+  deleteOrder,
+  updatePrice,
+  updateStatus,
+  orderDelivered,
+};

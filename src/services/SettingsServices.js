@@ -27,7 +27,7 @@ const getSettings = async () => {
 
 const updateSettings = async (settings) => {
   try {
-    let updateSettingsResponse = await axios.get(
+    let updateSettingsResponse = await axios.put(
       `${API_URL}/settings/update/${settings._id}`,
       {
         settings,

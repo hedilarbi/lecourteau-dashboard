@@ -85,7 +85,6 @@ const getStaffByToken = async (token) => {
       };
     }
   } catch (error) {
-    console.log(error);
     return {
       status: false,
       message: error.message,
@@ -236,6 +235,31 @@ const getStaffOrder = async (id) => {
   }
 };
 
+const getDriverOrders = async (id) => {
+  try {
+    let getDriverOrderResponse = await axios.get(
+      `${API_URL}/staffs/driver/orders/${id}`
+    );
+    if (getDriverOrderResponse.status === 200) {
+      return {
+        status: true,
+
+        data: getDriverOrderResponse.data,
+      };
+    } else {
+      return {
+        status: false,
+        message: "didn't found",
+      };
+    }
+  } catch (error) {
+    return {
+      status: false,
+      message: error.response.data.message,
+    };
+  }
+};
+
 export {
   loginStaff,
   getStaffByToken,
@@ -246,4 +270,5 @@ export {
   affectOrderToStaff,
   getAvailableDrivers,
   getStaffOrder,
+  getDriverOrders,
 };

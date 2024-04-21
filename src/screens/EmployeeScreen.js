@@ -137,6 +137,7 @@ const EmployeeScreen = () => {
     }
     setIsLoading(true);
     const workAt = restaurant.id || employee.restaurant;
+
     updateStaffMember(
       id,
       employee.name,

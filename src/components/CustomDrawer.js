@@ -17,9 +17,7 @@ const CustomDrawer = (props) => {
     try {
       await deleteItemAsync("token");
       dispatch(clearStaff());
-    } catch (err) {
-      console.log(err.message);
-    }
+    } catch (err) {}
   };
   return (
     <View style={{ flex: 1 }}>

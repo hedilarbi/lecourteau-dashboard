@@ -2,19 +2,14 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   StyleSheet,
-  Dimensions,
   ActivityIndicator,
   Platform,
   Image,
-  Touchable,
   TouchableOpacity,
   Text,
 } from "react-native";
-import MapView, {
-  Marker,
-  PROVIDER_GOOGLE,
-  AnimatedRegion,
-} from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import { FontAwesome } from "@expo/vector-icons";
 import { GOOGLE_MAPS_API_KEY } from "@env";
 import * as Location from "expo-location";
 import MapViewDirections from "react-native-maps-directions";
@@ -22,19 +17,24 @@ import { useSelector } from "react-redux";
 import { selectStaffData } from "../redux/slices/StaffSlice";
 import { getStaffOrder } from "../services/StaffServices";
 import { Colors, Fonts } from "../constants";
+import OrderDetailsModal from "../components/models/OrderDetailsModal";
+import { orderDelivered } from "../services/OrdersServices";
+import Spinner from "../components/Spinner";
 const DriverScreen = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [mapLoading, setMapLoading] = useState(true);
   const [order, setOrder] = useState(null);
   const mapRef = useRef();
+  const [refresh, setRefresh] = useState(0);
   const markerRef = useRef();
   const { _id } = useSelector(selectStaffData);
-
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const getUserLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        console.error("Permission to access location was denied");
+        console.error("Permission to access location was denie");
         return;
       }
       const response = await Location.getCurrentPositionAsync({
@@ -43,7 +43,9 @@ const DriverScreen = () => {
         timeout: 15000,
       });
       const { coords } = response;
-      animate(coords.latitude, coords.longitude);
+      if (order) {
+        animate(coords.latitude, coords.longitude);
+      }
 
       setUserLocation(coords);
       setMapLoading(false);
@@ -56,17 +58,18 @@ const DriverScreen = () => {
     try {
       const response = await getStaffOrder(_id);
       if (response.status) {
+        console.log("order coords", response.data.coords);
         setOrder(response.data);
       } else {
-        console.log(response.message);
+        setOrder(null);
       }
     } catch (err) {
-      console.log(err.message);
+      setOrder(null);
     }
   };
   useEffect(() => {
     getOrder().then(() => getUserLocation());
-  }, []);
+  }, [refresh]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -89,9 +92,25 @@ const DriverScreen = () => {
     mapRef.current.animateToRegion({
       latitude: userLocation.latitude,
       longitude: userLocation.longitude,
-      latitudeDelta: LATITUDE_DELTA,
-      longitudeDelta: LONGITUDE_DELTA,
+      latitudeDelta: 0.02,
+      longitudeDelta: 0.02,
     });
+  };
+
+  const terminateOrder = async () => {
+    setIsLoading(true);
+    try {
+      const response = await orderDelivered(order._id, _id);
+      if (response.status) {
+        setOrder(null);
+
+        setIsLoading(false);
+      } else {
+        setIsLoading(false);
+      }
+    } catch (err) {
+      setIsLoading(false);
+    }
   };
   if (mapLoading) {
     return (
@@ -101,9 +120,12 @@ const DriverScreen = () => {
     );
   }
 
-  return (
-    <View style={styles.container}>
-      <View style={{ position: "absolute", zIndex: 10 }}>
+  if (!order) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 18 }}>
+          Pas de commandes en cours
+        </Text>
         <TouchableOpacity
           style={{
             backgroundColor: Colors.primary,
@@ -111,9 +133,85 @@ const DriverScreen = () => {
             justifyContent: "center",
             alignItems: "center",
             paddingVertical: 12,
+            paddingHorizontal: 24,
+            marginTop: 12,
           }}
+          onPress={() => setRefresh(refresh + 1)}
         >
-          <Text style={{ fontFamily: Fonts.LATO_BOLD }}>Livraison terminé</Text>
+          <Text>Rafraichir</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <Spinner visibility={isLoading} />
+      {showDetailsModal && (
+        <OrderDetailsModal
+          visibility={showDetailsModal}
+          setVisibility={setShowDetailsModal}
+          order={order}
+        />
+      )}
+      <TouchableOpacity
+        style={{
+          position: "absolute",
+          zIndex: 10,
+          right: 12,
+          top: 12,
+          padding: 12,
+          backgroundColor: "white",
+          borderRadius: 12,
+        }}
+        onPress={onCenter}
+      >
+        <FontAwesome name="location-arrow" size={32} color={Colors.primary} />
+      </TouchableOpacity>
+      <View
+        style={{
+          position: "absolute",
+          zIndex: 10,
+          left: 0,
+          width: "100%",
+          bottom: 12,
+          paddingHorizontal: 12,
+        }}
+      >
+        <TouchableOpacity
+          style={{
+            backgroundColor: Colors.primary,
+            borderRadius: 12,
+            justifyContent: "center",
+            alignItems: "center",
+            paddingVertical: 16,
+          }}
+          onPress={terminateOrder}
+        >
+          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 18 }}>
+            Terminer la commande
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={{
+            backgroundColor: Colors.tgry,
+            borderRadius: 12,
+            justifyContent: "center",
+            alignItems: "center",
+            paddingVertical: 16,
+            marginTop: 8,
+          }}
+          onPress={() => setShowDetailsModal(true)}
+        >
+          <Text
+            style={{
+              fontFamily: Fonts.LATO_BOLD,
+              fontSize: 18,
+              color: "white",
+            }}
+          >
+            Details de la commande
+          </Text>
         </TouchableOpacity>
       </View>
       <MapView
