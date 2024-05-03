@@ -1,6 +1,5 @@
 import {
   ActivityIndicator,
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -25,6 +24,8 @@ import { API_URL } from "@env";
 import mime from "mime";
 import FailModel from "../components/models/FailModel";
 import AddMenuItemPrice from "../components/models/AddMenuItemPrice";
+import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
+import { getSizes } from "../services/SizesServices";
 const ItemScreen = () => {
   const route = useRoute();
   const { id } = route.params;
@@ -38,6 +39,7 @@ const ItemScreen = () => {
   const [description, setDescription] = useState("");
   const [customization, setCustomization] = useState([]);
   const [prices, setPrices] = useState([]);
+  const [sizes, setSizes] = useState([]);
   const [categoriesNames, setCategoriesNames] = useState([]);
   const [showAddCustomizationModel, setShowAddCustomizationModel] =
     useState(false);
@@ -103,10 +105,8 @@ const ItemScreen = () => {
   const activateUpdateMode = async () => {
     setIsLoading(true);
     try {
-      const [categoriesResponse, toppingResponse] = await Promise.all([
-        getCategories(),
-        getToppings(),
-      ]);
+      const [categoriesResponse, toppingResponse, sizeResponse] =
+        await Promise.all([getCategories(), getToppings(), getSizes()]);
 
       if (categoriesResponse?.status) {
         categoriesResponse?.data.map((item) =>
@@ -115,7 +115,14 @@ const ItemScreen = () => {
       } else {
         setShowFailModal(true);
       }
-
+      if (sizeResponse?.status) {
+        setSizes(
+          sizeResponse?.data.map((size) => ({
+            label: size.name,
+            value: size.name,
+          }))
+        );
+      }
       if (toppingResponse?.status) {
         setToppings(toppingResponse?.data);
       } else {
@@ -239,6 +246,7 @@ const ItemScreen = () => {
           category={category.label}
           setPrices={setPrices}
           prices={prices}
+          sizes={sizes}
         />
       )}
       {showSuccessModel && <SuccessModel />}

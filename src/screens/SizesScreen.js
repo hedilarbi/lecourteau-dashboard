@@ -1,6 +1,5 @@
 import {
   ActivityIndicator,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -8,32 +7,32 @@ import {
   View,
 } from "react-native";
 import React, { useCallback, useEffect, useState } from "react";
-import { deleteCategory, getCategories } from "../services/MenuItemServices";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+
 import DeleteWarning from "../components/models/DeleteWarning";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RefreshControl } from "react-native-gesture-handler";
 import { Colors, Fonts } from "../constants";
-import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
-import UpdateCategoryModal from "../components/models/UpdateCategoryModal";
+import { MaterialIcons } from "@expo/vector-icons";
+import CreateSizeModal from "../components/models/CreateSizeModal";
+import { deleteSize, getSizes } from "../services/SizesServices";
+import { useFocusEffect } from "@react-navigation/native";
 
-const CategoriesScreen = () => {
-  const navigation = useNavigation();
+const SizesScreen = () => {
   const [deleteWarningModelState, setDeleteWarningModelState] = useState(false);
-  const [showUpdateCategorygModal, setShowUpdateCategorygModal] =
-    useState(false);
+  const [showCreateSizeModel, setShowCreateSizeModel] = useState(false);
   const [refresh, setRefresh] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [category, setCategory] = useState("");
-  const [categories, setCategories] = useState([]);
+  const [size, setSize] = useState("");
+  const [sizes, setSizes] = useState([]);
 
   const fetchData = async () => {
     setIsLoading(true);
-    getCategories()
+    getSizes()
       .then((response) => {
         if (response?.status) {
-          setCategories(response?.data);
+          setSizes(response?.data);
         } else {
+          console.log("error");
         }
       })
       .finally(() => {
@@ -50,36 +49,32 @@ const CategoriesScreen = () => {
     }, [])
   );
 
-  const handleShowUpdateCategoryModel = (category) => {
-    setCategory(category);
-    setShowUpdateCategorygModal(true);
-  };
   const handleShowDeleteWarning = (id) => {
-    setCategory(id);
+    setSize(id);
     setDeleteWarningModelState(true);
   };
   return (
     <SafeAreaView style={{ backgroundColor: Colors.screenBg, flex: 1 }}>
       {deleteWarningModelState && (
         <DeleteWarning
-          id={category}
+          id={size}
           setDeleteWarningModelState={setDeleteWarningModelState}
           setRefresh={setRefresh}
-          message={`Etes-vous sûr de vouloir supprimer cet article ?`}
-          deleter={deleteCategory}
+          message={`Etes-vous sûr de vouloir supprimer cette taille ?`}
+          deleter={deleteSize}
         />
       )}
-      {showUpdateCategorygModal && (
-        <UpdateCategoryModal
+
+      {showCreateSizeModel && (
+        <CreateSizeModal
+          setShowCreateSizeModel={setShowCreateSizeModel}
           setRefresh={setRefresh}
-          setShowUpdateCategorygModal={setShowUpdateCategorygModal}
-          category={category}
         />
       )}
 
       <View style={{ flex: 1, padding: 20 }}>
         <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
-          Catégories
+          Tailles
         </Text>
         <TouchableOpacity
           style={{
@@ -96,7 +91,7 @@ const CategoriesScreen = () => {
             justifyContent: "center",
             marginTop: 20,
           }}
-          onPress={() => navigation.navigate("Sizes")}
+          onPress={() => setShowCreateSizeModel(true)}
         >
           <Text
             style={{
@@ -106,7 +101,7 @@ const CategoriesScreen = () => {
               marginLeft: 10,
             }}
           >
-            Liste des tailles
+            creer une taille
           </Text>
         </TouchableOpacity>
         {isLoading ? (
@@ -122,14 +117,14 @@ const CategoriesScreen = () => {
           >
             <ActivityIndicator size={"large"} color="black" />
           </View>
-        ) : categories.length > 0 ? (
+        ) : sizes.length > 0 ? (
           <ScrollView
             style={{ width: "100%", marginTop: 30 }}
             refreshControl={
               <RefreshControl refreshing={isLoading} onRefresh={fetchData} />
             }
           >
-            {categories.map((item, index) => (
+            {sizes.map((item, index) => (
               <View
                 key={item._id}
                 style={[
@@ -139,17 +134,8 @@ const CategoriesScreen = () => {
                     : { backgroundColor: "rgba(247,166,0,0.3)" },
                 ]}
               >
-                <Image style={[styles.image]} source={{ uri: item.image }} />
                 <Text style={[styles.rowCell, { flex: 1 }]}>{item.name}</Text>
-                <TouchableOpacity
-                  style={{
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                  onPress={() => handleShowUpdateCategoryModel(item)}
-                >
-                  <FontAwesome name="pencil" size={24} color="#2AB2DB" />
-                </TouchableOpacity>
+
                 <TouchableOpacity
                   style={{
                     justifyContent: "center",
@@ -174,7 +160,7 @@ const CategoriesScreen = () => {
             }}
           >
             <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-              Aucune Catégories
+              Aucune Tailles
             </Text>
           </View>
         )}
@@ -183,7 +169,7 @@ const CategoriesScreen = () => {
   );
 };
 
-export default CategoriesScreen;
+export default SizesScreen;
 const styles = StyleSheet.create({
   row: {
     width: "100%",

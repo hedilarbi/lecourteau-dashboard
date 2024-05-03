@@ -1,37 +1,21 @@
 import {
   SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Image,
   ActivityIndicator,
-  RefreshControl,
-  Switch,
-  Alert,
-  PanResponder,
   FlatList,
-  Animated,
-  Button,
 } from "react-native";
-import React, {
-  createRef,
-  memo,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Colors, Fonts, Roles } from "../constants";
-import { FontAwesome, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import SearchBar from "../components/SearchBar";
 import DeleteWarning from "../components/models/DeleteWarning";
 import CreateItemModel from "../components/models/CreateItemModel";
 import AddButton from "../components/AddButton";
 import CreateCategoryModel from "../components/models/CreateCategoryModel";
-
+import { Feather } from "@expo/vector-icons";
 import { filterMenuItems, filterRestaurantMenuItems } from "../utils/filters";
 import {
   deleteMenuItem,
@@ -51,7 +35,6 @@ import RenderMenuItem from "../components/RenderMenuItem";
 
 const ItemsScreen = () => {
   const { role, restaurant } = useSelector(selectStaffData);
-
   const navigation = useNavigation();
   const [deleteWarningModelState, setDeleteWarningModelState] = useState(false);
   const [showCreateItemModel, setShowCreateItemModel] = useState(false);
@@ -63,142 +46,35 @@ const ItemsScreen = () => {
   const [menuItem, setMenuItem] = useState("");
   const [menuItemFilter, setMenuItemFilter] = useState("Toutes les catégories");
   const [menuItems, setMenuItems] = useState([]);
-  const [draggingIdx, setDraggingIdx] = useState(-1);
   const [menuItemsList, setMenuItemsList] = useState([]);
+  const [showMenuFilter, setShowMenuFilter] = useState(false);
   const [error, setError] = useState(false);
-  const [dragging, setDragging] = useState(false);
-  const point = useRef(new Animated.ValueXY()).current;
-  const scrollOffset = useRef(0);
-  const flatlistTopOffset = useRef(0);
-  const rowHeight = useRef(0);
-  const currentIdx = useRef(-1);
-  const active = useRef(false);
-  const currentY = useRef(0);
-  const flatListHeight = useRef(0);
   const flatList = useRef();
 
-  const indexB = useRef(-1);
-  const initialIndex = useRef(-1);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: (evt, gestureState) => true,
-      onStartShouldSetPanResponderCapture: (evt, gestureState) => true,
-      onMoveShouldSetPanResponder: (evt, gestureState) => true,
-      onMoveShouldSetPanResponderCapture: (evt, gestureState) => true,
-
-      onPanResponderGrant: (evt, gestureState) => {
-        currentIdx.current = yToIndex(gestureState.y0);
-        initialIndex.current = currentIdx.current;
-        currentY.current = gestureState.y0;
-
-        Animated.event([{ y: point.y }], { useNativeDriver: false })({
-          y: gestureState.y0 - rowHeight.current / 2,
-        });
-        active.current = true;
-        setDragging(true);
-        setDraggingIdx(currentIdx.current);
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        currentY.current = gestureState.moveY;
-
-        Animated.event([{ y: point.y }], { useNativeDriver: false })({
-          y: gestureState.moveY,
-        });
-      },
-      onPanResponderTerminationRequest: (evt, gestureState) => true,
-      onPanResponderRelease: () => {
-        reset();
-      },
-      //onPanResponderTerminate: () => reset(),
-      onShouldBlockNativeResponder: (evt, gestureState) => {
-        return true;
-      },
-    })
-  ).current;
-  const immutableMove = (arr, from, to) => {
-    return arr
-      .reduce((prev, current, idx, self) => {
-        if (from === to) {
-          prev.push({ ...current, order: idx });
-        }
-        if (idx === from) {
-          return prev;
-        }
-        if (from < to) {
-          prev.push({ ...current, order: idx });
-
-          indexB.current = to;
-        }
-        if (idx === to) {
-          prev.push({ ...self[from], order: to });
-        }
-        if (from > to) {
-          prev.push({ ...current, order: idx });
-
-          indexB.current = to;
-        }
-        return prev;
-      }, [])
-      .map((item, idx) => ({ ...item, order: idx }));
-  };
-
-  const animateList = () => {
-    if (!active.current) {
-      return;
-    }
-
-    requestAnimationFrame(() => {
-      if (currentY.current + 100 > flatListHeight.current) {
-        flatList.current.scrollToOffset({
-          offset: scrollOffset.current + 10,
-          animated: false,
-        });
-      } else if (currentY.current < 100) {
-        flatList.current.scrollToOffset({
-          offset: scrollOffset.current - 10,
-          animated: false,
-        });
+  const handleTri = async (from, to) => {
+    try {
+      const updatedMenuItems = [...menuItems];
+      const fromIndex = updatedMenuItems.findIndex(
+        (item) => item.order === from
+      );
+      const toIndex = updatedMenuItems.findIndex((item) => item.order === to);
+      if (fromIndex !== -1 && toIndex !== -1) {
+        updatedMenuItems[fromIndex].order = to;
+        updatedMenuItems[toIndex].order = from;
+        const temp = updatedMenuItems[fromIndex];
+        updatedMenuItems[fromIndex] = updatedMenuItems[toIndex];
+        updatedMenuItems[toIndex] = temp;
+        setMenuItems(updatedMenuItems);
       }
-      const newIdx = yToIndex(currentY.current);
-      if (currentIdx.current !== newIdx) {
-        setMenuItems((prevData) =>
-          immutableMove(prevData, currentIdx.current, newIdx)
-        );
-        setDraggingIdx(newIdx);
-        currentIdx.current = newIdx;
-      }
-
-      animateList();
-    });
-  };
-
-  const yToIndex = (y) => {
-    const value = Math.floor(
-      (scrollOffset.current + y - flatlistTopOffset.current) / rowHeight.current
-    );
-
-    if (value < 0) {
-      return 0;
+      menuTri(from, to).then((response) => {});
+    } catch (error) {
+      console.error("An error occurred:", error);
     }
-
-    return value;
-  };
-  const reset = async () => {
-    active.current = false;
-
-    setDragging(false);
-    setDraggingIdx(-1);
-
-    menuTri(initialIndex.current, indexB.current)
-      .then((response) => {})
-      .catch((err) => {
-        console.log(err.message);
-      });
   };
 
   const fetchData = async () => {
     setIsLoading(true);
+
     try {
       if (role === Roles.ADMIN) {
         const [categoriesResponse, menuItemResponse] = await Promise.all([
@@ -207,8 +83,15 @@ const ItemsScreen = () => {
         ]);
 
         if (menuItemResponse?.status) {
-          setMenuItems(menuItemResponse?.data);
           setMenuItemsList(menuItemResponse?.data);
+          if (menuItemFilter === "Toutes les catégories") {
+            setMenuItems(menuItemResponse?.data);
+          } else {
+            const list = menuItemResponse.data.filter(
+              (item) => item.category.name === menuItemFilter
+            );
+            setMenuItems(list);
+          }
         } else {
           setError(true);
         }
@@ -246,11 +129,6 @@ const ItemsScreen = () => {
     fetchData();
   }, [refresh]);
 
-  useEffect(() => {
-    if (dragging) {
-      animateList();
-    }
-  }, [dragging]);
   useFocusEffect(
     useCallback(() => {
       fetchData();
@@ -307,24 +185,7 @@ const ItemsScreen = () => {
           setRefresh={setRefresh}
         />
       )}
-      {isTriLoading && (
-        <View
-          style={{
-            flex: 1,
-            position: "absolute",
-            top: 0,
-            width: "100%",
-            height: "100%",
-            left: 0,
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 100000,
-            backgroundColor: "rgba(0,0,0,0.4)",
-          }}
-        >
-          <ActivityIndicator size={"large"} color="black" />
-        </View>
-      )}
+
       <View style={{ flex: 1, padding: 20 }}>
         <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
           Articles
@@ -387,38 +248,45 @@ const ItemsScreen = () => {
             </TouchableOpacity>
           )}
         </View>
-
-        <MenuItemsFilter
-          categories={categories}
-          setMenuItemFilter={setMenuItemFilter}
-          menuItemFilter={menuItemFilter}
-          menuItemsList={menuItemsList}
-          setMenuItems={setMenuItems}
-          role={role}
-        />
-        {dragging && (
-          <Animated.View
+        <TouchableOpacity
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: Colors.primary,
+            paddingVertical: 10,
+            borderRadius: 5,
+            marginTop: 10,
+            width: "15%",
+            justifyContent: "space-between",
+            paddingHorizontal: 10,
+          }}
+          onPress={() => setShowMenuFilter(!showMenuFilter)}
+        >
+          <Text
             style={{
-              backgroundColor: "black",
-              zIndex: 2,
-              position: "absolute",
-              width: "100%",
-              top: point.getLayout().top,
-              left: 24,
+              fontFamily: Fonts.LATO_BOLD,
+              fontSize: 18,
             }}
           >
-            <RenderMenuItem
-              item={menuItems[draggingIdx]}
-              rowHeight={rowHeight}
-              role={role} // Make sure 'role' is accessible in this scope
-              draggingIdx={draggingIdx} // Ensure 'draggingIdx' is accessible
-              handleShowMenuItemModel={handleShowMenuItemModel} // Provide necessary functions
-              handleShowDeleteWarning={handleShowDeleteWarning}
-              updateAvailability={updateAvailability}
-              panResponder={panResponder}
-            />
-          </Animated.View>
+            Filtre
+          </Text>
+          {showMenuFilter ? (
+            <Feather name="chevron-up" size={24} color="black" />
+          ) : (
+            <Feather name="chevron-down" size={24} color="black" />
+          )}
+        </TouchableOpacity>
+        {showMenuFilter && (
+          <MenuItemsFilter
+            categories={categories}
+            setMenuItemFilter={setMenuItemFilter}
+            menuItemFilter={menuItemFilter}
+            menuItemsList={menuItemsList}
+            setMenuItems={setMenuItems}
+            role={role}
+          />
         )}
+
         {menuItems.length > 0 ? (
           <FlatList
             data={menuItems}
@@ -427,25 +295,16 @@ const ItemsScreen = () => {
               <RenderMenuItem
                 item={item}
                 index={index}
-                rowHeight={rowHeight}
-                role={role} // Make sure 'role' is accessible in this scope
-                draggingIdx={draggingIdx} // Ensure 'draggingIdx' is accessible
-                handleShowMenuItemModel={handleShowMenuItemModel} // Provide necessary functions
+                role={role}
+                handleShowMenuItemModel={handleShowMenuItemModel}
                 handleShowDeleteWarning={handleShowDeleteWarning}
                 updateAvailability={updateAvailability}
-                panResponder={panResponder}
+                handleTri={handleTri}
               />
             )}
             ref={flatList}
-            style={{ marginTop: 24 }}
+            style={{ marginTop: 10 }}
             scrollEventThrottle={30}
-            onScroll={(e) => {
-              scrollOffset.current = e.nativeEvent.contentOffset.y;
-            }}
-            onLayout={(e) => {
-              flatlistTopOffset.current = e.nativeEvent.layout.y;
-              flatListHeight.current = e.nativeEvent.layout.height;
-            }}
           />
         ) : (
           <View

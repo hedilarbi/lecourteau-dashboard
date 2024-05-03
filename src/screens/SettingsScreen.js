@@ -52,7 +52,6 @@ const SettingsScreen = () => {
       const response = await updateSettings(settings);
 
       if (response.status) {
-        console.log(response.data);
         setSettings(response.data);
         setShowSuccessModel(true);
       } else {

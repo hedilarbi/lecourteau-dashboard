@@ -10,17 +10,18 @@ import React, { useEffect, useRef, useState } from "react";
 import { Dropdown } from "react-native-element-dropdown";
 import { Colors, Fonts } from "../../constants";
 import { AntDesign } from "@expo/vector-icons";
+import { getSizes } from "../../services/SizesServices";
 
 const AddMenuItemPrice = ({
   setModalVisible,
   modalVisible,
-  category,
   setPrices,
   prices,
+  sizes,
 }) => {
   const [size, setSize] = useState(null);
   const [price, setPrice] = useState("");
-  const [sizes, setSizes] = useState([]);
+
   const [error, setError] = useState("");
   const priceRef = useRef(null);
 
@@ -51,63 +52,6 @@ const AddMenuItemPrice = ({
     }
   };
 
-  const getDropdownOptions = () => {
-    switch (category.toLowerCase()) {
-      case "nos frites":
-      case "nos poutines":
-      case "nos poutines signatures":
-      case "nos pizza":
-        setSizes([
-          { label: "petite", value: "petite" },
-          { label: "moyenne", value: "moyenne" },
-          { label: "grande", value: "grande" },
-          { label: "familiale", value: "familiale" },
-        ]);
-        break;
-      case "les entrées":
-        setSizes([
-          { label: "1 morceau", value: "1 morceau" },
-          { label: "2 morceaux", value: "2 morceaux" },
-          { label: "3 morceaux", value: "3 morceaux" },
-          { label: "4 morceaux", value: "4 morceaux" },
-          { label: "5 morceaux", value: "5 morceaux" },
-          { label: "1 portion", value: "1 portion" },
-          { label: "2 portions", value: "2 portions" },
-          { label: "3 portions", value: "3 portions" },
-          { label: "4 portions", value: "4 portions" },
-          { label: "5 portions", value: "5 portions" },
-        ]);
-      case "nos assiettes":
-        setSizes([
-          { label: "1 morceau", value: "1 morceau" },
-          { label: "2 morceaux", value: "2 morceaux" },
-          { label: "3 morceaux", value: "3 morceaux" },
-          { label: "4 morceaux", value: "4 morceaux" },
-          { label: "5 morceaux", value: "5 morceaux" },
-          { label: "6 morceaux", value: "6 morceaux" },
-        ]);
-        break;
-      case "casse-croûte":
-      case "nos sandwichs":
-        setSizes([
-          { label: "seul", value: "seul" },
-          { label: "assiette", value: "assiette" },
-        ]);
-        break;
-      // Add other cases for different categories
-      default:
-        setSizes([
-          { label: "petite", value: "petite" },
-          { label: "moyenne", value: "moyenne" },
-          { label: "grande", value: "grande" },
-          { label: "familiale", value: "familiale" },
-        ]);
-        break;
-    }
-  };
-  useEffect(() => {
-    getDropdownOptions();
-  }, [category]);
   return (
     <Modal
       animationType="fade"

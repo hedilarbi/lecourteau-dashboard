@@ -8,17 +8,16 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { FontAwesome, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
+import { FontAwesome, MaterialIcons, Feather } from "@expo/vector-icons";
+import { TouchableWithoutFeedback } from "react-native-gesture-handler";
 const RenderMenuItem = ({
   item,
   index,
   role,
-  draggingIdx,
   handleShowMenuItemModel,
   handleShowDeleteWarning,
   updateAvailability,
-  panResponder,
-  rowHeight,
+  handleTri,
 }) => {
   const backgroundColor = useMemo(
     () =>
@@ -50,16 +49,7 @@ const RenderMenuItem = ({
 
   return useMemo(
     () => (
-      <View
-        style={[
-          styles.row,
-          backgroundColor,
-          { opacity: draggingIdx === index ? 0 : 1 },
-        ]}
-        onLayout={(e) => {
-          rowHeight.current = e.nativeEvent.layout.height;
-        }}
-      >
+      <View style={[styles.row, backgroundColor]}>
         <Image
           style={styles.image}
           source={{
@@ -67,14 +57,14 @@ const RenderMenuItem = ({
           }}
         />
         <Text style={[styles.rowCell, { width: "15%" }]}>{menuItemName}</Text>
-        <Text style={[styles.rowCell, { width: "15%" }]}>
+        <Text style={[styles.rowCell, { width: "10%" }]}>
           {prices.map((price, i) =>
             i !== prices.length - 1
               ? price.size[0].toUpperCase() + "/"
               : price.size[0].toUpperCase()
           )}
         </Text>
-        <Text style={[styles.rowCell, { flex: 1 }]}>{renderPrices}</Text>
+        <Text style={[styles.rowCell, { flex: 1 }]}>{renderPrices} $</Text>
         {role === Roles.ADMIN ? (
           <TouchableOpacity
             style={{
@@ -105,23 +95,33 @@ const RenderMenuItem = ({
             <MaterialIcons name="delete" size={24} color="#F31A1A" />
           </TouchableOpacity>
         )}
-        {/* {role === Roles.ADMIN && (
-          <View {...panResponder.panHandlers} style={{}}>
-            <View
+        {role === Roles.ADMIN && (
+          <View style={{ justifyContent: "space-between", height: 100 }}>
+            <TouchableWithoutFeedback
               style={{
-                flex: 1,
                 justifyContent: "center",
-                width: 50,
                 alignItems: "center",
+                padding: 4,
               }}
+              onPress={() => handleTri(item.order, item.order - 1)}
             >
-              <FontAwesome5 name="grip-lines" size={24} color="black" />
-            </View>
+              <Feather name="chevrons-up" size={28} color="black" />
+            </TouchableWithoutFeedback>
+            <TouchableWithoutFeedback
+              style={{
+                justifyContent: "center",
+                alignItems: "center",
+                padding: 4,
+              }}
+              onPress={() => handleTri(item.order, item.order + 1)}
+            >
+              <Feather name="chevrons-down" size={28} color="black" />
+            </TouchableWithoutFeedback>
           </View>
-        )} */}
+        )}
       </View>
     ),
-    [index, draggingIdx, item]
+    [index, item]
   );
 };
 
@@ -138,9 +138,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   image: {
-    width: 100,
+    width: 120,
     height: 100,
-    resizeMode: "contain",
+    resizeMode: "cover",
   },
   rowCell: {
     fontFamily: Fonts.LATO_REGULAR,

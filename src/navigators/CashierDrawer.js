@@ -1,7 +1,6 @@
 import { createDrawerNavigator } from "@react-navigation/drawer";
 import HomeScreen from "../screens/HomeScreen";
-
-import { Colors, Fonts, Roles } from "../constants";
+import { Colors, Fonts } from "../constants";
 import CustomDrawer from "../components/CustomDrawer";
 import {
   FontAwesome,
@@ -10,53 +9,11 @@ import {
   MaterialCommunityIcons,
   MaterialIcons,
 } from "@expo/vector-icons";
-
 import ToppingsScreen from "../screens/ToppingsScreen";
-
 import OrdersNav from "./OrdersNav";
 import ItemsNav from "./ItemsNav";
-
 import OffersNav from "./OffersNav";
-
-import { useEffect, useRef } from "react";
-
-import * as Notifications from "expo-notifications";
-import { useNavigation } from "@react-navigation/native";
 function CashierDrawer() {
-  const notificationListener = useRef();
-  const responseListener = useRef();
-  const navigation = useNavigation();
-  useEffect(() => {
-    notificationListener.current =
-      Notifications.addNotificationReceivedListener((notification) => {
-        const data = notification.request.content.data;
-
-        if (data && data.order_id) {
-          navigation.navigate("Cashier", {
-            screen: "OrderNav",
-          });
-        }
-      });
-
-    responseListener.current =
-      Notifications.addNotificationResponseReceivedListener((response) => {
-        const data = response.notification.request.content.data;
-
-        if (data && data.order_id) {
-          navigation.navigate("Cashier", {
-            screen: "OrderNav ",
-            params: { id: data.order_id },
-          });
-        }
-      });
-
-    return () => {
-      Notifications.removeNotificationSubscription(
-        notificationListener.current
-      );
-      Notifications.removeNotificationSubscription(responseListener.current);
-    };
-  }, []);
   const Drawer = createDrawerNavigator();
 
   return (

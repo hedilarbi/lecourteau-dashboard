@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import React from "react";
+import React, { useEffect } from "react";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { Colors, Fonts, Roles } from "../constants";
 

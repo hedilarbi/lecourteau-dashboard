@@ -1,57 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useNavigation } from "@react-navigation/native";
+import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Fontisto, FontAwesome } from "@expo/vector-icons";
-import * as Notifications from "expo-notifications";
-
 import DriverScreen from "../screens/DriverScreen";
-import DriverProfileScreen from "../screens/DriverProfileScreen";
 import DriverProfileNavigator from "./DriverProfileNavigator";
 
 const DriverNavigator = () => {
   const MainTab = createBottomTabNavigator();
-
-  const [notification, setNotification] = useState(false);
-  const notificationListener = useRef();
-  const responseListener = useRef();
-
-  const navigation = useNavigation();
-
-  useEffect(() => {
-    notificationListener.current =
-      Notifications.addNotificationReceivedListener((notification) => {
-        setNotification(notification);
-
-        const data = notification.request.content.data;
-
-        // if (data && data.order_id) {
-        //   navigation.navigate("ProfileNav", {
-        //     screen: "Details",
-        //     params: { id: data.order_id },
-        //   });
-        // }
-      });
-
-    responseListener.current =
-      Notifications.addNotificationResponseReceivedListener((response) => {
-        const data = response.notification.request.content.data;
-
-        if (data && data.order_id) {
-          // If notification contains an orderId, navigate to OrderDetailsScreen
-          navigation.navigate("ProfileNav", {
-            screen: "Details",
-            params: { id: data.order_id },
-          });
-        }
-      });
-
-    return () => {
-      Notifications.removeNotificationSubscription(
-        notificationListener.current
-      );
-      Notifications.removeNotificationSubscription(responseListener.current);
-    };
-  }, []);
 
   return (
     <>

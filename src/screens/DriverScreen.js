@@ -58,7 +58,6 @@ const DriverScreen = () => {
     try {
       const response = await getStaffOrder(_id);
       if (response.status) {
-        console.log("order coords", response.data.coords);
         setOrder(response.data);
       } else {
         setOrder(null);
@@ -229,21 +228,8 @@ const DriverScreen = () => {
           coordinate={userLocation}
           title="You are here"
           description="You are here"
-        >
-          <Image
-            source={require("../../assets/deliveryMan.png")}
-            style={{ width: 50, height: 50, resizeMode: "cover" }}
-          />
-        </Marker.Animated>
-        <Marker
-          coordinate={order.coords}
-          image={require("../../assets/greenMarker.png")}
-        >
-          <Image
-            source={require("../../assets/marker.png")}
-            style={{ width: 50, height: 50, resizeMode: "cover" }}
-          />
-        </Marker>
+        ></Marker.Animated>
+        <Marker coordinate={order.coords}></Marker>
         <MapViewDirections
           origin={userLocation}
           destination={order.coords}

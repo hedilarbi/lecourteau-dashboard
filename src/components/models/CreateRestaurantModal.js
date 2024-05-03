@@ -1,7 +1,5 @@
 import {
   ActivityIndicator,
-  Alert,
-  Image,
   StyleSheet,
   Text,
   TextInput,

@@ -1,6 +1,5 @@
 import {
   ActivityIndicator,
-  Alert,
   Image,
   StyleSheet,
   Text,
@@ -23,6 +22,7 @@ import SuccessModel from "./SuccessModel";
 import mime from "mime";
 import AddMenuItemPrice from "./AddMenuItemPrice";
 import FailModel from "./FailModel";
+import { getSizes } from "../../services/SizesServices";
 
 const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
   const [showAddCategoryModel, setShowAddCategoryModel] = useState(false);
@@ -38,15 +38,14 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
   const [categoryName, setCategoryName] = useState("");
   const [description, setDescription] = useState("");
   const [showAddPriceModal, setShowAddPriceModal] = useState(false);
+  const [sizes, setSizes] = useState([]);
   const [prices, setPrices] = useState([]);
   const [error, setError] = useState("");
 
   const fetchData = async () => {
     try {
-      const [categoriesResponse, toppingResponse] = await Promise.all([
-        getCategories(),
-        getToppings(),
-      ]);
+      const [categoriesResponse, toppingResponse, sizeResponse] =
+        await Promise.all([getCategories(), getToppings(), getSizes()]);
 
       if (categoriesResponse?.status) {
         setCategories(categoriesResponse?.data);
@@ -55,6 +54,15 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
         );
       } else {
         console.error("Categories data not found:", categoriesResponse.message);
+      }
+
+      if (sizeResponse?.status) {
+        setSizes(
+          sizeResponse?.data.map((size) => ({
+            label: size.name,
+            value: size.name,
+          }))
+        );
       }
 
       if (toppingResponse?.status) {
@@ -221,6 +229,7 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
         category={categoryName}
         setPrices={setPrices}
         prices={prices}
+        sizes={sizes}
       />
       <View style={styles.model}>
         <View
@@ -517,7 +526,7 @@ const styles = StyleSheet.create({
 
   dropdown: {
     height: 40,
-    width: 200,
+    width: 300,
     borderColor: Colors.primary,
     borderWidth: 2,
     paddingHorizontal: 8,

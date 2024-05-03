@@ -1,6 +1,5 @@
 import {
   ActivityIndicator,
-  Alert,
   RefreshControl,
   SafeAreaView,
   ScrollView,
