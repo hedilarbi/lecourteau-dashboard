@@ -244,9 +244,9 @@ const updateMenuItem = async (
   }
 };
 
-const menuTri = async (from, to) => {
+const menuTri = async (list) => {
   try {
-    let response = await axios.put(`${API_URL}/menuItems/tri`, { from, to });
+    let response = await axios.put(`${API_URL}/menuItems/tri`, { list });
 
     if (response?.status === 200) {
       return {
@@ -257,7 +257,7 @@ const menuTri = async (from, to) => {
     } else {
       return {
         status: false,
-        messge: "error",
+        messge: response.data.message,
       };
     }
   } catch (error) {

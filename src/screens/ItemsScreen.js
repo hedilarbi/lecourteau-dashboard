@@ -32,6 +32,7 @@ import {
 import ErrorScreen from "../components/ErrorScreen";
 import MenuItemsFilter from "../components/MenuItemsFilter";
 import RenderMenuItem from "../components/RenderMenuItem";
+import Spinner from "../components/Spinner";
 
 const ItemsScreen = () => {
   const { role, restaurant } = useSelector(selectStaffData);
@@ -43,6 +44,7 @@ const ItemsScreen = () => {
   const [refresh, setRefresh] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isTriLoading, setIsTriLoading] = useState(false);
+  const [triMode, setTriMode] = useState(false);
   const [menuItem, setMenuItem] = useState("");
   const [menuItemFilter, setMenuItemFilter] = useState("Toutes les catégories");
   const [menuItems, setMenuItems] = useState([]);
@@ -52,23 +54,37 @@ const ItemsScreen = () => {
   const flatList = useRef();
 
   const handleTri = async (from, to) => {
+    const menuItemsCopy = [...menuItems];
+    menuItemsCopy[from].order = to;
+    menuItemsCopy[to].order = from;
+    const temp = menuItemsCopy[from];
+    menuItemsCopy[from] = menuItemsCopy[to];
+    menuItemsCopy[to] = temp;
+    setMenuItems(menuItemsCopy);
+  };
+
+  const discardTri = () => {
+    setMenuItems(menuItemsList);
+    setTriMode(false);
+  };
+
+  const saveTri = async () => {
+    setIsTriLoading(true);
     try {
-      const updatedMenuItems = [...menuItems];
-      const fromIndex = updatedMenuItems.findIndex(
-        (item) => item.order === from
-      );
-      const toIndex = updatedMenuItems.findIndex((item) => item.order === to);
-      if (fromIndex !== -1 && toIndex !== -1) {
-        updatedMenuItems[fromIndex].order = to;
-        updatedMenuItems[toIndex].order = from;
-        const temp = updatedMenuItems[fromIndex];
-        updatedMenuItems[fromIndex] = updatedMenuItems[toIndex];
-        updatedMenuItems[toIndex] = temp;
-        setMenuItems(updatedMenuItems);
+      const list = menuItems.map((item) => {
+        return { id: item._id, order: item.order };
+      });
+      const response = await menuTri(list);
+      if (response.status) {
+        setMenuItemsList(menuItems);
+      } else {
+        console.error(response.message);
       }
-      menuTri(from, to).then((response) => {});
     } catch (error) {
       console.error("An error occurred:", error);
+    } finally {
+      setTriMode(false);
+      setIsTriLoading(false);
     }
   };
 
@@ -173,6 +189,7 @@ const ItemsScreen = () => {
           deleter={deleteMenuItem}
         />
       )}
+      {isTriLoading && <Spinner visibility={isTriLoading} />}
 
       {showCreateCategoryModel && (
         <CreateCategoryModel
@@ -248,34 +265,122 @@ const ItemsScreen = () => {
             </TouchableOpacity>
           )}
         </View>
-        <TouchableOpacity
+        <View
           style={{
             flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: Colors.primary,
-            paddingVertical: 10,
-            borderRadius: 5,
-            marginTop: 10,
-            width: "15%",
             justifyContent: "space-between",
-            paddingHorizontal: 10,
+            alignItems: "center",
+            marginTop: 12,
           }}
-          onPress={() => setShowMenuFilter(!showMenuFilter)}
         >
-          <Text
-            style={{
-              fontFamily: Fonts.LATO_BOLD,
-              fontSize: 18,
-            }}
-          >
-            Filtre
-          </Text>
-          {showMenuFilter ? (
-            <Feather name="chevron-up" size={24} color="black" />
-          ) : (
-            <Feather name="chevron-down" size={24} color="black" />
+          {role === Roles.ADMIN && (
+            <View>
+              {triMode ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 12,
+                  }}
+                >
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      backgroundColor: Colors.primary,
+                      paddingVertical: 10,
+                      borderRadius: 5,
+                      paddingHorizontal: 18,
+                      justifyContent: "space-between",
+                    }}
+                    onPress={saveTri}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 18,
+                      }}
+                    >
+                      Sauvegarder
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      backgroundColor: Colors.tgry,
+                      paddingVertical: 10,
+                      borderRadius: 5,
+                      paddingHorizontal: 18,
+                      justifyContent: "space-between",
+                    }}
+                    onPress={discardTri}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 18,
+                        color: "black",
+                      }}
+                    >
+                      Annuler
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: Colors.primary,
+                    paddingVertical: 10,
+                    borderRadius: 5,
+                    paddingHorizontal: 18,
+                    justifyContent: "space-between",
+                  }}
+                  onPress={() => setTriMode(true)}
+                >
+                  <Text
+                    style={{
+                      fontFamily: Fonts.LATO_BOLD,
+                      fontSize: 18,
+                    }}
+                  >
+                    Modifier l'ordre
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: Colors.primary,
+              paddingVertical: 10,
+              borderRadius: 5,
+
+              width: "15%",
+              justifyContent: "space-between",
+              paddingHorizontal: 10,
+            }}
+            onPress={() => setShowMenuFilter(!showMenuFilter)}
+          >
+            <Text
+              style={{
+                fontFamily: Fonts.LATO_BOLD,
+                fontSize: 18,
+              }}
+            >
+              Filtre
+            </Text>
+            {showMenuFilter ? (
+              <Feather name="chevron-up" size={24} color="black" />
+            ) : (
+              <Feather name="chevron-down" size={24} color="black" />
+            )}
+          </TouchableOpacity>
+        </View>
         {showMenuFilter && (
           <MenuItemsFilter
             categories={categories}
@@ -300,6 +405,7 @@ const ItemsScreen = () => {
                 handleShowDeleteWarning={handleShowDeleteWarning}
                 updateAvailability={updateAvailability}
                 handleTri={handleTri}
+                triMode={triMode}
               />
             )}
             ref={flatList}

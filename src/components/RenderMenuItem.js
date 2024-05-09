@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { FontAwesome, MaterialIcons, Feather } from "@expo/vector-icons";
+import { FontAwesome, MaterialIcons, Entypo } from "@expo/vector-icons";
 import { TouchableWithoutFeedback } from "react-native-gesture-handler";
 const RenderMenuItem = ({
   item,
@@ -18,6 +18,7 @@ const RenderMenuItem = ({
   handleShowDeleteWarning,
   updateAvailability,
   handleTri,
+  triMode,
 }) => {
   const backgroundColor = useMemo(
     () =>
@@ -95,7 +96,7 @@ const RenderMenuItem = ({
             <MaterialIcons name="delete" size={24} color="#F31A1A" />
           </TouchableOpacity>
         )}
-        {role === Roles.ADMIN && (
+        {triMode && (
           <View style={{ justifyContent: "space-between", height: 100 }}>
             <TouchableWithoutFeedback
               style={{
@@ -103,9 +104,9 @@ const RenderMenuItem = ({
                 alignItems: "center",
                 padding: 4,
               }}
-              onPress={() => handleTri(item.order, item.order - 1)}
+              onPress={() => handleTri(index, index - 1)}
             >
-              <Feather name="chevrons-up" size={28} color="black" />
+              <Entypo name="chevron-with-circle-up" size={28} color="black" />
             </TouchableWithoutFeedback>
             <TouchableWithoutFeedback
               style={{
@@ -113,15 +114,15 @@ const RenderMenuItem = ({
                 alignItems: "center",
                 padding: 4,
               }}
-              onPress={() => handleTri(item.order, item.order + 1)}
+              onPress={() => handleTri(index, index + 1)}
             >
-              <Feather name="chevrons-down" size={28} color="black" />
+              <Entypo name="chevron-with-circle-down" size={28} color="black" />
             </TouchableWithoutFeedback>
           </View>
         )}
       </View>
     ),
-    [index, item]
+    [index, triMode]
   );
 };
 

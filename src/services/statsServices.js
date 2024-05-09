@@ -27,7 +27,7 @@ const getInitialStats = async () => {
 const getRestaurantStats = async (id) => {
   try {
     let getInitialStatsResponse = await axios.get(
-      `${API_URL}/stats/initialRestaurant/${id}`
+      `${API_URL}/stats/initial/${id}`
     );
 
     if (getInitialStatsResponse?.status === 200) {

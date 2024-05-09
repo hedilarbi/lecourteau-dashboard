@@ -1,8 +1,11 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import React from "react";
 import { Colors, Fonts } from "../constants";
+import { TouchableWithoutFeedback } from "react-native-gesture-handler";
+import { useNavigation } from "@react-navigation/native";
 
 const OnGoingOrders = ({ orders }) => {
+  const navigation = useNavigation();
   return (
     <View style={{ flex: 1, width: "100%" }}>
       <Text
@@ -27,7 +30,7 @@ const OnGoingOrders = ({ orders }) => {
         {orders.length > 0 ? (
           orders.map((order, index) => {
             return (
-              <View
+              <TouchableWithoutFeedback
                 key={index}
                 style={{
                   backgroundColor:
@@ -38,6 +41,12 @@ const OnGoingOrders = ({ orders }) => {
                   gap: 10,
                   justifyContent: "space-between",
                 }}
+                onPress={() =>
+                  navigation.navigate("OrdersNav", {
+                    screen: "Order",
+                    params: { id: order._id },
+                  })
+                }
               >
                 <Text
                   style={{
@@ -64,7 +73,7 @@ const OnGoingOrders = ({ orders }) => {
                 <Text style={{ fontSize: 16, fontFamily: Fonts.LATO_REGULAR }}>
                   {order.total_price.toFixed(2)} $
                 </Text>
-              </View>
+              </TouchableWithoutFeedback>
             );
           })
         ) : (

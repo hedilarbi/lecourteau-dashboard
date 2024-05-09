@@ -214,11 +214,11 @@ const ToppingsScreen = () => {
                     source={{ uri: topping.image }}
                   />
 
-                  <Text style={[styles.rowCell, { width: "20%" }]}>
+                  <Text style={[styles.rowCell, { width: "15%" }]}>
                     {topping.name}
                   </Text>
 
-                  <Text style={[styles.rowCell, { width: "10%" }]}>
+                  <Text style={[styles.rowCell, { width: "15%" }]}>
                     {topping.category.name}
                   </Text>
                   <Text style={[styles.rowCell, { width: "10%" }]}>

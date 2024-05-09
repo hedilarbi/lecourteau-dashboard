@@ -93,7 +93,7 @@ const OrderDetailsModal = ({ setVisibility, visibility, order }) => {
                   color: Colors.tgry,
                 }}
               >
-                {user.name}
+                {user?.name}
               </Text>
             </View>
             <View
@@ -120,7 +120,7 @@ const OrderDetailsModal = ({ setVisibility, visibility, order }) => {
                   color: Colors.tgry,
                 }}
               >
-                {user.phone_number}
+                {user?.phone_number}
               </Text>
             </View>
             <View

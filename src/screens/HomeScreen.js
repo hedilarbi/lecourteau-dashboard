@@ -1,5 +1,5 @@
 import { View, Text, Alert, ActivityIndicator } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { getInitialStats, getRestaurantStats } from "../services/statsServices";
 import { Colors, Fonts, Roles } from "../constants";
 import HomeFilter from "../components/HomeFilter";
@@ -8,6 +8,7 @@ import OnGoingOrders from "../components/OnGoingOrders";
 import { selectStaffData } from "../redux/slices/StaffSlice";
 import { useSelector } from "react-redux";
 import StaffCard from "../components/StaffCard";
+import { useFocusEffect } from "@react-navigation/native";
 const HomeScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [refresh, setRefresh] = useState(0);
@@ -62,6 +63,12 @@ const HomeScreen = () => {
   useEffect(() => {
     loadHome();
   }, [refresh]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadHome();
+    }, [])
+  );
 
   if (isLoading) {
     return (

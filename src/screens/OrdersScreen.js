@@ -47,7 +47,7 @@ const OrdersScreen = () => {
   const [orderId, setOrderId] = useState("");
   const [deleteWarningModelState, setDeleteWarningModelState] = useState(false);
   const [refresh, setRefresh] = useState(0);
-  const [filter, setFilter] = useState("All");
+  const [filter, setFilter] = useState("Tout");
   const [ordersList, setOrdersList] = useState([]);
   const [error, setError] = useState(false);
   const [orders, setOrders] = useState([]);

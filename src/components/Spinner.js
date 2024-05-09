@@ -3,7 +3,7 @@ import React from "react";
 
 const Spinner = ({ visibility }) => {
   return (
-    <Modal animationType="slide" visible={visibility} transparent={true}>
+    <Modal animationType="fade" visible={visibility} transparent={true}>
       <View
         style={{
           justifyContent: "center",
