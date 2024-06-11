@@ -28,9 +28,10 @@ const loginStaff = async (username, password, expoToken) => {
       };
     }
   } catch (error) {
+    console.log(error);
     return {
       status: false,
-      message: error.response.data.message,
+      message: error.response,
     };
   }
 };
@@ -70,6 +71,9 @@ const getStaffByToken = async (token) => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+      },
+      {
+        timeout: 10000, // 10 seconds
       }
     );
     if (getStaffByTokenResponse.status === 200) {

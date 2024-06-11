@@ -387,6 +387,30 @@ const OrderScreen = () => {
                   <View
                     style={{
                       flexDirection: "row",
+                      marginTop: 10,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 20,
+                      }}
+                    >
+                      Remise:
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        marginLeft: 10,
+                      }}
+                    >
+                      {order.discount} %
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
                       alignItems: "center",
                       marginTop: 10,
                     }}
@@ -562,7 +586,6 @@ const OrderScreen = () => {
                   <View
                     style={{
                       flexDirection: "row",
-
                       marginTop: 10,
                     }}
                   >
@@ -809,10 +832,10 @@ const OrderScreen = () => {
                     ]}
                   >
                     <Text style={[styles.rowCell]} numberOfLines={1}>
-                      {item.offer.name}
+                      {item.offer?.name}
                     </Text>
                     <Text style={[styles.rowCell]} numberOfLines={1}>
-                      {item.offer.price} $
+                      {item.offer?.price} $
                     </Text>
                     <Text style={[styles.rowCell]}>
                       {item.customizations?.map((custo) => {

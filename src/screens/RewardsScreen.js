@@ -124,7 +124,7 @@ const RewardsScreen = () => {
                   style={[styles.rowCell, { width: "50%" }]}
                   numberOfLines={1}
                 >
-                  {reward.item.name}
+                  {reward?.item?.name}
                 </Text>
                 <Text style={[styles.rowCell]}>{reward.points}</Text>
 

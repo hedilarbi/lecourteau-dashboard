@@ -34,7 +34,7 @@ const CreateSizeModal = ({ setShowCreateSizeModel, setRefresh }) => {
       return;
     }
     setIsLoading(true);
-    console.log(name);
+
     createSize(name)
       .then((response) => {
         if (response.status) {

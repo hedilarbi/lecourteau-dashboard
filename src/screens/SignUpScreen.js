@@ -77,6 +77,7 @@ const SignUpScreen = () => {
     loginStaff(userName, password, expoToken)
       .then(async (response) => {
         if (response.status) {
+          console.log(response.data);
           dispatch(setStaffData(response.data));
           dispatch(setStaffToken(response.data.token));
           await SecureStore.setItemAsync("token", response.data.token);

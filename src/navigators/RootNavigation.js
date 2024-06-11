@@ -37,9 +37,11 @@ const RootNavigation = () => {
     let token;
     try {
       token = await getItemAsync("token");
+
       if (token) {
         try {
           const response = await getStaffByToken(token);
+
           if (response.status && response.data) {
             dispatch(setStaffData(response.data));
             dispatch(setStaffToken(token));

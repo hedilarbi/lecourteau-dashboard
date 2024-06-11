@@ -191,20 +191,33 @@ const ItemScreen = () => {
     setIsLoading(true);
     setError("");
     try {
-      const response = await fetch(`${API_URL}/menuItems/update/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        body: formdata,
-      });
-      if (!response.ok) {
-        throw new Error("HTTP error " + response.status);
-      }
-      const data = await response.json();
+      let retries = 0;
+      const maxRetries = 3;
+      let success = false;
 
-      setMenuItem(data);
-      setShowSuccessModel(true);
+      while (retries < maxRetries && !success) {
+        const response = await fetch(`${API_URL}/menuItems/update/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          body: formdata,
+        });
+
+        if (!response.ok) {
+          throw new Error("HTTP error " + response.status);
+        }
+
+        const data = await response.json();
+
+        setMenuItem(data);
+        setShowSuccessModel(true);
+        success = true;
+      }
+
+      if (!success) {
+        throw new Error("Network request failed after multiple retries");
+      }
     } catch (err) {
       setShowFailModal(true);
     } finally {

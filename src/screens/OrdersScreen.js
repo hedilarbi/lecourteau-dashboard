@@ -57,8 +57,16 @@ const OrdersScreen = () => {
       getOrders()
         .then((response) => {
           if (response?.status) {
-            setOrders(response?.data);
-            setOrdersList(response.data);
+            if (filter === "Tout") {
+              setOrders(response?.data);
+              setOrdersList(response.data);
+            } else {
+              setOrdersList(response.data);
+              const list = response.data.filter(
+                (order) => order.status === filter
+              );
+              setOrders(list);
+            }
           } else {
             setError(true);
           }

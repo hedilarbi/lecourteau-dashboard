@@ -68,6 +68,7 @@ const CreateToppingModel = ({
       return;
     }
     const formdata = new FormData();
+    console.log(image);
     if (image) {
       formdata.append("file", {
         uri: image,
