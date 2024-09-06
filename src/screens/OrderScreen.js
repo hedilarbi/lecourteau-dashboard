@@ -185,6 +185,209 @@ const OrderScreen = () => {
               style={{
                 fontFamily: Fonts.LATO_BOLD,
                 fontSize: 24,
+                marginTop: 20,
+              }}
+            >
+              Instructions
+            </Text>
+            <View
+              style={{
+                backgroundColor: "white",
+                borderRadius: 10,
+                padding: 15,
+                marginTop: 10,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: Fonts.LATO_REGULAR,
+                  fontSize: 20,
+                  marginLeft: 10,
+                  textAlign: "center",
+                }}
+              >
+                {order.instructions ? order.instructions : "Aucune"}
+              </Text>
+            </View>
+          </View>
+          <View>
+            <Text
+              style={{
+                fontFamily: Fonts.LATO_BOLD,
+                fontSize: 24,
+                marginTop: 20,
+              }}
+            >
+              Articles
+            </Text>
+
+            {order.orderItems?.length > 0 ? (
+              <ScrollView
+                style={{
+                  marginTop: 20,
+                  backgroundColor: "white",
+                }}
+              >
+                {order.orderItems?.map((item, index) => (
+                  <View
+                    key={item._id}
+                    style={[
+                      styles.row,
+                      index % 2
+                        ? { backgroundColor: "transparent" }
+                        : { backgroundColor: "rgba(247,166,0,0.3)" },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.rowCell, { width: "25%" }]}
+                      numberOfLines={1}
+                    >
+                      {item.item.name}
+                    </Text>
+                    <Text style={[styles.rowCell, { width: "15%" }]}>
+                      {item.size}
+                    </Text>
+                    <Text style={[styles.rowCell, { width: "15%" }]}>
+                      {item.price.toFixed(2)} $
+                    </Text>
+                    <Text style={[styles.rowCell, { flex: 1 }]}>
+                      {item.customizations?.map((custo) => {
+                        return custo.name;
+                      })}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <View
+                style={{
+                  backgroundColor: "white",
+                  borderRadius: 10,
+                  paddingVertical: 10,
+                  alignItems: "center",
+                  marginTop: 20,
+                }}
+              >
+                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                  Vide
+                </Text>
+              </View>
+            )}
+          </View>
+          <View>
+            <Text
+              style={{
+                fontFamily: Fonts.LATO_BOLD,
+                fontSize: 24,
+                marginTop: 20,
+              }}
+            >
+              Offres
+            </Text>
+
+            {order.offers?.length > 0 ? (
+              <ScrollView
+                style={{
+                  marginTop: 20,
+                  backgroundColor: "white",
+                }}
+              >
+                {order.offers?.map((item, index) => (
+                  <View
+                    key={item._id}
+                    style={[
+                      styles.row,
+                      index % 2
+                        ? { backgroundColor: "transparent" }
+                        : { backgroundColor: "rgba(247,166,0,0.3)" },
+                    ]}
+                  >
+                    <Text style={[styles.rowCell]} numberOfLines={1}>
+                      {item.offer?.name}
+                    </Text>
+                    <Text style={[styles.rowCell]} numberOfLines={1}>
+                      {item.offer?.price} $
+                    </Text>
+                    <Text style={[styles.rowCell]}>
+                      {item.customizations?.map((custo) => {
+                        return custo.name + " ";
+                      })}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <View
+                style={{
+                  backgroundColor: "white",
+                  borderRadius: 10,
+                  paddingVertical: 10,
+                  alignItems: "center",
+                  marginTop: 20,
+                }}
+              >
+                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                  Vide
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <View>
+            <Text
+              style={{
+                fontFamily: Fonts.LATO_BOLD,
+                fontSize: 24,
+                marginTop: 20,
+              }}
+            >
+              Récompense
+            </Text>
+
+            {order.rewards?.length > 0 ? (
+              <ScrollView
+                style={{
+                  marginTop: 20,
+                  backgroundColor: "white",
+                }}
+              >
+                {order.rewards?.map((item, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.row,
+                      index % 2
+                        ? { backgroundColor: "transparent" }
+                        : { backgroundColor: "rgba(247,166,0,0.3)" },
+                    ]}
+                  >
+                    <Text style={[styles.rowCell]} numberOfLines={1}>
+                      {item.item.name}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <View
+                style={{
+                  backgroundColor: "white",
+                  borderRadius: 10,
+                  paddingVertical: 10,
+                  alignItems: "center",
+                  marginTop: 20,
+                }}
+              >
+                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                  Vide
+                </Text>
+              </View>
+            )}
+          </View>
+          <View>
+            <Text
+              style={{
+                fontFamily: Fonts.LATO_BOLD,
+                fontSize: 24,
                 marginVertical: 10,
               }}
             >
@@ -430,7 +633,7 @@ const OrderScreen = () => {
                         marginLeft: 10,
                       }}
                     >
-                      {order.type}
+                      {order.type === "delivery" ? "Livraison" : "Emporter"}
                     </Text>
                   </View>
 
@@ -552,7 +755,61 @@ const OrderScreen = () => {
                         marginLeft: 10,
                       }}
                     >
-                      {order.sub_total} $
+                      {order.sub_total.toFixed(2)} $
+                    </Text>
+                  </View>
+                  {order.discount > 0 && (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        marginTop: 10,
+
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: Fonts.LATO_BOLD,
+                          fontSize: 20,
+                        }}
+                      >
+                        Sous-totale apres remise:
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: Fonts.LATO_REGULAR,
+                          fontSize: 20,
+                          marginLeft: 10,
+                        }}
+                      >
+                        {order.sub_total_after_discount?.toFixed(2)} $
+                      </Text>
+                    </View>
+                  )}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      marginTop: 10,
+
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 20,
+                      }}
+                    >
+                      Pourboire:
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        marginLeft: 10,
+                      }}
+                    >
+                      {order.tip?.toFixed(2)} $
                     </Text>
                   </View>
                   <View
@@ -581,33 +838,6 @@ const OrderScreen = () => {
                         order.offers?.length +
                         order.rewards?.length}{" "}
                       article(s)
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      marginTop: 10,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 20,
-                      }}
-                    >
-                      Adresse:
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        marginLeft: 10,
-                        width: "70%",
-                        flexWrap: "wrap",
-                      }}
-                      numberOfLines={2}
-                    >
-                      {order.address}
                     </Text>
                   </View>
                 </View>
@@ -704,213 +934,38 @@ const OrderScreen = () => {
                       {order.user?.email}
                     </Text>
                   </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      marginTop: 10,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 20,
+                      }}
+                    >
+                      Adresse:
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        marginLeft: 10,
+                        width: "70%",
+                        flexWrap: "wrap",
+                      }}
+                      numberOfLines={2}
+                    >
+                      {order.address}
+                    </Text>
+                  </View>
                 </View>
               </View>
             </View>
           </View>
-          <View>
-            <Text
-              style={{
-                fontFamily: Fonts.LATO_BOLD,
-                fontSize: 24,
-                marginTop: 20,
-              }}
-            >
-              Instructions
-            </Text>
-            <View
-              style={{
-                backgroundColor: "white",
-                borderRadius: 10,
-                padding: 15,
-                marginTop: 10,
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: Fonts.LATO_REGULAR,
-                  fontSize: 20,
-                  marginLeft: 10,
-                  textAlign: "center",
-                }}
-              >
-                {order.instructions ? order.instructions : "Aucune"}
-              </Text>
-            </View>
-          </View>
 
-          <View>
-            <Text
-              style={{
-                fontFamily: Fonts.LATO_BOLD,
-                fontSize: 24,
-                marginTop: 20,
-              }}
-            >
-              Articles
-            </Text>
-
-            {order.orderItems?.length > 0 ? (
-              <ScrollView
-                style={{
-                  marginTop: 20,
-                  backgroundColor: "white",
-                }}
-              >
-                {order.orderItems?.map((item, index) => (
-                  <View
-                    key={item._id}
-                    style={[
-                      styles.row,
-                      index % 2
-                        ? { backgroundColor: "transparent" }
-                        : { backgroundColor: "rgba(247,166,0,0.3)" },
-                    ]}
-                  >
-                    <Text
-                      style={[styles.rowCell, { width: "25%" }]}
-                      numberOfLines={1}
-                    >
-                      {item.item.name}
-                    </Text>
-                    <Text style={[styles.rowCell, { width: "15%" }]}>
-                      {item.size}
-                    </Text>
-                    <Text style={[styles.rowCell, { width: "15%" }]}>
-                      {item.price} $
-                    </Text>
-                    <Text style={[styles.rowCell, { flex: 1 }]}>
-                      {item.customizations?.map((custo) => {
-                        return custo.name;
-                      })}
-                    </Text>
-                  </View>
-                ))}
-              </ScrollView>
-            ) : (
-              <View
-                style={{
-                  backgroundColor: "white",
-                  borderRadius: 10,
-                  paddingVertical: 10,
-                  alignItems: "center",
-                  marginTop: 20,
-                }}
-              >
-                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                  Vide
-                </Text>
-              </View>
-            )}
-          </View>
-          <View>
-            <Text
-              style={{
-                fontFamily: Fonts.LATO_BOLD,
-                fontSize: 24,
-                marginTop: 20,
-              }}
-            >
-              Offres
-            </Text>
-
-            {order.offers?.length > 0 ? (
-              <ScrollView
-                style={{
-                  marginTop: 20,
-                  backgroundColor: "white",
-                }}
-              >
-                {order.offers?.map((item, index) => (
-                  <View
-                    key={item._id}
-                    style={[
-                      styles.row,
-                      index % 2
-                        ? { backgroundColor: "transparent" }
-                        : { backgroundColor: "rgba(247,166,0,0.3)" },
-                    ]}
-                  >
-                    <Text style={[styles.rowCell]} numberOfLines={1}>
-                      {item.offer?.name}
-                    </Text>
-                    <Text style={[styles.rowCell]} numberOfLines={1}>
-                      {item.offer?.price} $
-                    </Text>
-                    <Text style={[styles.rowCell]}>
-                      {item.customizations?.map((custo) => {
-                        return custo.name + " ";
-                      })}
-                    </Text>
-                  </View>
-                ))}
-              </ScrollView>
-            ) : (
-              <View
-                style={{
-                  backgroundColor: "white",
-                  borderRadius: 10,
-                  paddingVertical: 10,
-                  alignItems: "center",
-                  marginTop: 20,
-                }}
-              >
-                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                  Vide
-                </Text>
-              </View>
-            )}
-          </View>
-          <View>
-            <Text
-              style={{
-                fontFamily: Fonts.LATO_BOLD,
-                fontSize: 24,
-                marginTop: 20,
-              }}
-            >
-              Récompense
-            </Text>
-
-            {order.rewards?.length > 0 ? (
-              <ScrollView
-                style={{
-                  marginTop: 20,
-                  backgroundColor: "white",
-                }}
-              >
-                {order.rewards?.map((item, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.row,
-                      index % 2
-                        ? { backgroundColor: "transparent" }
-                        : { backgroundColor: "rgba(247,166,0,0.3)" },
-                    ]}
-                  >
-                    <Text style={[styles.rowCell]} numberOfLines={1}>
-                      {item.item.name}
-                    </Text>
-                  </View>
-                ))}
-              </ScrollView>
-            ) : (
-              <View
-                style={{
-                  backgroundColor: "white",
-                  borderRadius: 10,
-                  paddingVertical: 10,
-                  alignItems: "center",
-                  marginTop: 20,
-                }}
-              >
-                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                  Vide
-                </Text>
-              </View>
-            )}
-          </View>
           <View>
             <Text
               style={{

@@ -9,6 +9,7 @@ import { selectStaffData } from "../redux/slices/StaffSlice";
 import { useSelector } from "react-redux";
 import StaffCard from "../components/StaffCard";
 import { useFocusEffect } from "@react-navigation/native";
+import RefreshButton from "../components/buttons/RefreshButton";
 const HomeScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [refresh, setRefresh] = useState(0);
@@ -79,7 +80,6 @@ const HomeScreen = () => {
   }
   return (
     <View style={{ padding: 24, flex: 1 }}>
-      {/* <RefreshButton setRefresh={setRefresh} /> */}
       <View
         style={{
           flexDirection: "row",
@@ -90,7 +90,11 @@ const HomeScreen = () => {
         <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
           Accueil
         </Text>
-        <StaffCard name={staff.name} />
+        <View style={{ flexDirection: "row", gap: 24 }}>
+          <RefreshButton setRefresh={setRefresh} />
+
+          <StaffCard name={staff.name} />
+        </View>
       </View>
       {/* <HomeFilter /> */}
       <StatsContainer
@@ -100,7 +104,7 @@ const HomeScreen = () => {
         role={staff.role}
       />
       <View style={{ flex: 1, width: "100%", marginTop: 20 }}>
-        <OnGoingOrders orders={onGoingOrders} />
+        <OnGoingOrders orders={onGoingOrders} setRefresh={setRefresh} />
       </View>
     </View>
   );

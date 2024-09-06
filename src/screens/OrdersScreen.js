@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  Alert,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -15,7 +16,11 @@ import { Colors, Fonts, OrderStatus, Roles } from "../constants";
 import SearchBar from "../components/SearchBar";
 import DeleteWarning from "../components/models/DeleteWarning";
 
-import { deleteOrder, getOrders } from "../services/OrdersServices";
+import {
+  confirmOrder,
+  deleteOrder,
+  getOrders,
+} from "../services/OrdersServices";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { convertDate } from "../utils/dateHandlers";
 import { useSelector } from "react-redux";
@@ -119,6 +124,20 @@ const OrdersScreen = () => {
       fetchData();
     }, [])
   );
+
+  const confirm = async (id) => {
+    try {
+      const response = await confirmOrder(id);
+      if (response.status) {
+        setRefresh((prev) => prev + 1);
+      } else {
+        console.log(response.message);
+        Alert.alert("Une erreur s'est produite");
+      }
+    } catch (e) {
+      Alert.alert("Une erreur s'est produite");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -274,7 +293,7 @@ const OrdersScreen = () => {
                         {order.code}
                       </Text>
                       <Text style={[styles.rowCell, { width: "10%" }]}>
-                        {order.type}
+                        {order.type === "delivery" ? "Livraison" : "Emporter"}
                       </Text>
 
                       <Text style={[styles.rowCell, { width: "10%" }]}>
@@ -341,10 +360,26 @@ const OrdersScreen = () => {
                       <Text style={[styles.rowCell, { width: "10%" }]}>
                         {order.total_price.toFixed(2)} $
                       </Text>
-                      <Text style={[styles.rowCell, { flex: 1 }]}>
+                      {/* <Text style={[styles.rowCell, { flex: 1 }]}>
                         {convertDate(order.createdAt)}
-                      </Text>
-
+                      </Text> */}
+                      <View style={{ flex: 1 }}>
+                        {!order.confirmed && (
+                          <TouchableOpacity
+                            style={{
+                              backgroundColor: "black",
+                              width: "50%",
+                              paddingHorizontal: 24,
+                              paddingVertical: 8,
+                              borderWidth: 1,
+                              borderColor: "white",
+                            }}
+                            onPress={() => confirm(order._id)}
+                          >
+                            <Text style={{ color: "white" }}>Confirmer</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
                       <TouchableOpacity
                         style={{
                           justifyContent: "center",

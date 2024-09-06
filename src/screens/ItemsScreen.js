@@ -148,7 +148,7 @@ const ItemsScreen = () => {
   useFocusEffect(
     useCallback(() => {
       fetchData();
-    }, [])
+    }, [menuItemFilter])
   );
   const handleShowMenuItemModel = (id) => {
     navigation.navigate("Item", { id });

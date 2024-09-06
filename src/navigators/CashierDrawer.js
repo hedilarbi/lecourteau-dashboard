@@ -13,6 +13,7 @@ import ToppingsScreen from "../screens/ToppingsScreen";
 import OrdersNav from "./OrdersNav";
 import ItemsNav from "./ItemsNav";
 import OffersNav from "./OffersNav";
+import HomeNav from "./HomeNavigator";
 function CashierDrawer() {
   const Drawer = createDrawerNavigator();
 
@@ -20,11 +21,11 @@ function CashierDrawer() {
     <Drawer.Navigator
       screenOptions={{
         drawerType: "permanent",
-        drawerStyle: { backgroundColor: "black", padding: 0, margin: 0 },
-        drawerActiveTintColor: "black",
+        drawerStyle: { backgroundColor: "#2E2E2E", padding: 0, margin: 0 },
+        drawerActiveTintColor: "#2E2E2E",
         drawerActiveBackgroundColor: Colors.primary,
         drawerInactiveTintColor: Colors.primary,
-        drawerInactiveBackgroundColor: "black",
+        drawerInactiveBackgroundColor: "#2E2E2E",
         drawerLabelStyle: {
           marginLeft: -20,
           fontFamily: Fonts.BEBAS_NEUE,
@@ -38,10 +39,11 @@ function CashierDrawer() {
       drawerContent={(props) => <CustomDrawer {...props} />}
     >
       <Drawer.Screen
-        name="Accueil"
-        component={HomeScreen}
+        name="HomeNav"
+        component={HomeNav}
         options={{
           headerShown: false,
+          title: "Accueil",
           drawerIcon: ({ color }) => (
             <FontAwesome name="home" size={24} color={color} />
           ),

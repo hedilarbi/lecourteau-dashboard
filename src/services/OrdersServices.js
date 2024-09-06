@@ -152,6 +152,31 @@ const updatePrice = async (id, price) => {
   }
 };
 
+const confirmOrder = async (id) => {
+  try {
+    let confirmOrderResponse = await axios.put(
+      `${API_URL}/orders/confirm/${id}`
+    );
+
+    if (confirmOrderResponse?.status === 200) {
+      return {
+        status: true,
+        message: "order confirmed",
+      };
+    } else {
+      return {
+        status: false,
+        messge: "error",
+      };
+    }
+  } catch (error) {
+    return {
+      status: false,
+      message: error.message,
+    };
+  }
+};
+
 export {
   getOrders,
   getOrder,
@@ -159,4 +184,5 @@ export {
   updatePrice,
   updateStatus,
   orderDelivered,
+  confirmOrder,
 };

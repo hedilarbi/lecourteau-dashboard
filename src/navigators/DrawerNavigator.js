@@ -29,6 +29,7 @@ import { useSelector } from "react-redux";
 import { selectStaffData } from "../redux/slices/StaffSlice";
 import NotificationsScreen from "../screens/NotificationsScreen";
 import SettingsScreen from "../screens/SettingsScreen";
+import HomeNav from "./HomeNavigator";
 function DrawerNavigator() {
   const { role } = useSelector(selectStaffData);
 
@@ -46,11 +47,11 @@ function DrawerNavigator() {
     <Drawer.Navigator
       screenOptions={{
         drawerType: "permanent",
-        drawerStyle: { backgroundColor: "black", padding: 0, margin: 0 },
-        drawerActiveTintColor: "black",
+        drawerStyle: { backgroundColor: "#2E2E2E", padding: 0, margin: 0 },
+        drawerActiveTintColor: "#2E2E2E",
         drawerActiveBackgroundColor: Colors.primary,
         drawerInactiveTintColor: Colors.primary,
-        drawerInactiveBackgroundColor: "black",
+        drawerInactiveBackgroundColor: "#2E2E2E",
         drawerLabelStyle: {
           marginLeft: -20,
           fontFamily: Fonts.BEBAS_NEUE,
@@ -64,8 +65,8 @@ function DrawerNavigator() {
       drawerContent={(props) => <CustomDrawer {...props} />}
     >
       <Drawer.Screen
-        name="Accueil"
-        component={HomeScreen}
+        name="HomeNav"
+        component={HomeNav}
         options={{
           headerShown: false,
           title: "Accueil",

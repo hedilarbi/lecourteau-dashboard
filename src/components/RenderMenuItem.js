@@ -38,16 +38,6 @@ const RenderMenuItem = ({
     [role, item]
   );
 
-  const renderPrices = useMemo(
-    () =>
-      prices.map((price, i) =>
-        i !== prices.length - 1
-          ? price.price.toFixed(2) + "/"
-          : price.price.toFixed(2)
-      ),
-    [prices]
-  );
-
   return useMemo(
     () => (
       <View style={[styles.row, backgroundColor]}>
@@ -57,15 +47,17 @@ const RenderMenuItem = ({
             uri: role === Roles.ADMIN ? item.image : item.menuItem.image,
           }}
         />
-        <Text style={[styles.rowCell, { width: "15%" }]}>{menuItemName}</Text>
-        <Text style={[styles.rowCell, { width: "10%" }]}>
-          {prices.map((price, i) =>
-            i !== prices.length - 1
-              ? price.size[0].toUpperCase() + "/"
-              : price.size[0].toUpperCase()
-          )}
-        </Text>
-        <Text style={[styles.rowCell, { flex: 1 }]}>{renderPrices} $</Text>
+        <Text style={[styles.rowCell, { width: "25%" }]}>{menuItemName}</Text>
+        <View style={[styles.rowCell, { width: "10%" }]}>
+          {prices.map((price, i) => (
+            <Text key={i}>{price.size}</Text>
+          ))}
+        </View>
+        <View style={[styles.rowCell, { flex: 1 }]}>
+          {prices.map((price, i) => (
+            <Text key={i}>{price.price.toFixed(2) + "$"}</Text>
+          ))}
+        </View>
         {role === Roles.ADMIN ? (
           <TouchableOpacity
             style={{
@@ -146,5 +138,6 @@ const styles = StyleSheet.create({
   rowCell: {
     fontFamily: Fonts.LATO_REGULAR,
     fontSize: 20,
+    flexDirection: "column",
   },
 });

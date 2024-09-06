@@ -5,5 +5,5 @@ export default {
   PICKEDUP: "Ramassé",
   READY: "Prête",
   IN_DELIVERY: "En Livraison",
-  DONE: "Fini",
+  DONE: "Terminée",
 };

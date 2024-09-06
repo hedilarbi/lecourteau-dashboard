@@ -1,11 +1,33 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import React from "react";
 import { Colors, Fonts } from "../constants";
 import { TouchableWithoutFeedback } from "react-native-gesture-handler";
 import { useNavigation } from "@react-navigation/native";
+import { confirmOrder } from "../services/OrdersServices";
 
-const OnGoingOrders = ({ orders }) => {
+const OnGoingOrders = ({ orders, setRefresh }) => {
   const navigation = useNavigation();
+
+  const confirm = async (id) => {
+    try {
+      const response = await confirmOrder(id);
+      if (response.status) {
+        setRefresh((prev) => prev + 1);
+      } else {
+        console.log(response.message);
+        Alert.alert("Une erreur s'est produite");
+      }
+    } catch (e) {
+      Alert.alert("Une erreur s'est produite");
+    }
+  };
   return (
     <View style={{ flex: 1, width: "100%" }}>
       <Text
@@ -14,7 +36,7 @@ const OnGoingOrders = ({ orders }) => {
           fontSize: 22,
         }}
       >
-        Commade en cours
+        Commandes en cours
       </Text>
       <ScrollView
         style={{
@@ -30,50 +52,80 @@ const OnGoingOrders = ({ orders }) => {
         {orders.length > 0 ? (
           orders.map((order, index) => {
             return (
-              <TouchableWithoutFeedback
-                key={index}
+              <View
                 style={{
+                  flexDirection: "row",
+
+                  width: "100%",
                   backgroundColor:
                     index % 2 === 0 ? "rgba(247,166,0,0.3)" : "transparent",
-                  paddingVertical: 20,
-                  paddingHorizontal: 10,
-                  flexDirection: "row",
-                  gap: 10,
                   justifyContent: "space-between",
                 }}
-                onPress={() =>
-                  navigation.navigate("OrdersNav", {
-                    screen: "Order",
-                    params: { id: order._id },
-                  })
-                }
+                key={index}
               >
-                <Text
+                <TouchableWithoutFeedback
                   style={{
-                    fontSize: 16,
-                    fontFamily: Fonts.LATO_REGULAR,
-                    width: "40%",
+                    paddingVertical: 20,
+                    paddingHorizontal: 10,
+                    flexDirection: "row",
+                    gap: 10,
+                    justifyContent: "space-between",
+                    flex: 1,
                   }}
-                  numberOfLines={1}
+                  onPress={() =>
+                    navigation.navigate("HomeNav", {
+                      screen: "Order",
+                      params: { id: order._id },
+                    })
+                  }
                 >
-                  {order.address}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 16,
-                    fontFamily: Fonts.LATO_REGULAR,
-                    width: "15%",
-                  }}
-                >
-                  {order.code}
-                </Text>
-                <Text style={{ fontSize: 16, fontFamily: Fonts.LATO_REGULAR }}>
-                  {order.type}
-                </Text>
-                <Text style={{ fontSize: 16, fontFamily: Fonts.LATO_REGULAR }}>
-                  {order.total_price.toFixed(2)} $
-                </Text>
-              </TouchableWithoutFeedback>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontFamily: Fonts.LATO_REGULAR,
+                      width: "40%",
+                    }}
+                    numberOfLines={1}
+                  >
+                    {order.address}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontFamily: Fonts.LATO_REGULAR,
+                      width: "15%",
+                    }}
+                  >
+                    {order.code}
+                  </Text>
+                  <Text
+                    style={{ fontSize: 16, fontFamily: Fonts.LATO_REGULAR }}
+                  >
+                    {order.type === "delivery" ? "Livraison" : "Emporter"}
+                  </Text>
+                  <Text
+                    style={{ fontSize: 16, fontFamily: Fonts.LATO_REGULAR }}
+                  >
+                    {order.total_price.toFixed(2)} $
+                  </Text>
+                </TouchableWithoutFeedback>
+                {!order.confirmed && (
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: "black",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      paddingHorizontal: 24,
+                      paddingVertical: 8,
+                      borderWidth: 1,
+                      borderColor: "white",
+                    }}
+                    onPress={() => confirm(order._id)}
+                  >
+                    <Text style={{ color: "white" }}>Confirmer</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             );
           })
         ) : (

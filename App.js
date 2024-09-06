@@ -10,6 +10,7 @@ import { store } from "./src/redux/store";
 import * as Device from "expo-device";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { SafeAreaView } from "react-native-safe-area-context";
+import "expo-dev-client";
 
 SplashScreen.preventAutoHideAsync();
 Notifications.setNotificationHandler({

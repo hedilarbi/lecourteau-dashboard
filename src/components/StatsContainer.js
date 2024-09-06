@@ -14,7 +14,11 @@ const StatsContainer = ({ revenue, usersCount, ordersCount, role }) => {
         stat={ordersCount}
         icon="file-invoice-dollar"
       />
-      <StatsCard title="Revenue" stat={revenue + " $"} icon="money-bill-wave" />
+      <StatsCard
+        title="Revenues"
+        stat={revenue + " $"}
+        icon="money-bill-wave"
+      />
     </View>
   );
 };

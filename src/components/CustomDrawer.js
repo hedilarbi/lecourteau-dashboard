@@ -27,21 +27,33 @@ const CustomDrawer = (props) => {
           justifyContent: "center",
           paddingTop: 10,
           paddingBottom: 10,
+          backgroundColor: "black",
         }}
       >
         <FullLogo />
       </View>
+
       <DrawerContentScrollView {...props}>
-        <View style={{ padding: 0, margin: 0, flex: 1, borderRadius: 0 }}>
+        <View
+          style={{
+            padding: 0,
+            margin: 0,
+            flex: 1,
+            borderRadius: 0,
+            backgroundColor: "#2E2E2E",
+          }}
+        >
           <DrawerItemList {...props} />
         </View>
       </DrawerContentScrollView>
+
       <TouchableOpacity
         style={{
           flexDirection: "row",
-          paddingBottom: 40,
+          paddingVertical: 20,
           paddingLeft: 20,
           alignItems: "center",
+          backgroundColor: "black",
         }}
       >
         <Entypo name="log-out" size={24} color={Colors.primary} />

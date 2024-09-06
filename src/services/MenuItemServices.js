@@ -76,6 +76,30 @@ const getCategories = async () => {
   }
 };
 
+const getCategory = async (id) => {
+  try {
+    let getCategoriesResponse = await axios.get(`${API_URL}/categories/${id}`);
+
+    if (getCategoriesResponse?.status === 200) {
+      return {
+        status: true,
+        message: "users data",
+        data: getCategoriesResponse?.data,
+      };
+    } else {
+      return {
+        status: false,
+        messge: "error",
+      };
+    }
+  } catch (error) {
+    return {
+      status: false,
+      message: error.response.data.message,
+    };
+  }
+};
+
 const deleteCategory = async (id) => {
   try {
     let deleteCategoryResponse = await axios.delete(
@@ -279,4 +303,5 @@ export {
   updateMenuItem,
   deleteCategory,
   menuTri,
+  getCategory,
 };

@@ -28,7 +28,7 @@ const loginStaff = async (username, password, expoToken) => {
       };
     }
   } catch (error) {
-    console.log(error);
+    console.log(error.message);
     return {
       status: false,
       message: error.response,

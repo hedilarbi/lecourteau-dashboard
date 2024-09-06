@@ -24,7 +24,7 @@ import { API_URL } from "@env";
 import mime from "mime";
 import FailModel from "../components/models/FailModel";
 import AddMenuItemPrice from "../components/models/AddMenuItemPrice";
-import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
+
 import { getSizes } from "../services/SizesServices";
 const ItemScreen = () => {
   const route = useRoute();

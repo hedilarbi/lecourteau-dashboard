@@ -64,7 +64,7 @@ const SendNotifications = ({
         style={{ flexDirection: "row", alignItems: "center", marginTop: 50 }}
       >
         <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-          Messag
+          Message
         </Text>
         <TextInput
           placeholder="Message"
