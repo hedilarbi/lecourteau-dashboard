@@ -11,13 +11,17 @@ import { Colors, Fonts } from "../constants";
 import { TouchableWithoutFeedback } from "react-native-gesture-handler";
 import { useNavigation } from "@react-navigation/native";
 import { confirmOrder } from "../services/OrdersServices";
+import Spinner from "./Spinner";
 
 const OnGoingOrders = ({ orders, setRefresh }) => {
   const navigation = useNavigation();
+  const [confirming, setConfirming] = React.useState(false);
 
   const confirm = async (id) => {
+    setConfirming(true);
     try {
       const response = await confirmOrder(id);
+
       if (response.status) {
         setRefresh((prev) => prev + 1);
       } else {
@@ -26,10 +30,13 @@ const OnGoingOrders = ({ orders, setRefresh }) => {
       }
     } catch (e) {
       Alert.alert("Une erreur s'est produite");
+    } finally {
+      setConfirming(false);
     }
   };
   return (
     <View style={{ flex: 1, width: "100%" }}>
+      {confirming && <Spinner visibility={confirming} />}
       <Text
         style={{
           fontFamily: Fonts.BEBAS_NEUE,

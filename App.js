@@ -40,12 +40,20 @@ export default function App() {
     hideSplashScreen();
   }, [fontsLoaded]);
 
-  useEffect(() => {
+  const setScreenOrientation = async () => {
     if (Device.deviceType === 2) {
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+      await ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.LANDSCAPE
+      );
     } else {
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
+      await ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.PORTRAIT
+      );
     }
+  };
+
+  useEffect(() => {
+    setScreenOrientation();
   }, []);
 
   if (!fontsLoaded) {

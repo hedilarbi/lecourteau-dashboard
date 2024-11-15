@@ -50,6 +50,7 @@ const CreateRestaurantModal = ({
       setIsLoading(true);
       let location;
       const response = await Location.geocodeAsync(address);
+      console.log("response:", response);
       if (response.length > 0) {
         const { latitude, longitude } = response[0];
         location = {
@@ -57,6 +58,8 @@ const CreateRestaurantModal = ({
           longitude,
         };
       }
+      console.log("location", location);
+
       createRestaurant(name, address, location, phoneNumber).then(
         (response) => {
           if (response.status) {

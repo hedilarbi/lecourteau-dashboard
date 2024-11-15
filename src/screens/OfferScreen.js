@@ -175,6 +175,7 @@ const OfferScreen = () => {
       });
       formdata.append("fileToDelete", offer.image);
     }
+    formdata.append("expireAt", expireAt.toString());
 
     formdata.append("name", name);
     formdata.append("price", price);
@@ -554,7 +555,112 @@ const OfferScreen = () => {
             </View>
           )}
         </View>
+        <View style={{ marginTop: 20, paddingHorizontal: 20 }}>
+          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
+            Personalisations
+          </Text>
+          {updateMode ? (
+            <View
+              style={{
+                backgroundColor: "white",
 
+                padding: 16,
+                marginTop: 10,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 20,
+              }}
+            >
+              {customizations.map((custo, index) => (
+                <View
+                  key={custo._id}
+                  style={{
+                    backgroundColor: Colors.primary,
+                    flexWrap: "wrap",
+                    paddingVertical: 10,
+                    paddingHorizontal: 20,
+                    alignItems: "center",
+                    flexDirection: "row",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: Fonts.LATO_REGULAR,
+                      fontSize: 20,
+                      marginLeft: 10,
+                    }}
+                  >
+                    {custo.name}
+                  </Text>
+                  <TouchableOpacity
+                    style={{ marginLeft: 10 }}
+                    onPress={() => deleteFromCustomizations(index)}
+                  >
+                    <AntDesign name="close" size={24} color="black" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity
+                style={{
+                  backgroundColor: Colors.primary,
+                  borderRadius: 5,
+                  paddingHorizontal: 10,
+                  paddingVertical: 10,
+                  alignItems: "center",
+                  flexDirection: "row",
+                }}
+                onPress={() => setShowAddToppingModel(true)}
+              >
+                <Entypo name="plus" size={24} color="black" />
+                <Text
+                  style={{
+                    fontFamily: Fonts.LATO_BOLD,
+                    fontSize: 20,
+                    marginLeft: 10,
+                  }}
+                >
+                  Ajouter
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View
+              style={{
+                backgroundColor: "white",
+
+                padding: 16,
+                marginTop: 10,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 20,
+                flexWrap: "wrap",
+              }}
+            >
+              {offer.customizations?.map((custo) => (
+                <View
+                  key={custo._id}
+                  style={{
+                    backgroundColor: Colors.primary,
+
+                    paddingVertical: 10,
+                    paddingHorizontal: 20,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: Fonts.LATO_REGULAR,
+                      fontSize: 20,
+                      marginLeft: 10,
+                    }}
+                  >
+                    {custo.name}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
         {updateMode && (
           <View
             style={{

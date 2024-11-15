@@ -1,10 +1,11 @@
 import { View, Text, Alert, ActivityIndicator } from "react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { getInitialStats, getRestaurantStats } from "../services/statsServices";
 import { Colors, Fonts, Roles } from "../constants";
 import HomeFilter from "../components/HomeFilter";
 import StatsContainer from "../components/StatsContainer";
 import OnGoingOrders from "../components/OnGoingOrders";
+import * as Notifications from "expo-notifications";
 import { selectStaffData } from "../redux/slices/StaffSlice";
 import { useSelector } from "react-redux";
 import StaffCard from "../components/StaffCard";
@@ -18,6 +19,8 @@ const HomeScreen = () => {
   const [revenue, setRevenue] = useState(null);
   const [onGoingOrders, setOnGoingOrders] = useState([]);
   const staff = useSelector(selectStaffData);
+  const notificationListener = useRef();
+  const responseListener = useRef();
 
   const loadHome = async () => {
     setIsLoading(true);
@@ -60,6 +63,26 @@ const HomeScreen = () => {
         });
     }
   };
+
+  useEffect(() => {
+    notificationListener.current =
+      Notifications.addNotificationReceivedListener((notification) => {
+        loadHome();
+      });
+
+    responseListener.current =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        const data = response.notification.request.content.data;
+        loadHome();
+      });
+
+    return () => {
+      Notifications.removeNotificationSubscription(
+        notificationListener.current
+      );
+      Notifications.removeNotificationSubscription(responseListener.current);
+    };
+  }, []);
 
   useEffect(() => {
     loadHome();

@@ -100,6 +100,7 @@ const updateRestaurant = async (id, body) => {
 };
 
 const createRestaurant = async (name, address, location, phoneNumber) => {
+  console.log(name, address, location, phoneNumber);
   try {
     let createRestaurantResponse = await axios.post(
       `${API_URL}/restaurants/create`,

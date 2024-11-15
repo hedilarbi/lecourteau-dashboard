@@ -291,6 +291,29 @@ const menuTri = async (list) => {
     };
   }
 };
+const categoriesTri = async (list) => {
+  try {
+    let response = await axios.put(`${API_URL}/categories/tri`, { list });
+
+    if (response?.status === 200) {
+      return {
+        status: true,
+        message: "users data",
+        data: response?.data,
+      };
+    } else {
+      return {
+        status: false,
+        messge: response.data.message,
+      };
+    }
+  } catch (error) {
+    return {
+      status: false,
+      message: error.message,
+    };
+  }
+};
 
 export {
   getMenuItems,
@@ -304,4 +327,5 @@ export {
   deleteCategory,
   menuTri,
   getCategory,
+  categoriesTri,
 };

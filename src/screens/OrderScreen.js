@@ -31,6 +31,7 @@ const OrderScreen = () => {
   const { id } = route.params;
   const { order, isLoading, setIsLoading, setOrder, error, setRefresh } =
     useGetOrder(id);
+
   const [updateStatusMode, setUpdateStatusMode] = useState(false);
   const [updatePriceMode, setUpdatePriceMode] = useState(false);
   const [showSuccessModel, setShowSuccessModel] = useState(false);
@@ -240,19 +241,23 @@ const OrderScreen = () => {
                   >
                     <Text
                       style={[styles.rowCell, { width: "25%" }]}
-                      numberOfLines={1}
+                      numberOfLines={2}
                     >
                       {item.item.name}
+                    </Text>
+                    <Text
+                      style={[styles.rowCell, { width: "15%" }]}
+                      numberOfLines={3}
+                    >
+                      {item.comment || ""}
                     </Text>
                     <Text style={[styles.rowCell, { width: "15%" }]}>
                       {item.size}
                     </Text>
-                    <Text style={[styles.rowCell, { width: "15%" }]}>
-                      {item.price.toFixed(2)} $
-                    </Text>
+
                     <Text style={[styles.rowCell, { flex: 1 }]}>
                       {item.customizations?.map((custo) => {
-                        return custo.name;
+                        return custo.name + "/";
                       })}
                     </Text>
                   </View>
@@ -452,7 +457,7 @@ const OrderScreen = () => {
                           onPress={updateOrderStatus}
                         >
                           <Text style={{ fontFamily: Fonts.LATO_BOLD }}>
-                            Save
+                            Entregistrer
                           </Text>
                         </TouchableOpacity>
                       </>
@@ -531,7 +536,7 @@ const OrderScreen = () => {
                             onPress={updateDriver}
                           >
                             <Text style={{ fontFamily: Fonts.LATO_BOLD }}>
-                              Save
+                              Entregistrer
                             </Text>
                           </TouchableOpacity>
                         </>
@@ -585,6 +590,31 @@ const OrderScreen = () => {
                       }}
                     >
                       {order.code}
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      marginTop: 10,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 20,
+                      }}
+                    >
+                      Methode de paiement
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        marginLeft: 10,
+                      }}
+                    >
+                      {order.payment_method}
                     </Text>
                   </View>
                   <View
@@ -703,7 +733,7 @@ const OrderScreen = () => {
                           onPress={updateOrderPrice}
                         >
                           <Text style={{ fontFamily: Fonts.LATO_BOLD }}>
-                            Save
+                            Entregistrer
                           </Text>
                         </TouchableOpacity>
                       </>

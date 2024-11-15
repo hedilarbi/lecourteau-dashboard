@@ -5,20 +5,29 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import React, { useCallback, useEffect, useState } from "react";
-import { deleteCategory, getCategories } from "../services/MenuItemServices";
+import {
+  categoriesTri,
+  deleteCategory,
+  getCategories,
+} from "../services/MenuItemServices";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import DeleteWarning from "../components/models/DeleteWarning";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RefreshControl } from "react-native-gesture-handler";
-import { Colors, Fonts } from "../constants";
-import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import { Colors, Fonts, Roles } from "../constants";
+import { FontAwesome, MaterialIcons, Entypo } from "@expo/vector-icons";
 import UpdateCategoryModal from "../components/models/UpdateCategoryModal";
+import Spinner from "../components/Spinner";
+import { useSelector } from "react-redux";
+import { selectStaffData } from "../redux/slices/StaffSlice";
 
 const CategoriesScreen = () => {
   const navigation = useNavigation();
+  const { role } = useSelector(selectStaffData);
   const [deleteWarningModelState, setDeleteWarningModelState] = useState(false);
   const [showUpdateCategorygModal, setShowUpdateCategorygModal] =
     useState(false);
@@ -26,6 +35,43 @@ const CategoriesScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [category, setCategory] = useState("");
   const [categories, setCategories] = useState([]);
+  const [categoriesList, setCategoriesList] = useState([]);
+  const [isTriLoading, setIsTriLoading] = useState(false);
+  const [triMode, setTriMode] = useState(false);
+  const handleTri = async (from, to) => {
+    const categoriesCopy = [...categories];
+    categoriesCopy[from].order = to;
+    categoriesCopy[to].order = from;
+    const temp = categoriesCopy[from];
+    categoriesCopy[from] = categoriesCopy[to];
+    categoriesCopy[to] = temp;
+    setCategories(categoriesCopy);
+  };
+
+  const discardTri = () => {
+    setCategories(categoriesList);
+    setTriMode(false);
+  };
+
+  const saveTri = async () => {
+    setIsTriLoading(true);
+    try {
+      const list = categories.map((item) => {
+        return { id: item._id, order: item.order };
+      });
+      const response = await categoriesTri(list);
+      if (response.status) {
+        setCategoriesList(categories);
+      } else {
+        console.error(response.message);
+      }
+    } catch (error) {
+      console.error("An error occurred:", error);
+    } finally {
+      setTriMode(false);
+      setIsTriLoading(false);
+    }
+  };
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -33,6 +79,7 @@ const CategoriesScreen = () => {
       .then((response) => {
         if (response?.status) {
           setCategories(response?.data);
+          setCategoriesList(response?.data);
         } else {
         }
       })
@@ -76,6 +123,7 @@ const CategoriesScreen = () => {
           category={category}
         />
       )}
+      {isTriLoading && <Spinner visibility={isTriLoading} />}
 
       <View style={{ flex: 1, padding: 20 }}>
         <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
@@ -109,6 +157,89 @@ const CategoriesScreen = () => {
             Liste des tailles
           </Text>
         </TouchableOpacity>
+        {role === Roles.ADMIN && (
+          <View>
+            {triMode ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
+                  width: "25%",
+                  marginTop: 20,
+                }}
+              >
+                <TouchableOpacity
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: Colors.primary,
+                    paddingVertical: 10,
+                    borderRadius: 5,
+                    paddingHorizontal: 18,
+                    justifyContent: "space-between",
+                  }}
+                  onPress={saveTri}
+                >
+                  <Text
+                    style={{
+                      fontFamily: Fonts.LATO_BOLD,
+                      fontSize: 18,
+                    }}
+                  >
+                    Sauvegarder
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: Colors.tgry,
+                    paddingVertical: 10,
+                    borderRadius: 5,
+                    paddingHorizontal: 18,
+                    justifyContent: "space-between",
+                  }}
+                  onPress={discardTri}
+                >
+                  <Text
+                    style={{
+                      fontFamily: Fonts.LATO_BOLD,
+                      fontSize: 18,
+                      color: "black",
+                    }}
+                  >
+                    Annuler
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: Colors.primary,
+                  paddingVertical: 10,
+                  borderRadius: 5,
+                  paddingHorizontal: 18,
+                  justifyContent: "space-between",
+                  marginTop: 20,
+                  width: "25%",
+                }}
+                onPress={() => setTriMode(true)}
+              >
+                <Text
+                  style={{
+                    fontFamily: Fonts.LATO_BOLD,
+                    fontSize: 18,
+                  }}
+                >
+                  Modifier l'ordre
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
         {isLoading ? (
           <View
             style={{
@@ -159,6 +290,40 @@ const CategoriesScreen = () => {
                 >
                   <MaterialIcons name="delete" size={24} color="#F31A1A" />
                 </TouchableOpacity>
+                {triMode && (
+                  <View
+                    style={{ justifyContent: "space-between", height: 100 }}
+                  >
+                    <TouchableWithoutFeedback
+                      style={{
+                        justifyContent: "center",
+                        alignItems: "center",
+                        padding: 4,
+                      }}
+                      onPress={() => handleTri(index, index - 1)}
+                    >
+                      <Entypo
+                        name="chevron-with-circle-up"
+                        size={28}
+                        color="black"
+                      />
+                    </TouchableWithoutFeedback>
+                    <TouchableWithoutFeedback
+                      style={{
+                        justifyContent: "center",
+                        alignItems: "center",
+                        padding: 4,
+                      }}
+                      onPress={() => handleTri(index, index + 1)}
+                    >
+                      <Entypo
+                        name="chevron-with-circle-down"
+                        size={28}
+                        color="black"
+                      />
+                    </TouchableWithoutFeedback>
+                  </View>
+                )}
               </View>
             ))}
           </ScrollView>

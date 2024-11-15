@@ -28,7 +28,7 @@ const createSize = async (name) => {
   try {
     let response = await axios.post(`${API_URL}/sizes/`, { name });
 
-    if (response?.status === 200) {
+    if (response?.status === 201) {
       return {
         status: true,
         message: "users data",

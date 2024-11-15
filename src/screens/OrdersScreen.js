@@ -83,10 +83,9 @@ const OrdersScreen = () => {
       getRestaurantOrders(restaurant)
         .then((response) => {
           if (response?.status) {
-            const orders = response?.data.orders.reverse();
-            setOrders(orders);
+            setOrders(response?.data.orders);
 
-            setOrdersList(orders);
+            setOrdersList(response?.data.orders);
           } else {
             setError(true);
           }

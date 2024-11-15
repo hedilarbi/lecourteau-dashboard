@@ -74,7 +74,18 @@ const CreateSizeModal = ({ setShowCreateSizeModel, setRefresh }) => {
   }, [showFailModal]);
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={{
+        flex: 1,
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        backgroundColor: "rgba(50,44,44,0.4)",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 100,
+      }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.container}>

@@ -373,7 +373,69 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
               </TouchableOpacity>
             </View>
           </View>
+          <View style={styles.customizations}>
+            <Text style={styles.text}>Personalisations</Text>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 20,
+                marginTop: 20,
+              }}
+            >
+              {customizationsNames.map((item, index) => (
+                <View
+                  style={{
+                    borderWidth: 1,
+                    borderRadius: 5,
+                    backgroundColor: "white",
+                    paddingHorizontal: 10,
+                    paddingVertical: 10,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 5,
+                    marginTop: 10,
+                  }}
+                  key={index}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={styles.text}>{item.name}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={{ alignSelf: "flex-end", marginLeft: 10 }}
+                    onPress={() => deleteCustomization(index)}
+                  >
+                    <AntDesign name="close" size={24} color="gray" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity
+                style={{
+                  backgroundColor: Colors.primary,
+                  paddingHorizontal: 40,
+                  paddingVertical: 10,
+                  flexDirection: "row",
+                  gap: 10,
+                  alignItems: "center",
+                  marginTop: 10,
+                  borderRadius: 5,
+                }}
+                onPress={() => setShowAddCategoryModel(true)}
+              >
+                <Entypo name="plus" size={24} color="black" />
+                <Text style={styles.text}>Ajouter</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
+
         <TouchableOpacity
           style={{
             marginTop: 40,
