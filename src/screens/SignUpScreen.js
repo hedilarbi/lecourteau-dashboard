@@ -1,6 +1,7 @@
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Platform,
   StyleSheet,
   Text,
   TextInput,

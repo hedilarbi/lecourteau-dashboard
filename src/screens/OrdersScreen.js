@@ -353,7 +353,7 @@ const OrdersScreen = () => {
                         {order.code}
                       </Text>
                       <Text style={[styles.rowCell, { width: "10%" }]}>
-                        {order.type}
+                        {order.type === "delivery" ? "Livraison" : "Emporter"}
                       </Text>
 
                       <Text style={[styles.rowCell, { width: "10%" }]}>

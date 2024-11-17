@@ -176,6 +176,31 @@ const confirmOrder = async (id) => {
     };
   }
 };
+const updatePaymentStatus = async (id, payment_status) => {
+  try {
+    let response = await axios.put(
+      `${API_URL}/orders/update/payment_status/${id}`,
+      { payment_status }
+    );
+
+    if (response?.status === 200) {
+      return {
+        status: true,
+        message: "order confirmed",
+      };
+    } else {
+      return {
+        status: false,
+        messge: "error",
+      };
+    }
+  } catch (error) {
+    return {
+      status: false,
+      message: error.message,
+    };
+  }
+};
 
 export {
   getOrders,
@@ -185,4 +210,5 @@ export {
   updateStatus,
   orderDelivered,
   confirmOrder,
+  updatePaymentStatus,
 };

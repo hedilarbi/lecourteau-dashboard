@@ -64,8 +64,8 @@ const ToppingsScreen = () => {
         const response = await getRestaurantToppings(restaurant);
 
         if (response.status) {
-          setToppings(response.data.toppings);
-          setToppingsList(response.data.toppings);
+          setToppings(response.data);
+          setToppingsList(response.data);
           setError(false);
         } else {
           setError(true);

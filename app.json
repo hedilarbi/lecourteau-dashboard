@@ -11,11 +11,15 @@
       "resizeMode": "contain",
       "backgroundColor": "#F7A600"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSAppTransportSecurity": { "NSAllowsArbitraryLoads": true }
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
       }
     },
     "android": {
@@ -29,7 +33,6 @@
           "apiKey": "AIzaSyC2t8GvZFa6Ld6fbKM6_m2n3M0JoOmI03w"
         }
       },
-
       "googleServicesFile": "./google-services.json",
       "package": "com.hedilarbi95.lecourteaudashboard",
       "usesCleartextTraffic": true
@@ -49,7 +52,9 @@
         {
           "icon": "./assets/notification_icon.png",
           "color": "#000000",
-          "sounds": ["./assets/sounds/notificationsound.wav"]
+          "sounds": [
+            "./assets/sounds/notificationsound.wav"
+          ]
         }
       ],
       [
@@ -72,7 +77,9 @@
           },
           "ios": {}
         }
-      ]
+      ],
+      "expo-font",
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {

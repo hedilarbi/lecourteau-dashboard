@@ -17,7 +17,11 @@ import useGetOrder from "../hooks/useGetOrder";
 import { convertDate } from "../utils/dateHandlers";
 import { useRoute } from "@react-navigation/native";
 import { Foundation } from "@expo/vector-icons";
-import { updatePrice, updateStatus } from "../services/OrdersServices";
+import {
+  updatePaymentStatus,
+  updatePrice,
+  updateStatus,
+} from "../services/OrdersServices";
 import SuccessModel from "../components/models/SuccessModel";
 import FailModel from "../components/models/FailModel";
 import ErrorScreen from "../components/ErrorScreen";
@@ -41,6 +45,7 @@ const OrderScreen = () => {
   const [driversList, setDriversList] = useState([]);
   const [driver, setDriver] = useState({});
   const [updateDriverMode, setUpdateDriverMode] = useState(false);
+  const [payment_status, setPaymentStatus] = useState(null);
 
   const statusOptions = [
     { label: OrderStatus.READY, value: OrderStatus.READY },
@@ -116,33 +121,55 @@ const OrderScreen = () => {
   }, [showSuccessModel]);
 
   const handleUpdateDriverMode = async () => {
-    setIsLoading(true);
-    try {
-      const list = await getAvailableDrivers();
+    // setIsLoading(true);
+    // try {
+    //   const list = await getAvailableDrivers();
 
-      const drivers = list.data.map((driver) => {
-        return { label: driver.name, value: driver._id };
-      });
-      setDriversList(drivers);
-      setIsLoading(false);
-      setUpdateDriverMode(true);
-    } catch (err) {
-      setIsLoading(false);
-    }
+    //   const drivers = list.data.map((driver) => {
+    //     return { label: driver.name, value: driver._id };
+    //   });
+    //   setDriversList(drivers);
+    //   setIsLoading(false);
+    //   setUpdateDriverMode(true);
+    // } catch (err) {
+    //   setIsLoading(false);
+    // }
+    setUpdateDriverMode(true);
   };
 
-  const updateDriver = async () => {
+  // const updateDriver = async () => {
+  //   setIsLoading(true);
+  //   if (!driver.id) {
+  //     setIsLoading(false);
+  //     return;
+  //   }
+  //   try {
+  //     const response = await affectOrderToStaff(order._id, driver.id);
+  //     if (response.status) {
+  //       setShowSuccessModel(true);
+  //       setUpdateDriverMode(false);
+  //       setOrder({ ...order, delivery_by: driver });
+  //       setIsLoading(false);
+  //     } else {
+  //       setIsLoading(false);
+  //     }
+  //   } catch (err) {
+  //     setIsLoading(false);
+  //   }
+  // };
+
+  const handlePaymentStatus = async () => {
     setIsLoading(true);
-    if (!driver.id) {
+    if (payment_status === null) {
       setIsLoading(false);
       return;
     }
     try {
-      const response = await affectOrderToStaff(order._id, driver.id);
+      const response = await updatePaymentStatus(order._id, payment_status);
       if (response.status) {
         setShowSuccessModel(true);
         setUpdateDriverMode(false);
-        setOrder({ ...order, delivery_by: driver });
+        setOrder({ ...order, payment_status: payment_status });
         setIsLoading(false);
       } else {
         setIsLoading(false);
@@ -487,86 +514,118 @@ const OrderScreen = () => {
                       </>
                     )}
                   </View>
-                  {order.type === "delivery" && (
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text
+                  {order.payment_status !== undefined &&
+                    order.payment_method !== "card" && (
+                      <View
                         style={{
-                          fontFamily: Fonts.LATO_BOLD,
-                          fontSize: 20,
+                          flexDirection: "row",
+                          alignItems: "center",
                         }}
                       >
-                        Livreur:
-                      </Text>
-                      {updateDriverMode ? (
-                        <>
-                          <Dropdown
-                            style={[styles.dropdown]}
-                            placeholderStyle={styles.placeholderStyle}
-                            selectedTextStyle={styles.selectedTextStyle}
-                            selectedStyle={styles.selectedStyle}
-                            itemContainerStyle={styles.itemContainerStyle}
-                            itemTextStyle={styles.itemTextStyle}
-                            containerStyle={styles.containerStyle}
-                            data={driversList}
-                            maxHeight={300}
-                            labelField="label"
-                            valueField="label"
-                            placeholder={
-                              order.delivery_by?.name || "Non assigné"
-                            }
-                            value={order.delivery_by?.name || "Non assigné"}
-                            onChange={(item) =>
-                              setDriver({ id: item.value, name: item.label })
-                            }
-                          />
-                          <TouchableOpacity
-                            style={{
-                              marginRight: 15,
-                              backgroundColor: Colors.primary,
-                              borderRadius: 5,
-                              alignItems: "center",
-                              paddingHorizontal: 15,
-                              paddingVertical: 5,
-                            }}
-                            onPress={updateDriver}
-                          >
-                            <Text style={{ fontFamily: Fonts.LATO_BOLD }}>
-                              Entregistrer
-                            </Text>
-                          </TouchableOpacity>
-                        </>
-                      ) : (
-                        <>
-                          <Text
-                            style={{
-                              fontFamily: Fonts.LATO_REGULAR,
-                              fontSize: 20,
-                              marginLeft: 10,
-                              flex: 1,
-                              color: "black",
-                            }}
-                          >
-                            {order.delivery_by?.name || "Non assigné"}
-                          </Text>
-                          <TouchableOpacity
-                            style={{ marginRight: 15 }}
-                            onPress={handleUpdateDriverMode}
-                          >
-                            <Foundation
-                              name="pencil"
-                              size={28}
-                              color={Colors.primary}
+                        <Text
+                          style={{
+                            fontFamily: Fonts.LATO_BOLD,
+                            fontSize: 20,
+                          }}
+                        >
+                          Etat du paiement:
+                        </Text>
+                        {updateDriverMode ? (
+                          <>
+                            <Dropdown
+                              style={[styles.dropdown]}
+                              placeholderStyle={styles.placeholderStyle}
+                              selectedTextStyle={styles.selectedTextStyle}
+                              selectedStyle={styles.selectedStyle}
+                              itemContainerStyle={styles.itemContainerStyle}
+                              itemTextStyle={styles.itemTextStyle}
+                              containerStyle={styles.containerStyle}
+                              data={[
+                                { label: "Payé", value: true },
+                                { label: "Non payé", value: false },
+                              ]}
+                              maxHeight={300}
+                              labelField="label"
+                              valueField="label"
+                              value={
+                                order.payment_status === true
+                                  ? "Payé"
+                                  : "Non payé"
+                              }
+                              onChange={(item) => setPaymentStatus(item.value)}
                             />
-                          </TouchableOpacity>
-                        </>
-                      )}
-                    </View>
-                  )}
+                            <TouchableOpacity
+                              style={{
+                                marginRight: 15,
+                                backgroundColor: Colors.primary,
+                                borderRadius: 5,
+                                alignItems: "center",
+                                paddingHorizontal: 15,
+                                paddingVertical: 5,
+                              }}
+                              onPress={handlePaymentStatus}
+                            >
+                              <Text style={{ fontFamily: Fonts.LATO_BOLD }}>
+                                Entregistrer
+                              </Text>
+                            </TouchableOpacity>
+                          </>
+                        ) : (
+                          <>
+                            <Text
+                              style={{
+                                fontFamily: Fonts.LATO_REGULAR,
+                                fontSize: 20,
+                                marginLeft: 10,
+                                flex: 1,
+                                color: "black",
+                              }}
+                            >
+                              {order.payment_status === true
+                                ? "Payé"
+                                : "Non payé"}
+                            </Text>
+                            <TouchableOpacity
+                              style={{ marginRight: 15 }}
+                              onPress={handleUpdateDriverMode}
+                            >
+                              <Foundation
+                                name="pencil"
+                                size={28}
+                                color={Colors.primary}
+                              />
+                            </TouchableOpacity>
+                          </>
+                        )}
+                      </View>
+                    )}
+                  {order.payment_status !== undefined &&
+                    order.payment_method === "card" && (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          marginTop: 10,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontFamily: Fonts.LATO_BOLD,
+                            fontSize: 20,
+                          }}
+                        >
+                          Etat du paiement:
+                        </Text>
+                        <Text
+                          style={{
+                            fontFamily: Fonts.LATO_REGULAR,
+                            fontSize: 20,
+                            marginLeft: 10,
+                          }}
+                        >
+                          {order.payment_status === true ? "Payé" : "Non payé"}{" "}
+                        </Text>
+                      </View>
+                    )}
                   <View
                     style={{
                       flexDirection: "row",
@@ -580,7 +639,7 @@ const OrderScreen = () => {
                         fontSize: 20,
                       }}
                     >
-                      Code
+                      Code:
                     </Text>
                     <Text
                       style={{
@@ -614,33 +673,10 @@ const OrderScreen = () => {
                         marginLeft: 10,
                       }}
                     >
-                      {order.payment_method}
+                      {order.payment_method === "cash" ? "Espèce" : "Carte"}
                     </Text>
                   </View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      marginTop: 10,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 20,
-                      }}
-                    >
-                      Remise:
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        marginLeft: 10,
-                      }}
-                    >
-                      {order.discount} %
-                    </Text>
-                  </View>
+
                   <View
                     style={{
                       flexDirection: "row",
