@@ -7,12 +7,22 @@ const useGetOrder = (id) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
   const [refresh, setRefresh] = useState(0);
+  const [tvq, setTvq] = useState(0);
+  const [tps, setTps] = useState(0);
   const fetchData = async () => {
     setError(false);
     try {
       const response = await getOrder(id);
       if (response.status) {
-        setOrder(response.data);
+        const data = response.data;
+        setOrder(data);
+        if (data.discount > 0) {
+          setTvq(data.sub_total_after_discount * 0.09975);
+          setTps(data.sub_total_after_discount * 0.05);
+        } else {
+          setTvq(data.sub_total * 0.09975);
+          setTps(data.sub_total * 0.05);
+        }
       } else {
         setError(true);
       }
@@ -27,7 +37,16 @@ const useGetOrder = (id) => {
     fetchData();
   }, [refresh]);
 
-  return { order, isLoading, setIsLoading, setOrder, setRefresh, error };
+  return {
+    order,
+    isLoading,
+    setIsLoading,
+    setOrder,
+    setRefresh,
+    error,
+    tps,
+    tvq,
+  };
 };
 
 export default useGetOrder;

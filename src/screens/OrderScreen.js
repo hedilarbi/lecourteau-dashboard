@@ -25,16 +25,20 @@ import {
 import SuccessModel from "../components/models/SuccessModel";
 import FailModel from "../components/models/FailModel";
 import ErrorScreen from "../components/ErrorScreen";
-import {
-  affectOrderToStaff,
-  getAvailableDrivers,
-} from "../services/StaffServices";
 
 const OrderScreen = () => {
   const route = useRoute();
   const { id } = route.params;
-  const { order, isLoading, setIsLoading, setOrder, error, setRefresh } =
-    useGetOrder(id);
+  const {
+    order,
+    isLoading,
+    setIsLoading,
+    setOrder,
+    error,
+    setRefresh,
+    tvq,
+    tps,
+  } = useGetOrder(id);
 
   const [updateStatusMode, setUpdateStatusMode] = useState(false);
   const [updatePriceMode, setUpdatePriceMode] = useState(false);
@@ -42,6 +46,7 @@ const OrderScreen = () => {
   const [showFailModal, setShowFailModal] = useState(false);
   const [status, setStatus] = useState("");
   const [price, setPrice] = useState("");
+
   const [driversList, setDriversList] = useState([]);
   const [driver, setDriver] = useState({});
   const [updateDriverMode, setUpdateDriverMode] = useState(false);
@@ -267,7 +272,7 @@ const OrderScreen = () => {
                     ]}
                   >
                     <Text
-                      style={[styles.rowCell, { width: "25%" }]}
+                      style={[styles.rowCell, { width: "20%" }]}
                       numberOfLines={2}
                     >
                       {item.item.name}
@@ -278,7 +283,7 @@ const OrderScreen = () => {
                     >
                       {item.comment || ""}
                     </Text>
-                    <Text style={[styles.rowCell, { width: "15%" }]}>
+                    <Text style={[styles.rowCell, { width: "10%" }]}>
                       {item.size}
                     </Text>
 
@@ -286,6 +291,9 @@ const OrderScreen = () => {
                       {item.customizations?.map((custo) => {
                         return custo.name + "/";
                       })}
+                    </Text>
+                    <Text style={[styles.rowCell, { width: "15%" }]}>
+                      {item.price.toFixed(2)} $
                     </Text>
                   </View>
                 ))}
@@ -328,7 +336,15 @@ const OrderScreen = () => {
                   <View
                     key={item._id}
                     style={[
-                      styles.row,
+                      {
+                        width: "100%",
+                        flexDirection: "row",
+                        gap: 50,
+                        alignItems: "center",
+
+                        paddingVertical: 12,
+                        paddingHorizontal: 10,
+                      },
                       index % 2
                         ? { backgroundColor: "transparent" }
                         : { backgroundColor: "rgba(247,166,0,0.3)" },
@@ -337,13 +353,37 @@ const OrderScreen = () => {
                     <Text style={[styles.rowCell]} numberOfLines={1}>
                       {item.offer?.name}
                     </Text>
+                    <View>
+                      {item.items?.map((offerItem, index) => (
+                        <View style={{ flexDirection: "row" }} key={index}>
+                          <Text
+                            style={[styles.rowCell]}
+                            numberOfLines={2}
+                            key={index}
+                          >
+                            {offerItem.item.name}
+                          </Text>
+
+                          <Text style={{ marginLeft: 10 }}>(</Text>
+                          {offerItem.customizations?.map((custo, i) => {
+                            return (
+                              <Text
+                                style={{
+                                  fontFamily: Fonts.LATO_REGULAR,
+                                  fontSize: 20,
+                                }}
+                                key={i}
+                              >
+                                {custo.name},{" "}
+                              </Text>
+                            );
+                          })}
+                          <Text>)</Text>
+                        </View>
+                      ))}
+                    </View>
                     <Text style={[styles.rowCell]} numberOfLines={1}>
-                      {item.offer?.price} $
-                    </Text>
-                    <Text style={[styles.rowCell]}>
-                      {item.customizations?.map((custo) => {
-                        return custo.name + " ";
-                      })}
+                      {item.offer?.price.toFixed(2)} $
                     </Text>
                   </View>
                 ))}
@@ -514,7 +554,7 @@ const OrderScreen = () => {
                       </>
                     )}
                   </View>
-                  {order.payment_status !== undefined &&
+                  {/* {order.payment_status !== undefined &&
                     order.payment_method !== "card" && (
                       <View
                         style={{
@@ -598,8 +638,8 @@ const OrderScreen = () => {
                           </>
                         )}
                       </View>
-                    )}
-                  {order.payment_status !== undefined &&
+                    )} */}
+                  {/* {order.payment_status !== undefined &&
                     order.payment_method === "card" && (
                       <View
                         style={{
@@ -625,7 +665,7 @@ const OrderScreen = () => {
                           {order.payment_status === true ? "Payé" : "Non payé"}{" "}
                         </Text>
                       </View>
-                    )}
+                    )} */}
                   <View
                     style={{
                       flexDirection: "row",
@@ -651,7 +691,7 @@ const OrderScreen = () => {
                       {order.code}
                     </Text>
                   </View>
-                  <View
+                  {/* <View
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
@@ -675,7 +715,7 @@ const OrderScreen = () => {
                     >
                       {order.payment_method === "cash" ? "Espèce" : "Carte"}
                     </Text>
-                  </View>
+                  </View> */}
 
                   <View
                     style={{
@@ -726,6 +766,34 @@ const OrderScreen = () => {
                       }}
                     >
                       {convertDate(order.createdAt)}
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      marginTop: 10,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 20,
+                      }}
+                    >
+                      Nombre d'article:
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        marginLeft: 10,
+                      }}
+                    >
+                      {order.orderItems?.length +
+                        order.offers?.length +
+                        order.rewards?.length}{" "}
+                      article(s)
                     </Text>
                   </View>
                 </View>
@@ -848,7 +916,89 @@ const OrderScreen = () => {
                           marginLeft: 10,
                         }}
                       >
-                        {order.sub_total_after_discount?.toFixed(2)} $
+                        {order.sub_total_after_discount?.toFixed(2)} $ (-{" "}
+                        {order.discount} %)
+                      </Text>
+                    </View>
+                  )}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      marginTop: 10,
+
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 20,
+                      }}
+                    >
+                      TVQ:
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        marginLeft: 10,
+                      }}
+                    >
+                      {tvq.toFixed(2)} $
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      marginTop: 10,
+
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_BOLD,
+                        fontSize: 20,
+                      }}
+                    >
+                      TPS:
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        marginLeft: 10,
+                      }}
+                    >
+                      {tps.toFixed(2)} $
+                    </Text>
+                  </View>
+
+                  {order.type === "delivery" && (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        marginTop: 10,
+
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: Fonts.LATO_BOLD,
+                          fontSize: 20,
+                        }}
+                      >
+                        Frais de livraison:
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: Fonts.LATO_REGULAR,
+                          fontSize: 20,
+                          marginLeft: 10,
+                        }}
+                      >
+                        {order.delivery_fee.toFixed(2)} $
                       </Text>
                     </View>
                   )}
@@ -876,34 +1026,6 @@ const OrderScreen = () => {
                       }}
                     >
                       {order.tip?.toFixed(2)} $
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      marginTop: 10,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 20,
-                      }}
-                    >
-                      Nombre d'article:
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        marginLeft: 10,
-                      }}
-                    >
-                      {order.orderItems?.length +
-                        order.offers?.length +
-                        order.rewards?.length}{" "}
-                      article(s)
                     </Text>
                   </View>
                 </View>

@@ -6,17 +6,18 @@ import {
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
+  TextInput,
 } from "react-native";
-import React, { useCallback, useEffect, useState } from "react";
-import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import React, { useEffect, useState } from "react";
+import { Entypo, FontAwesome, MaterialIcons } from "@expo/vector-icons";
 
 import { Colors, Fonts } from "../constants";
-import SearchBar from "../components/SearchBar";
+
 import DeleteWarning from "../components/models/DeleteWarning";
 
-import { deleteUser, getUsers } from "../services/UsersServices";
-import { filterUsers } from "../utils/filters";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { deleteUser, getUsersPagination } from "../services/UsersServices";
+
+import { useNavigation } from "@react-navigation/native";
 import ErrorScreen from "../components/ErrorScreen";
 import LoadingScreen from "../components/LoadingScreen";
 
@@ -25,31 +26,38 @@ const UsersScreen = () => {
   const [deleteWarningModelState, setDeleteWarningModelState] = useState(false);
   const [userId, setUserId] = useState("");
   const [refresh, setRefresh] = useState(0);
-
+  const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(false);
-
+  const [navigaTo, setNavigaTo] = useState("");
   const [users, setUsers] = useState([]);
-  const [usersList, setUsersList] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+
   const fetchData = async () => {
+    setIsLoading(true);
     setError(false);
-    getUsers()
-      .then((response) => {
-        if (response?.status) {
-          setUsers(response?.data);
-          setUsersList(response?.data);
-        } else {
-          setError(true);
-        }
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+    try {
+      if (page < 1) {
+        return;
+      }
+      if (pages !== 0 && page > pages) {
+        return;
+      }
+      const response = await getUsersPagination(page, 20, search);
+      if (response.status) {
+        setUsers(response.data.users);
+        setPages(response.data.pages);
+      }
+    } catch (error) {
+      setError(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
   useEffect(() => {
-    setIsLoading(true);
     fetchData();
-  }, [refresh]);
+  }, [refresh, page]);
   const handleShowUserModel = (id) => {
     navigation.navigate("User", { id });
   };
@@ -59,11 +67,11 @@ const UsersScreen = () => {
     setDeleteWarningModelState(true);
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchData();
-    }, [])
-  );
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     fetchData();
+  //   }, [])
+  // );
 
   if (error) {
     return <ErrorScreen setRefresh={setRefresh} />;
@@ -86,15 +94,73 @@ const UsersScreen = () => {
       )}
 
       <View style={{ flex: 1, padding: 20 }}>
-        <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
-          Utilisateurs
-        </Text>
-        <View style={{ marginTop: 30 }}>
-          <SearchBar setter={setUsers} list={usersList} filter={filterUsers} />
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
+            Utilisateurs
+          </Text>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginTop: 12,
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: "white",
+                flexDirection: "row",
+                width: 300,
+                alignItems: "center",
+                paddingBottom: 4,
+                paddingTop: 4,
+                paddingLeft: 4,
+
+                borderWidth: 1,
+                borderRadius: 5,
+              }}
+            >
+              <Entypo name="magnifying-glass" size={24} color={Colors.mgry} />
+              <TextInput
+                style={{
+                  fontFamily: Fonts.LATO_REGULAR,
+                  fontSize: 20,
+                  marginLeft: 5,
+                  flex: 1,
+                }}
+                placeholder="Chercher par nom"
+                onChangeText={(text) => setSearch(text)}
+                placeholderTextColor={Colors.mgry}
+                value={search}
+              />
+            </View>
+            <TouchableOpacity
+              style={{
+                marginLeft: 12,
+                backgroundColor: Colors.primary,
+                padding: 10,
+                borderRadius: 10,
+              }}
+              onPress={fetchData}
+            >
+              <Text style={{ color: "white" }}>Rechercher</Text>
+            </TouchableOpacity>
+          </View>
         </View>
+
         {users?.length > 0 ? (
           <ScrollView
-            style={{ width: "100%", marginTop: 30 }}
+            style={{
+              width: "100%",
+              marginTop: 30,
+              borderWidth: 1,
+              borderColor: "black",
+            }}
             refreshControl={
               <RefreshControl refreshing={isLoading} onRefresh={fetchData} />
             }
@@ -153,6 +219,87 @@ const UsersScreen = () => {
             </Text>
           </View>
         )}
+        <View style={{ flexDirection: "row", justifyContent: "center" }}>
+          <Text
+            style={{
+              fontFamily: Fonts.LATO_REGULAR,
+              fontSize: 20,
+            }}
+          >
+            {"Page " + page + (pages > 0 ? "/" + pages : "")}
+          </Text>
+        </View>
+        <View
+          style={{
+            marginTop: 16,
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexDirection: "row",
+          }}
+        >
+          <View>
+            <TouchableOpacity
+              onPress={() => setPage((prev) => prev - 1)}
+              style={{
+                backgroundColor: page <= 1 ? "gray" : Colors.primary,
+                padding: 10,
+                borderRadius: 10,
+              }}
+              disabled={page <= 1}
+            >
+              <Text style={{ color: "white" }}>Précédent</Text>
+            </TouchableOpacity>
+          </View>
+          {pages > 0 && (
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <TextInput
+                style={{
+                  fontFamily: Fonts.LATO_REGULAR,
+                  fontSize: 20,
+
+                  width: 100,
+                  borderWidth: 1,
+                  borderRadius: 5,
+                  padding: 5,
+                  borderColor: Colors.mgry,
+                }}
+                placeholder="Page"
+                onChangeText={(text) => setNavigaTo(text)}
+                placeholderTextColor={Colors.mgry}
+                keyboardType="numeric"
+                value={navigaTo}
+              />
+              <TouchableOpacity
+                style={{
+                  marginLeft: 12,
+                  backgroundColor: Colors.primary,
+                  padding: 10,
+                  borderRadius: 10,
+                }}
+                onPress={() => {
+                  setPage(parseInt(navigaTo));
+                  setNavigaTo("");
+                }}
+              >
+                <Text style={{ color: "white" }}>Rechercher</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View>
+            <TouchableOpacity
+              onPress={() => setPage((prev) => prev + 1)}
+              style={{
+                backgroundColor: page >= pages ? "gray" : Colors.primary,
+                padding: 10,
+                borderRadius: 10,
+              }}
+              disabled={page >= pages}
+            >
+              <Text style={{ color: "white" }}>Suivant</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
     </SafeAreaView>
   );

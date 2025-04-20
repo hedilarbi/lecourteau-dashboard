@@ -8,12 +8,14 @@ import {
   Foundation,
   MaterialCommunityIcons,
   MaterialIcons,
+  Ionicons,
 } from "@expo/vector-icons";
 import ToppingsScreen from "../screens/ToppingsScreen";
 import OrdersNav from "./OrdersNav";
 import ItemsNav from "./ItemsNav";
 import OffersNav from "./OffersNav";
 import HomeNav from "./HomeNavigator";
+import SettingsScreen from "../screens/SettingsScreen";
 function CashierDrawer() {
   const Drawer = createDrawerNavigator();
 
@@ -99,7 +101,7 @@ function CashierDrawer() {
         }}
       />
 
-      {/* <Drawer.Screen
+      <Drawer.Screen
         name="Paramètre"
         component={SettingsScreen}
         options={{
@@ -109,7 +111,7 @@ function CashierDrawer() {
           ),
         }}
       />
-      <Drawer.Screen
+      {/* <Drawer.Screen
         name="Notifications"
         component={NotificationsScreen}
         options={{

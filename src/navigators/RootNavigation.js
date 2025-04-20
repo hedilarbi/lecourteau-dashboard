@@ -21,17 +21,42 @@ import CashierDrawer from "./CashierDrawer";
 
 import DriverNavigator from "./DriverNavigator";
 import SkeletonScreen from "../screens/SkeletonScreen";
+import {
+  selectGlobalRefresh,
+  setGlobalRefresh,
+} from "../redux/slices/globalRefreshSlice";
+import { API_URL } from "@env";
+import axios from "axios";
+import { Alert, Vibration } from "react-native";
+import { Audio } from "expo-av";
+const ONE_SECOND_IN_MS = 1000;
 
+const PATTERN = [
+  0 * ONE_SECOND_IN_MS,
+  2 * ONE_SECOND_IN_MS,
+  1 * ONE_SECOND_IN_MS,
+  2 * ONE_SECOND_IN_MS,
+  1 * ONE_SECOND_IN_MS,
+  2 * ONE_SECOND_IN_MS,
+];
 const RootNavigation = () => {
   const RootStack = createNativeStackNavigator();
   const staffToken = useSelector(selectStaffToken);
   const [isLoading, setIsLoading] = useState(true);
   const staff = useSelector(selectStaffData);
 
+  const globalRefresh = useSelector(selectGlobalRefresh);
+
   const notificationListener = useRef();
   const responseListener = useRef();
   const dispatch = useDispatch();
-
+  const playNotificationSound = async () => {
+    const { sound } = await Audio.Sound.createAsync(
+      require("../../assets/sounds/notificationsound.wav") // Replace with your sound file
+    );
+    Vibration.vibrate(PATTERN);
+    await sound.playAsync();
+  };
   const getStaffToken = async () => {
     setIsLoading(true);
     let token;
@@ -72,14 +97,42 @@ const RootNavigation = () => {
   }, [staffToken]);
 
   useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        if (!staff.restaurant) return;
+
+        const response = await axios.get(
+          `${API_URL}/orders/nonConfirmed/${staff.restaurant}`
+        );
+        const orders = response.data;
+
+        if (orders.length > 0) {
+          Alert.alert("Nouvelle commande", "Vous avez une nouvelle commande");
+          await playNotificationSound();
+          dispatch(setGlobalRefresh());
+        }
+      } catch (error) {
+        console.error("Error fetching new orders:", error);
+      }
+    };
+
+    const interval = setInterval(fetchOrders, 60000);
+
+    return () => clearInterval(interval);
+  }, [staff.restaurant]);
+
+  useEffect(() => {
     notificationListener.current =
       Notifications.addNotificationReceivedListener((notification) => {
         const data = notification.request.content.data;
+
+        dispatch(setGlobalRefresh());
       });
 
     responseListener.current =
       Notifications.addNotificationResponseReceivedListener((response) => {
         const data = response.notification.request.content.data;
+        dispatch(setGlobalRefresh());
       });
 
     return () => {

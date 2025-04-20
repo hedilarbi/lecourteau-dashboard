@@ -1,6 +1,7 @@
 import {
   ActivityIndicator,
   Image,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -41,6 +42,7 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
   const [sizes, setSizes] = useState([]);
   const [prices, setPrices] = useState([]);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   const fetchData = async () => {
     try {
@@ -141,6 +143,8 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
 
       setShowSuccessModel(true);
     } catch (err) {
+      console.error("Error saving item:", err);
+      setMessage(err.message);
       setShowFailModal(true);
     } finally {
       setIsloading(false);
@@ -192,9 +196,7 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
   return (
     <View style={styles.container}>
       {showSuccessModel && <SuccessModel />}
-      {showFailModal && (
-        <FailModel message="Oops ! Quelque chose s'est mal passé" />
-      )}
+      {showFailModal && <FailModel message={message} />}
       {isLoading && (
         <View
           style={{
@@ -247,244 +249,251 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
             <AntDesign name="close" size={40} color="gray" />
           </TouchableOpacity>
         </View>
-        {error.length > 0 && (
-          <Text
-            style={{
-              fontFamily: Fonts.LATO_BOLD,
-              fontSize: 20,
-              textAlign: "center",
-              color: "red",
-            }}
-          >
-            {error}
-          </Text>
-        )}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 12 }}
+        >
+          {error.length > 0 && (
+            <Text
+              style={{
+                fontFamily: Fonts.LATO_BOLD,
+                fontSize: 20,
+                textAlign: "center",
+                color: "red",
+              }}
+            >
+              {error}
+            </Text>
+          )}
 
-        <View>
           <View>
-            <View style={{ flexDirection: "row" }}>
-              <TouchableOpacity
-                style={{
-                  width: 200,
-                  height: 200,
-                  borderRadius: 16,
-                  backgroundColor: "gray",
-                  marginTop: 20,
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-                onPress={pickImage}
-              >
-                {image ? (
-                  <Image
-                    source={{ uri: image }}
-                    style={{
-                      resizeMode: "cover",
-                      width: "100%",
-                      height: "100%",
-                      borderRadius: 16,
-                    }}
-                  />
-                ) : (
-                  <Entypo name="camera" size={48} color="black" />
-                )}
-              </TouchableOpacity>
-              <View style={{ marginLeft: 40, justifyContent: "space-between" }}>
-                <View style={styles.name}>
-                  <Text style={styles.text}>Nom</Text>
-                  <TextInput
-                    style={{
-                      fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 20,
-                      paddingHorizontal: 5,
-                      paddingVertical: 8,
-                      width: "50%",
-                      borderWidth: 2,
-
-                      borderColor: Colors.primary,
-                      marginLeft: 20,
-                    }}
-                    placeholder="Item Name"
-                    onChangeText={(text) => setName(text)}
-                  />
-                </View>
-                <View style={styles.name}>
-                  <Text style={styles.text}>Description</Text>
-                  <TextInput
-                    style={{
-                      fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 20,
-                      paddingHorizontal: 5,
-                      paddingVertical: 8,
-                      flex: 1,
-                      borderWidth: 2,
-
-                      borderColor: Colors.primary,
-                      marginLeft: 20,
-                    }}
-                    placeholder="Description"
-                    onChangeText={(text) => setDescription(text)}
-                  />
-                </View>
-                <View style={styles.name}>
-                  <Text style={styles.text}>Categorie</Text>
-                  <Dropdown
-                    style={[styles.dropdown]}
-                    placeholderStyle={styles.placeholderStyle}
-                    selectedTextStyle={styles.selectedTextStyle}
-                    selectedStyle={styles.selectedStyle}
-                    itemContainerStyle={styles.itemContainerStyle}
-                    itemTextStyle={styles.itemTextStyle}
-                    containerStyle={styles.containerStyle}
-                    data={categoriesNames}
-                    maxHeight={300}
-                    labelField="label"
-                    valueField="label"
-                    placeholder="Catégorie"
-                    value={categoryName}
-                    onChange={(item) => {
-                      setCategoryName(item.label);
-                    }}
-                  />
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.customizations}>
-              <Text style={styles.text}>Prix</Text>
-              <View
-                style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: 20,
-                  marginTop: 20,
-                }}
-              >
-                {prices.map((price, index) => (
-                  <View
-                    style={{
-                      borderWidth: 1,
-                      borderRadius: 5,
-                      backgroundColor: "white",
-                      paddingHorizontal: 10,
-                      paddingVertical: 10,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 5,
-                      marginTop: 10,
-                    }}
-                    key={index}
-                  >
-                    <Text
+            <View>
+              <View style={{ flexDirection: "row" }}>
+                <TouchableOpacity
+                  style={{
+                    width: 200,
+                    height: 200,
+                    borderRadius: 16,
+                    backgroundColor: "gray",
+                    marginTop: 20,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                  onPress={pickImage}
+                >
+                  {image ? (
+                    <Image
+                      source={{ uri: image }}
                       style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 16,
-                        textTransform: "capitalize",
+                        resizeMode: "cover",
+                        width: "100%",
+                        height: "100%",
+                        borderRadius: 16,
                       }}
-                    >
-                      {price.size}
-                    </Text>
-                    <Text
-                      style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 16 }}
-                    >
-                      {price.price} $
-                    </Text>
-                    <TouchableOpacity
-                      style={{ alignSelf: "flex-end", marginLeft: 10 }}
-                      onPress={() => deletePrice(index)}
-                    >
-                      <AntDesign name="close" size={24} color="gray" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: Colors.primary,
-                    paddingHorizontal: 40,
-                    paddingVertical: 10,
-                    flexDirection: "row",
-                    gap: 10,
-                    alignItems: "center",
-                    marginTop: 10,
-                    borderRadius: 5,
-                  }}
-                  onPress={() => setShowAddPriceModal(true)}
-                >
-                  <Entypo name="plus" size={24} color="black" />
-                  <Text style={styles.text}>Ajouter</Text>
+                    />
+                  ) : (
+                    <Entypo name="camera" size={48} color="black" />
+                  )}
                 </TouchableOpacity>
+                <View
+                  style={{ marginLeft: 40, justifyContent: "space-between" }}
+                >
+                  <View style={styles.name}>
+                    <Text style={styles.text}>Nom</Text>
+                    <TextInput
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        paddingHorizontal: 5,
+                        paddingVertical: 8,
+                        width: "50%",
+                        borderWidth: 2,
+
+                        borderColor: Colors.primary,
+                        marginLeft: 20,
+                      }}
+                      placeholder="Item Name"
+                      onChangeText={(text) => setName(text)}
+                    />
+                  </View>
+                  <View style={styles.name}>
+                    <Text style={styles.text}>Description</Text>
+                    <TextInput
+                      style={{
+                        fontFamily: Fonts.LATO_REGULAR,
+                        fontSize: 20,
+                        paddingHorizontal: 5,
+                        paddingVertical: 8,
+                        flex: 1,
+                        borderWidth: 2,
+
+                        borderColor: Colors.primary,
+                        marginLeft: 20,
+                      }}
+                      placeholder="Description"
+                      onChangeText={(text) => setDescription(text)}
+                    />
+                  </View>
+                  <View style={styles.name}>
+                    <Text style={styles.text}>Categorie</Text>
+                    <Dropdown
+                      style={[styles.dropdown]}
+                      placeholderStyle={styles.placeholderStyle}
+                      selectedTextStyle={styles.selectedTextStyle}
+                      selectedStyle={styles.selectedStyle}
+                      itemContainerStyle={styles.itemContainerStyle}
+                      itemTextStyle={styles.itemTextStyle}
+                      containerStyle={styles.containerStyle}
+                      data={categoriesNames}
+                      maxHeight={300}
+                      labelField="label"
+                      valueField="label"
+                      placeholder="Catégorie"
+                      value={categoryName}
+                      onChange={(item) => {
+                        setCategoryName(item.label);
+                      }}
+                    />
+                  </View>
+                </View>
               </View>
-            </View>
-            <View style={styles.customizations}>
-              <Text style={styles.text}>Personalisations</Text>
-              <View
-                style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: 20,
-                  marginTop: 20,
-                }}
-              >
-                {customizationsNames.map((customization, index) => (
-                  <View
+
+              <View style={styles.customizations}>
+                <Text style={styles.text}>Prix</Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: 20,
+                    marginTop: 20,
+                  }}
+                >
+                  {prices.map((price, index) => (
+                    <View
+                      style={{
+                        borderWidth: 1,
+                        borderRadius: 5,
+                        backgroundColor: "white",
+                        paddingHorizontal: 10,
+                        paddingVertical: 10,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 5,
+                        marginTop: 10,
+                      }}
+                      key={index}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: Fonts.LATO_BOLD,
+                          fontSize: 16,
+                          textTransform: "capitalize",
+                        }}
+                      >
+                        {price.size}
+                      </Text>
+                      <Text
+                        style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 16 }}
+                      >
+                        {price.price} $
+                      </Text>
+                      <TouchableOpacity
+                        style={{ alignSelf: "flex-end", marginLeft: 10 }}
+                        onPress={() => deletePrice(index)}
+                      >
+                        <AntDesign name="close" size={24} color="gray" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                  <TouchableOpacity
                     style={{
-                      borderWidth: 1,
-                      borderRadius: 5,
-                      backgroundColor: "white",
-                      paddingHorizontal: 10,
+                      backgroundColor: Colors.primary,
+                      paddingHorizontal: 40,
                       paddingVertical: 10,
                       flexDirection: "row",
+                      gap: 10,
                       alignItems: "center",
-                      justifyContent: "center",
-                      gap: 5,
                       marginTop: 10,
+                      borderRadius: 5,
                     }}
-                    key={index}
+                    onPress={() => setShowAddPriceModal(true)}
                   >
-                    <Text style={styles.text}>{customization.name}</Text>
-
-                    <TouchableOpacity
-                      style={{ alignSelf: "flex-end", marginLeft: 10 }}
-                      onPress={() => deleteCustomization(index)}
-                    >
-                      <AntDesign name="close" size={24} color="gray" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-                <TouchableOpacity
+                    <Entypo name="plus" size={24} color="black" />
+                    <Text style={styles.text}>Ajouter</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <View style={styles.customizations}>
+                <Text style={styles.text}>Personalisations</Text>
+                <View
                   style={{
-                    backgroundColor: Colors.primary,
-                    paddingHorizontal: 40,
-                    paddingVertical: 10,
                     flexDirection: "row",
-                    gap: 10,
-                    alignItems: "center",
-                    marginTop: 10,
-                    borderRadius: 5,
+                    flexWrap: "wrap",
+                    gap: 20,
+                    marginTop: 20,
                   }}
-                  onPress={() => setShowAddCategoryModel(true)}
                 >
-                  <Entypo name="plus" size={24} color="black" />
-                  <Text style={styles.text}>Ajouter</Text>
-                </TouchableOpacity>
+                  {customizationsNames.map((customization, index) => (
+                    <View
+                      style={{
+                        borderWidth: 1,
+                        borderRadius: 5,
+                        backgroundColor: "white",
+                        paddingHorizontal: 10,
+                        paddingVertical: 10,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 5,
+                        marginTop: 10,
+                      }}
+                      key={index}
+                    >
+                      <Text style={styles.text}>{customization.name}</Text>
+
+                      <TouchableOpacity
+                        style={{ alignSelf: "flex-end", marginLeft: 10 }}
+                        onPress={() => deleteCustomization(index)}
+                      >
+                        <AntDesign name="close" size={24} color="gray" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: Colors.primary,
+                      paddingHorizontal: 40,
+                      paddingVertical: 10,
+                      flexDirection: "row",
+                      gap: 10,
+                      alignItems: "center",
+                      marginTop: 10,
+                      borderRadius: 5,
+                    }}
+                    onPress={() => setShowAddCategoryModel(true)}
+                  >
+                    <Entypo name="plus" size={24} color="black" />
+                    <Text style={styles.text}>Ajouter</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
+            <TouchableOpacity
+              style={{
+                marginTop: 40,
+                alignSelf: "flex-end",
+                backgroundColor: Colors.primary,
+                paddingHorizontal: 60,
+                paddingVertical: 10,
+                borderRadius: 5,
+              }}
+              onPress={saveItem}
+            >
+              <Text style={styles.text}>Sauvegarder</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={{
-              marginTop: 40,
-              alignSelf: "flex-end",
-              backgroundColor: Colors.primary,
-              paddingHorizontal: 60,
-              paddingVertical: 10,
-              borderRadius: 5,
-            }}
-            onPress={saveItem}
-          >
-            <Text style={styles.text}>Sauvegarder</Text>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
       </View>
     </View>
   );
@@ -510,6 +519,7 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
     paddingHorizontal: 40,
     width: "90%",
+    height: "90%",
   },
   image: { flexDirection: "row", marginTop: 40, alignItems: "center" },
   text: {

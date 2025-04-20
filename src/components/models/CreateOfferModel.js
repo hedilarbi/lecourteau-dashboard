@@ -1,6 +1,7 @@
 import {
   ActivityIndicator,
   Image,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -40,6 +41,7 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
   const [showFailModal, setShowFailModal] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState("");
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -131,6 +133,7 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
 
       setShowSuccessModel(true);
     } catch (err) {
+      setMessage(err.message);
       setShowFailModal(true);
     } finally {
       setIsLoading(false);
@@ -185,9 +188,7 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
         />
       )}
       {showSuccessModel && <SuccessModel />}
-      {showFailModal && (
-        <FailModel message="Oops ! Quelque chose s'est mal passé" />
-      )}
+      {showFailModal && <FailModel message={message} />}
       {isLoading && (
         <View
           style={{
@@ -221,234 +222,239 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
             <AntDesign name="close" size={40} color="gray" />
           </TouchableOpacity>
         </View>
-        {error.length > 0 && (
-          <Text
-            style={{
-              fontFamily: Fonts.LATO_BOLD,
-              fontSize: 20,
-              textAlign: "center",
-              color: "red",
-            }}
-          >
-            {error}
-          </Text>
-        )}
-        <View style={{ marginTop: 40 }}>
-          <View style={{ flexDirection: "row" }}>
-            <TouchableOpacity
-              style={{
-                width: 250,
-                height: 150,
-                borderRadius: 16,
-                backgroundColor: "gray",
-
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-              onPress={pickImage}
-            >
-              {image ? (
-                <Image
-                  source={{ uri: image }}
-                  style={{
-                    resizeMode: "cover",
-                    width: "100%",
-                    height: "100%",
-                    borderRadius: 16,
-                  }}
-                />
-              ) : (
-                <Entypo name="camera" size={48} color="black" />
-              )}
-            </TouchableOpacity>
-            <View
-              style={{
-                marginLeft: 20,
-                justifyContent: "space-between",
-              }}
-            >
-              <View style={styles.name}>
-                <Text style={styles.text}>Nom</Text>
-                <TextInput
-                  style={{
-                    fontFamily: Fonts.LATO_REGULAR,
-                    fontSize: 20,
-                    padding: 5,
-                    borderWidth: 2,
-                    borderColor: Colors.primary,
-                    marginLeft: 20,
-                    flex: 1,
-                  }}
-                  placeholder="Nom de l'offre"
-                  placeholderTextColor={Colors.tgry}
-                  onChangeText={(text) => setName(text)}
-                />
-              </View>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Text style={styles.text}>Prix</Text>
-
-                <TextInput
-                  style={{
-                    borderWidth: 2,
-                    borderColor: Colors.primary,
-                    padding: 5,
-                    paddingHorizontal: 8,
-                    marginHorizontal: 10,
-                  }}
-                  onChangeText={(text) => setPrice(text)}
-                  keyboardType="numeric"
-                  placeholder="prix"
-                />
-                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                  $
-                </Text>
-              </View>
-              <View style={styles.prices}>
-                <Text style={styles.text}>Date d'éxpiration</Text>
-
-                <Calender setDate={setDate} date={date} />
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.customizations}>
-            <Text style={styles.text}>Articles</Text>
-            <View
-              style={{
-                flexDirection: "row",
-                flexWrap: "wrap",
-                gap: 20,
-                marginTop: 20,
-              }}
-            >
-              {items.map((item, index) => (
-                <View
-                  style={{
-                    borderWidth: 1,
-                    borderRadius: 5,
-                    backgroundColor: "white",
-                    paddingHorizontal: 10,
-                    paddingVertical: 10,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 5,
-                    marginTop: 10,
-                  }}
-                  key={index}
-                >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignContent: "center",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text style={styles.text}>{item.item.name}</Text>
-                    <Text style={styles.text}> x {item.quantity}</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={{ alignSelf: "flex-end", marginLeft: 10 }}
-                    onPress={() => deleteItem(index)}
-                  >
-                    <AntDesign name="close" size={24} color="gray" />
-                  </TouchableOpacity>
-                </View>
-              ))}
-              <TouchableOpacity
-                style={{
-                  backgroundColor: Colors.primary,
-                  paddingHorizontal: 40,
-                  paddingVertical: 10,
-                  flexDirection: "row",
-                  gap: 10,
-                  alignItems: "center",
-                  marginTop: 10,
-                  borderRadius: 5,
-                }}
-                onPress={() => setShowAddItemModel(true)}
-              >
-                <Entypo name="plus" size={24} color="black" />
-                <Text style={styles.text}>Ajouter</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          <View style={styles.customizations}>
-            <Text style={styles.text}>Personalisations</Text>
-            <View
-              style={{
-                flexDirection: "row",
-                flexWrap: "wrap",
-                gap: 20,
-                marginTop: 20,
-              }}
-            >
-              {customizationsNames.map((item, index) => (
-                <View
-                  style={{
-                    borderWidth: 1,
-                    borderRadius: 5,
-                    backgroundColor: "white",
-                    paddingHorizontal: 10,
-                    paddingVertical: 10,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 5,
-                    marginTop: 10,
-                  }}
-                  key={index}
-                >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignContent: "center",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text style={styles.text}>{item.name}</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={{ alignSelf: "flex-end", marginLeft: 10 }}
-                    onPress={() => deleteCustomization(index)}
-                  >
-                    <AntDesign name="close" size={24} color="gray" />
-                  </TouchableOpacity>
-                </View>
-              ))}
-              <TouchableOpacity
-                style={{
-                  backgroundColor: Colors.primary,
-                  paddingHorizontal: 40,
-                  paddingVertical: 10,
-                  flexDirection: "row",
-                  gap: 10,
-                  alignItems: "center",
-                  marginTop: 10,
-                  borderRadius: 5,
-                }}
-                onPress={() => setShowAddCategoryModel(true)}
-              >
-                <Entypo name="plus" size={24} color="black" />
-                <Text style={styles.text}>Ajouter</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={{
-            marginTop: 40,
-            alignSelf: "flex-end",
-            backgroundColor: Colors.primary,
-            paddingHorizontal: 60,
-            paddingVertical: 10,
-            borderRadius: 5,
-          }}
-          onPress={saveItem}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 12 }}
         >
-          <Text style={styles.text}>Sauvegarder</Text>
-        </TouchableOpacity>
+          {error.length > 0 && (
+            <Text
+              style={{
+                fontFamily: Fonts.LATO_BOLD,
+                fontSize: 20,
+                textAlign: "center",
+                color: "red",
+              }}
+            >
+              {error}
+            </Text>
+          )}
+          <View style={{ marginTop: 40 }}>
+            <View style={{ flexDirection: "row" }}>
+              <TouchableOpacity
+                style={{
+                  width: 250,
+                  height: 150,
+                  borderRadius: 16,
+                  backgroundColor: "gray",
+
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+                onPress={pickImage}
+              >
+                {image ? (
+                  <Image
+                    source={{ uri: image }}
+                    style={{
+                      resizeMode: "cover",
+                      width: "100%",
+                      height: "100%",
+                      borderRadius: 16,
+                    }}
+                  />
+                ) : (
+                  <Entypo name="camera" size={48} color="black" />
+                )}
+              </TouchableOpacity>
+              <View
+                style={{
+                  marginLeft: 20,
+                  justifyContent: "space-between",
+                }}
+              >
+                <View style={styles.name}>
+                  <Text style={styles.text}>Nom</Text>
+                  <TextInput
+                    style={{
+                      fontFamily: Fonts.LATO_REGULAR,
+                      fontSize: 20,
+                      padding: 5,
+                      borderWidth: 2,
+                      borderColor: Colors.primary,
+                      marginLeft: 20,
+                      flex: 1,
+                    }}
+                    placeholder="Nom de l'offre"
+                    placeholderTextColor={Colors.tgry}
+                    onChangeText={(text) => setName(text)}
+                  />
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Text style={styles.text}>Prix</Text>
+
+                  <TextInput
+                    style={{
+                      borderWidth: 2,
+                      borderColor: Colors.primary,
+                      padding: 5,
+                      paddingHorizontal: 8,
+                      marginHorizontal: 10,
+                    }}
+                    onChangeText={(text) => setPrice(text)}
+                    keyboardType="numeric"
+                    placeholder="prix"
+                  />
+                  <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
+                    $
+                  </Text>
+                </View>
+                <View style={styles.prices}>
+                  <Text style={styles.text}>Date d'éxpiration</Text>
+
+                  <Calender setDate={setDate} date={date} />
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.customizations}>
+              <Text style={styles.text}>Articles</Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: 20,
+                  marginTop: 20,
+                }}
+              >
+                {items.map((item, index) => (
+                  <View
+                    style={{
+                      borderWidth: 1,
+                      borderRadius: 5,
+                      backgroundColor: "white",
+                      paddingHorizontal: 10,
+                      paddingVertical: 10,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 5,
+                      marginTop: 10,
+                    }}
+                    key={index}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={styles.text}>{item.item.name}</Text>
+                      <Text style={styles.text}> x {item.quantity}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={{ alignSelf: "flex-end", marginLeft: 10 }}
+                      onPress={() => deleteItem(index)}
+                    >
+                      <AntDesign name="close" size={24} color="gray" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: Colors.primary,
+                    paddingHorizontal: 40,
+                    paddingVertical: 10,
+                    flexDirection: "row",
+                    gap: 10,
+                    alignItems: "center",
+                    marginTop: 10,
+                    borderRadius: 5,
+                  }}
+                  onPress={() => setShowAddItemModel(true)}
+                >
+                  <Entypo name="plus" size={24} color="black" />
+                  <Text style={styles.text}>Ajouter</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View style={styles.customizations}>
+              <Text style={styles.text}>Personalisations</Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: 20,
+                  marginTop: 20,
+                }}
+              >
+                {customizationsNames.map((item, index) => (
+                  <View
+                    style={{
+                      borderWidth: 1,
+                      borderRadius: 5,
+                      backgroundColor: "white",
+                      paddingHorizontal: 10,
+                      paddingVertical: 10,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 5,
+                      marginTop: 10,
+                    }}
+                    key={index}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={styles.text}>{item.name}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={{ alignSelf: "flex-end", marginLeft: 10 }}
+                      onPress={() => deleteCustomization(index)}
+                    >
+                      <AntDesign name="close" size={24} color="gray" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: Colors.primary,
+                    paddingHorizontal: 40,
+                    paddingVertical: 10,
+                    flexDirection: "row",
+                    gap: 10,
+                    alignItems: "center",
+                    marginTop: 10,
+                    borderRadius: 5,
+                  }}
+                  onPress={() => setShowAddCategoryModel(true)}
+                >
+                  <Entypo name="plus" size={24} color="black" />
+                  <Text style={styles.text}>Ajouter</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={{
+              marginTop: 40,
+              alignSelf: "flex-end",
+              backgroundColor: Colors.primary,
+              paddingHorizontal: 60,
+              paddingVertical: 10,
+              borderRadius: 5,
+            }}
+            onPress={saveItem}
+          >
+            <Text style={styles.text}>Sauvegarder</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
     </View>
   );
@@ -473,7 +479,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 40,
     paddingHorizontal: 40,
-    width: "80%",
+    width: "90%",
+    height: "90%",
   },
   image: { flexDirection: "row", marginTop: 40, alignItems: "center" },
   text: {

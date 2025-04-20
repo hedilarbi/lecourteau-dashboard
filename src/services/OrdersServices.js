@@ -202,6 +202,57 @@ const updatePaymentStatus = async (id, payment_status) => {
   }
 };
 
+const getOrderFiltred = async (filters) => {
+  try {
+    let getOrderResponse = await axios.get(`${API_URL}/orders/filter`, {
+      params: { ...filters },
+    });
+
+    if (getOrderResponse?.status === 200) {
+      return {
+        status: true,
+        message: "users data",
+        data: getOrderResponse?.data,
+      };
+    } else {
+      return {
+        status: false,
+        messge: getOrderResponse?.data?.error || "error",
+      };
+    }
+  } catch (error) {
+    return {
+      status: false,
+      message: error.message,
+    };
+  }
+};
+const getRestaurantOrderFiltred = async (id, filters) => {
+  try {
+    let getOrderResponse = await axios.get(`${API_URL}/orders/filter/${id}`, {
+      params: { ...filters },
+    });
+
+    if (getOrderResponse?.status === 200) {
+      return {
+        status: true,
+        message: "users data",
+        data: getOrderResponse?.data,
+      };
+    } else {
+      return {
+        status: false,
+        messge: getOrderResponse?.data?.error || "error",
+      };
+    }
+  } catch (error) {
+    return {
+      status: false,
+      message: error.message,
+    };
+  }
+};
+
 export {
   getOrders,
   getOrder,
@@ -211,4 +262,6 @@ export {
   orderDelivered,
   confirmOrder,
   updatePaymentStatus,
+  getOrderFiltred,
+  getRestaurantOrderFiltred,
 };

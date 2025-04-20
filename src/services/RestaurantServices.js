@@ -100,7 +100,6 @@ const updateRestaurant = async (id, body) => {
 };
 
 const createRestaurant = async (name, address, location, phoneNumber) => {
-  console.log(name, address, location, phoneNumber);
   try {
     let createRestaurantResponse = await axios.post(
       `${API_URL}/restaurants/create`,
@@ -253,6 +252,30 @@ const updateRestaurantItemAvailability = async (id, itemId) => {
     };
   }
 };
+
+const getRestaurantList = async () => {
+  try {
+    let response = await axios.get(`${API_URL}/restaurants/list`);
+
+    if (response?.status === 200) {
+      return {
+        status: true,
+        message: "users data",
+        data: response?.data,
+      };
+    } else {
+      return {
+        status: false,
+        messge: "error",
+      };
+    }
+  } catch {
+    return {
+      status: false,
+      message: error.message,
+    };
+  }
+};
 const updateRestaurantOfferAvailability = async (id, offerId) => {
   try {
     let getRestaurantResponse = await axios.put(
@@ -303,6 +326,56 @@ const updateRestaurantToppingAvailability = async (id, toppingId) => {
     };
   }
 };
+const getRestaurantsSettings = async () => {
+  try {
+    let getRestaurantsResponse = await axios.get(
+      `${API_URL}/restaurants/settings`
+    );
+
+    if (getRestaurantsResponse?.status === 200) {
+      return {
+        status: true,
+        message: "users data",
+        data: getRestaurantsResponse?.data,
+      };
+    } else {
+      return {
+        status: false,
+        messge: getRestaurantsResponse.data.error,
+      };
+    }
+  } catch (error) {
+    return {
+      status: false,
+      message: error.message,
+    };
+  }
+};
+const getRestaurantSettings = async (id) => {
+  try {
+    let getRestaurantsResponse = await axios.get(
+      `${API_URL}/restaurants/settings/${id}`
+    );
+
+    if (getRestaurantsResponse?.status === 200) {
+      return {
+        status: true,
+        message: "users data",
+        data: getRestaurantsResponse?.data,
+      };
+    } else {
+      return {
+        status: false,
+        messge: getRestaurantsResponse.data.error,
+      };
+    }
+  } catch (error) {
+    return {
+      status: false,
+      message: error.message,
+    };
+  }
+};
 
 export {
   createRestaurant,
@@ -317,4 +390,7 @@ export {
   updateRestaurantItemAvailability,
   updateRestaurantOfferAvailability,
   updateRestaurantToppingAvailability,
+  getRestaurantsSettings,
+  getRestaurantList,
+  getRestaurantSettings,
 };

@@ -168,6 +168,6 @@ const styles = StyleSheet.create({
 
     flex: 1,
     marginLeft: 20,
-    height: "60%",
+    marginVertical: 40,
   },
 });

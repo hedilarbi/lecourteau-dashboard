@@ -181,6 +181,10 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.LATO_BOLD,
     fontSize: 20,
   },
+
+  icon: {
+    marginRight: 5,
+  },
   dropdown: {
     height: 40,
     width: 300,
@@ -193,9 +197,6 @@ const styles = StyleSheet.create({
   },
   selectedStyle: {
     height: 18,
-  },
-  icon: {
-    marginRight: 5,
   },
   itemContainerStyle: {
     padding: 0,

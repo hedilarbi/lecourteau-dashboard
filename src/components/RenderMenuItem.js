@@ -73,7 +73,7 @@ const RenderMenuItem = ({
             trackColor={{ false: "#767577", true: Colors.primary }}
             thumbColor="black"
             ios_backgroundColor="#3e3e3e"
-            onValueChange={() => updateAvailability(item._id, index)}
+            onValueChange={() => updateAvailability(item.menuItem._id, index)}
             value={item.availability}
           />
         )}

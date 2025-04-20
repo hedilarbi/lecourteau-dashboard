@@ -25,20 +25,20 @@ const getSettings = async () => {
   }
 };
 
-const updateSettings = async (settings) => {
+const updateSettings = async (id, settings) => {
   try {
-    let updateSettingsResponse = await axios.put(
-      `${API_URL}/settings/update/${settings._id}`,
+    let response = await axios.put(
+      `${API_URL}/restaurants/update/settings/${id}`,
       {
         settings,
       }
     );
 
-    if (updateSettingsResponse?.status === 200) {
+    if (response?.status === 200) {
       return {
         status: true,
         message: "user deleted",
-        data: updateSettingsResponse?.data,
+        data: response?.data,
       };
     } else {
       return {
@@ -47,6 +47,7 @@ const updateSettings = async (settings) => {
       };
     }
   } catch (error) {
+    console.log(error);
     return {
       status: false,
       message: error.message,

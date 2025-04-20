@@ -219,6 +219,7 @@ const ItemScreen = () => {
         throw new Error("Network request failed after multiple retries");
       }
     } catch (err) {
+      console.error("Error updating item:", err);
       setShowFailModal(true);
     } finally {
       setIsLoading(false);

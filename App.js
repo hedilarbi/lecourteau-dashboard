@@ -24,7 +24,6 @@ Notifications.setNotificationHandler({
 export default function App() {
   const [fontsLoaded] = useFonts({
     "BebasNeue-Regular": require("./assets/fonts/Bebas_Neue/BebasNeue-Regular.ttf"),
-
     "Lato-Bold": require("./assets/fonts/Lato/Lato-Bold.ttf"),
     "Lato-Regular": require("./assets/fonts/Lato/Lato-Regular.ttf"),
     "Lato-Light": require("./assets/fonts/Lato/Lato-Light.ttf"),

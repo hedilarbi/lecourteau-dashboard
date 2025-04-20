@@ -9,16 +9,20 @@ const StatsContainer = ({ revenue, usersCount, ordersCount, role }) => {
       {role === Roles.ADMIN && (
         <StatsCard title="Utilisateur" stat={usersCount} icon="users" />
       )}
-      <StatsCard
-        title="Commande"
-        stat={ordersCount}
-        icon="file-invoice-dollar"
-      />
-      <StatsCard
-        title="Revenues"
-        stat={revenue + " $"}
-        icon="money-bill-wave"
-      />
+      {role !== Roles.ADMIN && (
+        <StatsCard
+          title="Commande"
+          stat={ordersCount}
+          icon="file-invoice-dollar"
+        />
+      )}
+      {role !== Roles.ADMIN && (
+        <StatsCard
+          title="Revenues"
+          stat={revenue + " $"}
+          icon="money-bill-wave"
+        />
+      )}
     </View>
   );
 };

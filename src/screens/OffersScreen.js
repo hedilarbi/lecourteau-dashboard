@@ -180,7 +180,9 @@ const OffersScreen = () => {
                       {convertDateToDate(offer.expireAt)}
                     </Text>
 
-                    <Text style={[styles.rowCell]}>{offer.price} $</Text>
+                    <Text style={[styles.rowCell]}>
+                      {offer.price.toFixed(2)} $
+                    </Text>
 
                     <TouchableOpacity
                       style={{
@@ -224,7 +226,9 @@ const OffersScreen = () => {
                       {convertDateToDate(offer.offer.expireAt)}
                     </Text>
 
-                    <Text style={[styles.rowCell]}>{offer.offer.price} $</Text>
+                    <Text style={[styles.rowCell]}>
+                      {offer.offer.price.toFixed(2)} $
+                    </Text>
                     <Switch
                       trackColor={{ false: "#767577", true: Colors.primary }}
                       thumbColor="black"
