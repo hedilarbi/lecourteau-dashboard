@@ -1,9 +1,15 @@
 import { API_URL } from "@env";
 import axios from "axios";
 
-const getInitialStats = async () => {
+const getInitialStats = async (date, from, to) => {
   try {
-    let getInitialStatsResponse = await axios.get(`${API_URL}/stats/initial`);
+    let getInitialStatsResponse = await axios.get(`${API_URL}/stats/initial`, {
+      params: {
+        date,
+        from,
+        to,
+      },
+    });
 
     if (getInitialStatsResponse?.status === 200) {
       return {

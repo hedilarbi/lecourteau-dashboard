@@ -89,7 +89,7 @@ const OrdersScreen = () => {
             page,
             limit: 20,
             status: filter,
-            code: search,
+            search,
             restaurant: selectedRestaurant.value,
           }),
           getRestaurantList(),
@@ -119,7 +119,7 @@ const OrdersScreen = () => {
           page,
           limit: 20,
           status: filter,
-          code: search,
+          search,
         });
         if (response.status) {
           setOrders(response.data.orders);

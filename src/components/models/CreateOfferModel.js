@@ -115,7 +115,7 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
     formdata.append("items", JSON.stringify(items));
     formdata.append("name", name);
     formdata.append("price", price);
-    formdata.append("expireAt", date.toLocaleDateString());
+    formdata.append("expireAt", new Date(date));
 
     try {
       setIsLoading(true);

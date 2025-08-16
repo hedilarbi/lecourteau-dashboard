@@ -15,15 +15,21 @@ import { Colors, Fonts } from "../constants";
 
 import DeleteWarning from "../components/models/DeleteWarning";
 
-import { deleteUser, getUsersPagination } from "../services/UsersServices";
+import {
+  banUser,
+  deleteUser,
+  getUsersPagination,
+} from "../services/UsersServices";
 
 import { useNavigation } from "@react-navigation/native";
 import ErrorScreen from "../components/ErrorScreen";
 import LoadingScreen from "../components/LoadingScreen";
+import BanWarning from "../components/models/BanWarning";
 
 const UsersScreen = () => {
   const navigation = useNavigation();
   const [deleteWarningModelState, setDeleteWarningModelState] = useState(false);
+  const [banWarningModelState, setBanWarningModelState] = useState(false);
   const [userId, setUserId] = useState("");
   const [refresh, setRefresh] = useState(0);
   const [search, setSearch] = useState("");
@@ -67,6 +73,11 @@ const UsersScreen = () => {
     setDeleteWarningModelState(true);
   };
 
+  const handleShowBanWarning = (id) => {
+    setUserId(id);
+    setBanWarningModelState(true);
+  };
+
   // useFocusEffect(
   //   useCallback(() => {
   //     fetchData();
@@ -90,6 +101,20 @@ const UsersScreen = () => {
           setRefresh={setRefresh}
           message={`Etes-vous sûr de vouloir supprimer cet utilisateur ?`}
           deleter={deleteUser}
+        />
+      )}
+
+      {banWarningModelState && (
+        <BanWarning
+          id={userId._id}
+          setBanWarningModelState={setBanWarningModelState}
+          setIsLoading={setIsLoading}
+          setRefresh={setRefresh}
+          message={
+            userId.isBanned
+              ? `Etes-vous sûr de vouloir activer cet utilisateur ?`
+              : `Etes-vous sûr de vouloir bannir cet utilisateur ?`
+          }
         />
       )}
 
@@ -199,6 +224,19 @@ const UsersScreen = () => {
                   onPress={() => handleShowDeleteWarning(user._id)}
                 >
                   <MaterialIcons name="delete" size={24} color="#F31A1A" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                  onPress={() => handleShowBanWarning(user)}
+                >
+                  <Entypo
+                    name="block"
+                    size={24}
+                    color={user.isBanned ? "green" : "#F31A1A"}
+                  />
                 </TouchableOpacity>
               </View>
             ))}

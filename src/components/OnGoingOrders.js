@@ -23,7 +23,6 @@ const OnGoingOrders = ({ orders, setRefresh }) => {
       const response = await confirmOrder(id);
 
       if (response.status) {
-        setRefresh((prev) => prev + 1);
       } else {
         console.log(response.message);
         Alert.alert("Une erreur s'est produite");
@@ -31,6 +30,7 @@ const OnGoingOrders = ({ orders, setRefresh }) => {
     } catch (e) {
       Alert.alert("Une erreur s'est produite");
     } finally {
+      setRefresh((prev) => prev + 1);
       setConfirming(false);
     }
   };

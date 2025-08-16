@@ -16,7 +16,7 @@ import {
   setStaffToken,
 } from "../redux/slices/StaffSlice";
 import { getStaffByToken } from "../services/StaffServices";
-import { Roles } from "../constants";
+import { Colors, Roles } from "../constants";
 import CashierDrawer from "./CashierDrawer";
 
 import DriverNavigator from "./DriverNavigator";
@@ -27,8 +27,16 @@ import {
 } from "../redux/slices/globalRefreshSlice";
 import { API_URL } from "@env";
 import axios from "axios";
-import { Alert, Vibration } from "react-native";
+import {
+  Alert,
+  Dimensions,
+  Text,
+  Touchable,
+  Vibration,
+  View,
+} from "react-native";
 import { Audio } from "expo-av";
+import { TouchableOpacity } from "react-native";
 const ONE_SECOND_IN_MS = 1000;
 
 const PATTERN = [
@@ -44,19 +52,73 @@ const RootNavigation = () => {
   const staffToken = useSelector(selectStaffToken);
   const [isLoading, setIsLoading] = useState(true);
   const staff = useSelector(selectStaffData);
-
+  const height = Dimensions.get("window").height;
   const globalRefresh = useSelector(selectGlobalRefresh);
+  const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
 
   const notificationListener = useRef();
   const responseListener = useRef();
   const dispatch = useDispatch();
-  const playNotificationSound = async () => {
+  const soundRef = useRef(null); // Ref to store the sound object
+
+  const playNotificationSoundInLoop = async () => {
     const { sound } = await Audio.Sound.createAsync(
-      require("../../assets/sounds/notificationsound.wav") // Replace with your sound file
+      require("../../assets/sounds/notificationsound.wav")
     );
-    Vibration.vibrate(PATTERN);
+    sound.setIsLoopingAsync(true); // Enable looping
+    Vibration.vibrate(PATTERN, true); // Enable vibration in a loop
     await sound.playAsync();
+    soundRef.current = sound; // Store the sound object in the ref
   };
+
+  const handleClosingAlert = async () => {
+    if (soundRef.current) {
+      await soundRef.current.stopAsync(); // Stop the sound
+      await soundRef.current.unloadAsync(); // Unload the sound to free resources
+      soundRef.current = null; // Reset the ref
+    }
+    Vibration.cancel(); // Stop the vibration
+    setShowNewOrderAlert(false); // Set the alert to false
+  };
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        if (!staff.restaurant) return;
+        if (showNewOrderAlert) return; // Skip if the alert is already shown
+
+        const response = await axios.get(
+          `${API_URL}/orders/nonConfirmed/${staff.restaurant}`
+        );
+
+        const orders = response.data;
+
+        if (orders.length > 0) {
+          await playNotificationSoundInLoop(); // Play sound in a loop
+          setShowNewOrderAlert(true); // Show the alert
+          dispatch(setGlobalRefresh());
+        }
+      } catch (error) {
+        console.error("Error fetching new orders:", error);
+      }
+    };
+
+    const interval = setInterval(fetchOrders, 60000); // Check every 60 seconds
+
+    return () => clearInterval(interval); // Cleanup on unmount
+  }, [staff.restaurant, showNewOrderAlert]);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup sound on component unmount
+      if (soundRef.current) {
+        soundRef.current.stopAsync();
+        soundRef.current.unloadAsync();
+      }
+      Vibration.cancel();
+    };
+  }, []);
+
   const getStaffToken = async () => {
     setIsLoading(true);
     let token;
@@ -97,31 +159,6 @@ const RootNavigation = () => {
   }, [staffToken]);
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        if (!staff.restaurant) return;
-
-        const response = await axios.get(
-          `${API_URL}/orders/nonConfirmed/${staff.restaurant}`
-        );
-        const orders = response.data;
-
-        if (orders.length > 0) {
-          Alert.alert("Nouvelle commande", "Vous avez une nouvelle commande");
-          await playNotificationSound();
-          dispatch(setGlobalRefresh());
-        }
-      } catch (error) {
-        console.error("Error fetching new orders:", error);
-      }
-    };
-
-    const interval = setInterval(fetchOrders, 60000);
-
-    return () => clearInterval(interval);
-  }, [staff.restaurant]);
-
-  useEffect(() => {
     notificationListener.current =
       Notifications.addNotificationReceivedListener((notification) => {
         const data = notification.request.content.data;
@@ -148,6 +185,67 @@ const RootNavigation = () => {
 
   return (
     <NavigationContainer>
+      {showNewOrderAlert && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 50,
+            width: "100%",
+            height: height,
+          }}
+        >
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <View
+              style={{
+                width: "60%",
+                height: "50%",
+                backgroundColor: "white",
+                borderRadius: 10,
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 100,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 28,
+                  fontWeight: "bold",
+                  color: "black",
+                }}
+              >
+                Nouvelle commande non confirme
+              </Text>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: Colors.primary,
+                  borderRadius: 10,
+                  paddingVertical: 14,
+                  paddingHorizontal: 32,
+                  marginTop: 32,
+                }}
+                onPress={handleClosingAlert}
+              >
+                <Text
+                  style={{ color: "black", fontSize: 18, fontWeight: "bold" }}
+                >
+                  Bien reçu
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
       <RootStack.Navigator>
         {staffToken ? (
           (() => {

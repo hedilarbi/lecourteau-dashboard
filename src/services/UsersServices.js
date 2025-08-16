@@ -100,4 +100,27 @@ const deleteUser = async (id) => {
   }
 };
 
-export { getUsers, getUser, deleteUser, getUsersPagination };
+const banUser = async (id) => {
+  try {
+    let banUserResponse = await axios.put(`${API_URL}/users/ban/${id}`);
+
+    if (banUserResponse?.status === 200) {
+      return {
+        status: true,
+        message: "user banned",
+      };
+    } else {
+      return {
+        status: false,
+        messge: "error",
+      };
+    }
+  } catch (error) {
+    return {
+      status: false,
+      message: error.message,
+    };
+  }
+};
+
+export { getUsers, getUser, deleteUser, getUsersPagination, banUser };

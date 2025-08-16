@@ -47,8 +47,6 @@ const OrderScreen = () => {
   const [status, setStatus] = useState("");
   const [price, setPrice] = useState("");
 
-  const [driversList, setDriversList] = useState([]);
-  const [driver, setDriver] = useState({});
   const [updateDriverMode, setUpdateDriverMode] = useState(false);
   const [payment_status, setPaymentStatus] = useState(null);
 
@@ -243,6 +241,38 @@ const OrderScreen = () => {
               </Text>
             </View>
           </View>
+          {order.promoCode?.type === "free_item" && (
+            <View>
+              <Text
+                style={{
+                  fontFamily: Fonts.LATO_BOLD,
+                  fontSize: 24,
+                  marginTop: 20,
+                }}
+              >
+                Code Promo (Article gratuit)
+              </Text>
+              <View
+                style={{
+                  backgroundColor: "white",
+                  borderRadius: 10,
+                  padding: 15,
+                  marginTop: 10,
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: Fonts.LATO_REGULAR,
+                    fontSize: 20,
+                    marginLeft: 10,
+                    textAlign: "center",
+                  }}
+                >
+                  {order.promoCode?.freeItem.name}
+                </Text>
+              </View>
+            </View>
+          )}
           <View>
             <Text
               style={{
@@ -796,6 +826,37 @@ const OrderScreen = () => {
                       article(s)
                     </Text>
                   </View>
+                  {order.promoCode && (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        marginTop: 10,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: Fonts.LATO_BOLD,
+                          fontSize: 20,
+                        }}
+                      >
+                        Code promo:
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: Fonts.LATO_REGULAR,
+                          fontSize: 20,
+                          marginLeft: 10,
+                        }}
+                      >
+                        {order.promoCode.type === "free_item"
+                          ? "Article gratuit"
+                          : order.promoCode.type === "percent"
+                          ? `${order.promoCode.percent}% de réduction`
+                          : `${order.promoCode.amount} $ de réduction`}
+                      </Text>
+                    </View>
+                  )}
                 </View>
                 <View style={{ flex: 1 / 2 }}>
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
