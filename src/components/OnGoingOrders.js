@@ -15,28 +15,25 @@ import Spinner from "./Spinner";
 
 const OnGoingOrders = ({ orders, setRefresh }) => {
   const navigation = useNavigation();
-  const [confirming, setConfirming] = React.useState(false);
+  const [confirmingMap, setConfirmingMap] = React.useState({}); // { [orderId]: boolean }
 
   const confirm = async (id) => {
-    setConfirming(true);
+    if (confirmingMap[id]) return; // guard
+    setConfirmingMap((m) => ({ ...m, [id]: true }));
     try {
       const response = await confirmOrder(id);
-
-      if (response.status) {
-      } else {
-        console.log(response.message);
-        Alert.alert("Une erreur s'est produite");
+      if (!response.status) {
+        Alert.alert("Échec de la confirmation");
       }
-    } catch (e) {
-      Alert.alert("Une erreur s'est produite");
+    } catch {
+      Alert.alert("Erreur", "Une erreur s'est produite");
     } finally {
       setRefresh((prev) => prev + 1);
-      setConfirming(false);
+      setConfirmingMap((m) => ({ ...m, [id]: false }));
     }
   };
   return (
     <View style={{ flex: 1, width: "100%" }}>
-      {confirming && <Spinner visibility={confirming} />}
       <Text
         style={{
           fontFamily: Fonts.BEBAS_NEUE,
@@ -119,18 +116,33 @@ const OnGoingOrders = ({ orders, setRefresh }) => {
                 {!order.confirmed && (
                   <TouchableOpacity
                     style={{
-                      backgroundColor: "black",
+                      backgroundColor: confirmingMap[order._id]
+                        ? "#999"
+                        : "black",
                       justifyContent: "center",
                       alignItems: "center",
                       paddingHorizontal: 24,
                       paddingVertical: 8,
                       borderWidth: 1,
                       borderColor: "white",
+                      opacity: confirmingMap[order._id] ? 0.6 : 1,
                     }}
                     onPress={() => confirm(order._id)}
+                    disabled={!!confirmingMap[order._id]}
                   >
-                    <Text style={{ color: "white" }}>Confirmer</Text>
+                    <Text style={{ color: "white" }}>
+                      {confirmingMap[order._id]
+                        ? "Confirmation..."
+                        : "Confirmer"}
+                    </Text>
                   </TouchableOpacity>
+                )}
+                {order.confirmed && (
+                  <Text
+                    style={{ fontSize: 16, fontFamily: Fonts.LATO_REGULAR }}
+                  >
+                    {order.status}
+                  </Text>
                 )}
               </View>
             );

@@ -11,16 +11,15 @@
       "resizeMode": "contain",
       "backgroundColor": "#F7A600"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         }
-      }
+      },
+      "bundleIdentifier": "com.hedilarbi95.lecourteaudashboard"
     },
     "android": {
       "softwareKeyboardLayoutMode": "pan",
@@ -35,7 +34,21 @@
       },
       "googleServicesFile": "./google-services.json",
       "package": "com.hedilarbi95.lecourteaudashboard",
-      "usesCleartextTraffic": true
+      "usesCleartextTraffic": true,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.INTERNET",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -52,9 +65,7 @@
         {
           "icon": "./assets/notification_icon.png",
           "color": "#000000",
-          "sounds": [
-            "./assets/sounds/notificationsound.wav"
-          ]
+          "sounds": ["./assets/sounds/notificationsound.wav"]
         }
       ],
       [

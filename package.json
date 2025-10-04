@@ -17,6 +17,7 @@
     "@reduxjs/toolkit": "^1.9.5",
     "axios": "^1.6.2",
     "expo": "^52.0.0",
+    "expo-av": "~15.0.2",
     "expo-build-properties": "~0.13.3",
     "expo-constants": "~17.0.8",
     "expo-dev-client": "~5.0.20",
@@ -34,17 +35,18 @@
     "react-native": "0.76.9",
     "react-native-chart-kit": "^6.12.0",
     "react-native-element-dropdown": "^2.9.0",
+    "react-native-esc-pos-printer": "^4.4.3",
     "react-native-gesture-handler": "~2.20.2",
     "react-native-google-places-autocomplete": "^2.5.6",
     "react-native-maps": "1.18.0",
     "react-native-maps-directions": "^1.9.0",
+    "react-native-permissions": "^5.4.2",
     "react-native-reanimated": "~3.16.1",
     "react-native-safe-area-context": "4.12.0",
     "react-native-screens": "~4.4.0",
     "react-native-svg": "15.8.0",
     "react-native-table-component": "^1.2.2",
-    "react-redux": "^8.1.2",
-    "expo-av": "~15.0.2"
+    "react-redux": "^8.1.2"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

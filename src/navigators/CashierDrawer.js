@@ -1,5 +1,5 @@
 import { createDrawerNavigator } from "@react-navigation/drawer";
-import HomeScreen from "../screens/HomeScreen";
+
 import { Colors, Fonts } from "../constants";
 import CustomDrawer from "../components/CustomDrawer";
 import {

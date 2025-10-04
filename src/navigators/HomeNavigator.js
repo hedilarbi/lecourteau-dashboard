@@ -4,6 +4,7 @@ import React from "react";
 import OrderScreen from "../screens/OrderScreen";
 
 import HomeScreen from "../screens/HomeScreen";
+import TestPrinter from "../screens/TestPrinter";
 
 const HomeNav = () => {
   const Stack = createNativeStackNavigator();
@@ -20,6 +21,11 @@ const HomeNav = () => {
         name="Order"
         component={OrderScreen}
         options={{ title: "Commande" }}
+      />
+      <Stack.Screen
+        name="PrinterTest"
+        component={TestPrinter}
+        options={{ title: "Test d'impression" }}
       />
     </Stack.Navigator>
   );

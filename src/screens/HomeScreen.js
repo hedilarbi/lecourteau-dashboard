@@ -5,6 +5,8 @@ import {
   ActivityIndicator,
   ScrollView,
   Pressable,
+  Touchable,
+  TouchableOpacity,
 } from "react-native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { getInitialStats, getRestaurantStats } from "../services/statsServices";
@@ -14,13 +16,14 @@ import OnGoingOrders from "../components/OnGoingOrders";
 import { selectStaffData } from "../redux/slices/StaffSlice";
 import { useSelector } from "react-redux";
 import StaffCard from "../components/StaffCard";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import RefreshButton from "../components/buttons/RefreshButton";
 import { selectGlobalRefresh } from "../redux/slices/globalRefreshSlice";
 import StatsCard from "../components/StatsCard";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { convertDateToDDMMYYYY } from "../utils/dateHandlers";
 const HomeScreen = () => {
+  const navigation = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
   const [refresh, setRefresh] = useState(0);
   const [usersCount, setUsersCount] = useState(null);
@@ -172,6 +175,21 @@ const HomeScreen = () => {
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: 20 }}
       >
+        <TouchableOpacity
+          style={{ marginBottom: 20 }}
+          onPress={() => navigation.navigate("PrinterTest")}
+        >
+          <Text
+            style={{
+              fontFamily: Fonts.LATO_BOLD,
+              fontSize: 20,
+              color: Colors.primary,
+              marginBottom: 10,
+            }}
+          >
+            Test d'impression
+          </Text>
+        </TouchableOpacity>
         <View
           style={{
             flexDirection: "row",
