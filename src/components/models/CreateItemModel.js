@@ -1,12 +1,16 @@
 import {
   ActivityIndicator,
   Image,
-  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
+  ScrollView,
+  Modal,
+  useWindowDimensions,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { AntDesign } from "@expo/vector-icons";
@@ -15,22 +19,27 @@ import { Colors, Fonts } from "../../constants";
 import { Entypo } from "@expo/vector-icons";
 import { getCategories } from "../../services/MenuItemServices";
 import { getToppings } from "../../services/ToppingsServices";
+import { getToppingGroups } from "../../services/ToppingGroupsServices";
 import { API_URL } from "@env";
 import * as ImagePicker from "expo-image-picker";
 import AddToppingModel from "./AddToppingModel";
 import SuccessModel from "./SuccessModel";
 
 import mime from "mime";
-import AddMenuItemPrice from "./AddMenuItemPrice";
 import FailModel from "./FailModel";
-import { getSizes } from "../../services/SizesServices";
+import { getSizesGroups } from "../../services/sizesGroupeServices";
 
 const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
+  const { height: windowHeight } = useWindowDimensions();
+  const modalHeight = Math.min(windowHeight * 0.9, 900);
   const [showAddCategoryModel, setShowAddCategoryModel] = useState(false);
   const [categories, setCategories] = useState([]);
   const [toppings, setToppings] = useState([]);
   const [isLoading, setIsloading] = useState(true);
   const [customizationsNames, setCustomizationsNames] = useState([]);
+  const [toppingGroups, setToppingGroups] = useState([]);
+  const [selectedToppingGroupId, setSelectedToppingGroupId] = useState("");
+  const [selectedToppingGroupName, setSelectedToppingGroupName] = useState("");
   const [categoriesNames, setCategoriesNames] = useState([]);
   const [showSuccessModel, setShowSuccessModel] = useState(false);
   const [name, setName] = useState("");
@@ -38,39 +47,50 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
   const [image, setImage] = useState("");
   const [categoryName, setCategoryName] = useState("");
   const [description, setDescription] = useState("");
-  const [showAddPriceModal, setShowAddPriceModal] = useState(false);
-  const [sizes, setSizes] = useState([]);
-  const [prices, setPrices] = useState([]);
+  const [sizeGroups, setSizeGroups] = useState([]);
+  const [selectedGroupId, setSelectedGroupId] = useState("");
+  const [groupSizes, setGroupSizes] = useState([]);
+  const [sizePrices, setSizePrices] = useState({});
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
 
   const fetchData = async () => {
     try {
-      const [categoriesResponse, toppingResponse, sizeResponse] =
-        await Promise.all([getCategories(), getToppings(), getSizes()]);
+      const [
+        categoriesResponse,
+        toppingResponse,
+        sizeGroupsResponse,
+        toppingGroupsResponse,
+      ] = await Promise.all([
+        getCategories(),
+        getToppings(),
+        getSizesGroups(),
+        getToppingGroups(),
+      ]);
 
       if (categoriesResponse?.status) {
         setCategories(categoriesResponse?.data);
-        categoriesResponse?.data.map((item) =>
-          categoriesNames.push({ value: item.name, label: item.name })
-        );
+        const mappedCats =
+          categoriesResponse?.data.map((item) => ({
+            value: item.name,
+            label: item.name,
+          })) || [];
+        setCategoriesNames(mappedCats);
       } else {
         console.error("Categories data not found:", categoriesResponse.message);
-      }
-
-      if (sizeResponse?.status) {
-        setSizes(
-          sizeResponse?.data.map((size) => ({
-            label: size.name,
-            value: size.name,
-          }))
-        );
       }
 
       if (toppingResponse?.status) {
         setToppings(toppingResponse?.data);
       } else {
         console.error("topping data not found:", toppingResponse.message);
+      }
+
+      if (sizeGroupsResponse?.status) {
+        setSizeGroups(sizeGroupsResponse?.data || []);
+      }
+
+      if (toppingGroupsResponse?.status) {
+        setToppingGroups(toppingGroupsResponse?.data || []);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -83,6 +103,27 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
     fetchData();
   }, []);
 
+  const handleSelectGroup = (groupId) => {
+    setSelectedGroupId(groupId);
+    const group = sizeGroups.find((g) => g._id === groupId);
+    const mappedSizes = group?.sizes || [];
+    setGroupSizes(mappedSizes);
+    setSizePrices((prev) => {
+      const next = { ...prev };
+      mappedSizes.forEach((size) => {
+        if (next[size._id] === undefined) {
+          next[size._id] = "";
+        }
+      });
+      return next;
+    });
+  };
+
+  const handlePriceChange = (sizeId, value) => {
+    const normalized = value.replace(",", ".");
+    setSizePrices((prev) => ({ ...prev, [sizeId]: normalized }));
+  };
+
   const saveItem = async () => {
     if (image.length < 1) {
       setError("Image de l'article manquante");
@@ -92,18 +133,37 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
       setError("Nom de l'article manquant");
       return;
     }
-    if (prices.length < 1) {
-      setError("Ajouter au moin un prix ");
-      return;
-    }
     if (description.length < 1) {
       setError("Description de l'article manquante");
       return;
     }
-    if (categoriesNames.length < 1) {
+    if (!categoryName) {
       setError("Catégorie de l'article manquante");
       return;
     }
+    if (!selectedGroupId) {
+      setError("Sélectionnez un groupe de tailles");
+      return;
+    }
+    if (groupSizes.length < 1) {
+      setError("Le groupe choisi ne contient pas de tailles");
+      return;
+    }
+    const pricesPayload = [];
+    for (const size of groupSizes) {
+      const value = sizePrices[size._id];
+      if (value === undefined || value === null || value === "") {
+        setError(`Ajoutez un prix pour ${size.name}`);
+        return;
+      }
+      const numericPrice = parseFloat(value);
+      if (Number.isNaN(numericPrice)) {
+        setError(`Prix invalide pour ${size.name}`);
+        return;
+      }
+      pricesPayload.push({ size: size.name, price: numericPrice });
+    }
+
     let categoryId = "";
     categories.map((item) => {
       if (item.name === categoryName) {
@@ -113,6 +173,8 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
     const customization = customizationsNames.map((item) => {
       return item._id;
     });
+    const customizationGroup = selectedToppingGroupId || "";
+    setError("");
     const formdata = new FormData();
     if (image) {
       formdata.append("file", {
@@ -122,7 +184,8 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
       });
     }
     formdata.append("customization", JSON.stringify(customization));
-    formdata.append("prices", JSON.stringify(prices));
+    formdata.append("customizationGroup", customizationGroup);
+    formdata.append("prices", JSON.stringify(pricesPayload));
     formdata.append("name", name);
     formdata.append("category", categoryId);
     formdata.append("description", description);
@@ -143,8 +206,6 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
 
       setShowSuccessModel(true);
     } catch (err) {
-      console.error("Error saving item:", err);
-      setMessage(err.message);
       setShowFailModal(true);
     } finally {
       setIsloading(false);
@@ -162,11 +223,6 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
     if (!result.canceled) {
       setImage(result.assets[0].uri);
     }
-  };
-  const deletePrice = (index) => {
-    const newPrices = [...prices];
-    newPrices.splice(index, 1);
-    setPrices(newPrices);
   };
   const deleteCustomization = (index) => {
     const newCustomizations = [...customizationsNames];
@@ -194,308 +250,240 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
     }
   }, [showFailModal]);
   return (
-    <View style={styles.container}>
-      {showSuccessModel && <SuccessModel />}
-      {showFailModal && <FailModel message={message} />}
-      {isLoading && (
-        <View
-          style={{
-            flex: 1,
-            position: "absolute",
-            top: 0,
-            width: "100%",
-            height: "100%",
-            left: 0,
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 100000,
-            backgroundColor: "rgba(0,0,0,0.4)",
-          }}
-        >
-          <ActivityIndicator size={"large"} color="black" />
-        </View>
-      )}
-      {showAddCategoryModel && (
-        <AddToppingModel
-          setShowAddCategoryModel={setShowAddCategoryModel}
-          toppings={toppings}
-          setCustomizationsNames={setCustomizationsNames}
-          customizationsNames={customizationsNames}
-        />
-      )}
-      <AddMenuItemPrice
-        setModalVisible={setShowAddPriceModal}
-        modalVisible={showAddPriceModal}
-        category={categoryName}
-        setPrices={setPrices}
-        prices={prices}
-        sizes={sizes}
-      />
-      <View style={styles.model}>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-            Ajouter un article
-          </Text>
+    <Modal
+      visible
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={() => setShowCreateItemModel(false)}
+    >
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        {showSuccessModel && <SuccessModel />}
+        {showFailModal && (
+          <FailModel message="Oops ! Quelque chose s'est mal passé" />
+        )}
+        {isLoading && (
+          <View
+            style={{
+              flex: 1,
+              position: "absolute",
+              top: 0,
+              width: "100%",
+              height: "100%",
+              left: 0,
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 100000,
+              backgroundColor: "rgba(0,0,0,0.4)",
+            }}
+          >
+            <ActivityIndicator size={"large"} color="black" />
+          </View>
+        )}
+        {showAddCategoryModel && (
+          <AddToppingModel
+            setShowAddCategoryModel={setShowAddCategoryModel}
+            toppings={toppings}
+            setCustomizationsNames={setCustomizationsNames}
+            customizationsNames={customizationsNames}
+          />
+        )}
+        <View style={[styles.model, { height: modalHeight }]}>
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.title}>Ajouter un article</Text>
+            <Text style={styles.subtitle}>
+              Ajoutez l'image, les infos, puis associez prix et
+              personnalisations.
+            </Text>
+          </View>
           <TouchableOpacity
-            style={{ alignSelf: "flex-end" }}
+            style={styles.closeButton}
             onPress={() => setShowCreateItemModel(false)}
           >
-            <AntDesign name="close" size={40} color="gray" />
+            <AntDesign name="close" size={28} color="#6B7280" />
           </TouchableOpacity>
         </View>
+        {error.length > 0 && <Text style={styles.errorBanner}>{error}</Text>}
+
         <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 12 }}
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
         >
-          {error.length > 0 && (
-            <Text
-              style={{
-                fontFamily: Fonts.LATO_BOLD,
-                fontSize: 20,
-                textAlign: "center",
-                color: "red",
-              }}
-            >
-              {error}
-            </Text>
-          )}
-
-          <View>
-            <View>
-              <View style={{ flexDirection: "row" }}>
-                <TouchableOpacity
-                  style={{
-                    width: 200,
-                    height: 200,
-                    borderRadius: 16,
-                    backgroundColor: "gray",
-                    marginTop: 20,
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                  onPress={pickImage}
-                >
-                  {image ? (
-                    <Image
-                      source={{ uri: image }}
-                      style={{
-                        resizeMode: "cover",
-                        width: "100%",
-                        height: "100%",
-                        borderRadius: 16,
-                      }}
-                    />
-                  ) : (
-                    <Entypo name="camera" size={48} color="black" />
-                  )}
-                </TouchableOpacity>
-                <View
-                  style={{ marginLeft: 40, justifyContent: "space-between" }}
-                >
-                  <View style={styles.name}>
-                    <Text style={styles.text}>Nom</Text>
-                    <TextInput
-                      style={{
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        paddingHorizontal: 5,
-                        paddingVertical: 8,
-                        width: "50%",
-                        borderWidth: 2,
-
-                        borderColor: Colors.primary,
-                        marginLeft: 20,
-                      }}
-                      placeholder="Item Name"
-                      onChangeText={(text) => setName(text)}
-                    />
+          <View style={styles.formGrid}>
+            <View style={styles.leftColumn}>
+              <Text style={styles.sectionTitle}>Image</Text>
+              <TouchableOpacity style={styles.imageUpload} onPress={pickImage}>
+                {image ? (
+                  <Image source={{ uri: image }} style={styles.imagePreview} />
+                ) : (
+                  <View style={{ alignItems: "center", gap: 8 }}>
+                    <Entypo name="camera" size={36} color="#6B7280" />
+                    <Text style={styles.uploadLabel}>
+                      Cliquez pour importer
+                    </Text>
+                    <Text style={styles.uploadHint}>JPG ou PNG</Text>
                   </View>
-                  <View style={styles.name}>
-                    <Text style={styles.text}>Description</Text>
-                    <TextInput
-                      style={{
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        paddingHorizontal: 5,
-                        paddingVertical: 8,
-                        flex: 1,
-                        borderWidth: 2,
+                )}
+              </TouchableOpacity>
 
-                        borderColor: Colors.primary,
-                        marginLeft: 20,
-                      }}
-                      placeholder="Description"
-                      onChangeText={(text) => setDescription(text)}
-                    />
-                  </View>
-                  <View style={styles.name}>
-                    <Text style={styles.text}>Categorie</Text>
-                    <Dropdown
-                      style={[styles.dropdown]}
-                      placeholderStyle={styles.placeholderStyle}
-                      selectedTextStyle={styles.selectedTextStyle}
-                      selectedStyle={styles.selectedStyle}
-                      itemContainerStyle={styles.itemContainerStyle}
-                      itemTextStyle={styles.itemTextStyle}
-                      containerStyle={styles.containerStyle}
-                      data={categoriesNames}
-                      maxHeight={300}
-                      labelField="label"
-                      valueField="label"
-                      placeholder="Catégorie"
-                      value={categoryName}
-                      onChange={(item) => {
-                        setCategoryName(item.label);
-                      }}
-                    />
-                  </View>
-                </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>Nom</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ex: Pizza Margherita"
+                  placeholderTextColor="#9CA3AF"
+                  onChangeText={(text) => setName(text)}
+                  value={name}
+                />
               </View>
 
-              <View style={styles.customizations}>
-                <Text style={styles.text}>Prix</Text>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    gap: 20,
-                    marginTop: 20,
-                  }}
-                >
-                  {prices.map((price, index) => (
-                    <View
-                      style={{
-                        borderWidth: 1,
-                        borderRadius: 5,
-                        backgroundColor: "white",
-                        paddingHorizontal: 10,
-                        paddingVertical: 10,
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 5,
-                        marginTop: 10,
-                      }}
-                      key={index}
-                    >
-                      <Text
-                        style={{
-                          fontFamily: Fonts.LATO_BOLD,
-                          fontSize: 16,
-                          textTransform: "capitalize",
-                        }}
-                      >
-                        {price.size}
-                      </Text>
-                      <Text
-                        style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 16 }}
-                      >
-                        {price.price} $
-                      </Text>
-                      <TouchableOpacity
-                        style={{ alignSelf: "flex-end", marginLeft: 10 }}
-                        onPress={() => deletePrice(index)}
-                      >
-                        <AntDesign name="close" size={24} color="gray" />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                  <TouchableOpacity
-                    style={{
-                      backgroundColor: Colors.primary,
-                      paddingHorizontal: 40,
-                      paddingVertical: 10,
-                      flexDirection: "row",
-                      gap: 10,
-                      alignItems: "center",
-                      marginTop: 10,
-                      borderRadius: 5,
-                    }}
-                    onPress={() => setShowAddPriceModal(true)}
-                  >
-                    <Entypo name="plus" size={24} color="black" />
-                    <Text style={styles.text}>Ajouter</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View style={styles.customizations}>
-                <Text style={styles.text}>Personalisations</Text>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    gap: 20,
-                    marginTop: 20,
-                  }}
-                >
-                  {customizationsNames.map((customization, index) => (
-                    <View
-                      style={{
-                        borderWidth: 1,
-                        borderRadius: 5,
-                        backgroundColor: "white",
-                        paddingHorizontal: 10,
-                        paddingVertical: 10,
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 5,
-                        marginTop: 10,
-                      }}
-                      key={index}
-                    >
-                      <Text style={styles.text}>{customization.name}</Text>
-
-                      <TouchableOpacity
-                        style={{ alignSelf: "flex-end", marginLeft: 10 }}
-                        onPress={() => deleteCustomization(index)}
-                      >
-                        <AntDesign name="close" size={24} color="gray" />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                  <TouchableOpacity
-                    style={{
-                      backgroundColor: Colors.primary,
-                      paddingHorizontal: 40,
-                      paddingVertical: 10,
-                      flexDirection: "row",
-                      gap: 10,
-                      alignItems: "center",
-                      marginTop: 10,
-                      borderRadius: 5,
-                    }}
-                    onPress={() => setShowAddCategoryModel(true)}
-                  >
-                    <Entypo name="plus" size={24} color="black" />
-                    <Text style={styles.text}>Ajouter</Text>
-                  </TouchableOpacity>
-                </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>Description</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Décrivez brièvement l'article."
+                  placeholderTextColor="#9CA3AF"
+                  onChangeText={(text) => setDescription(text)}
+                  value={description}
+                  multiline
+                  numberOfLines={4}
+                />
               </View>
             </View>
-            <TouchableOpacity
-              style={{
-                marginTop: 40,
-                alignSelf: "flex-end",
-                backgroundColor: Colors.primary,
-                paddingHorizontal: 60,
-                paddingVertical: 10,
-                borderRadius: 5,
-              }}
-              onPress={saveItem}
-            >
-              <Text style={styles.text}>Sauvegarder</Text>
-            </TouchableOpacity>
+
+            <View style={styles.rightColumn}>
+              <View style={styles.field}>
+                <Text style={styles.label}>Catégorie</Text>
+                <Dropdown
+                  style={styles.dropdown}
+                  placeholderStyle={styles.placeholderStyle}
+                  selectedTextStyle={styles.selectedTextStyle}
+                  itemContainerStyle={styles.itemContainerStyle}
+                  itemTextStyle={styles.itemTextStyle}
+                  containerStyle={styles.containerStyle}
+                  data={categoriesNames}
+                  maxHeight={300}
+                  labelField="label"
+                  valueField="value"
+                  placeholder="Sélectionner une catégorie"
+                  value={categoryName}
+                  onChange={(item) => {
+                    setCategoryName(item.value);
+                  }}
+                />
+              </View>
+
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.sectionTitle}>Prix par taille</Text>
+                  <Text style={styles.cardSubtitle}>
+                    Choisissez un groupe et renseignez un prix pour chaque
+                    taille.
+                  </Text>
+                </View>
+                <Dropdown
+                  style={[styles.dropdown, { marginTop: 6 }]}
+                  placeholderStyle={styles.placeholderStyle}
+                  selectedTextStyle={styles.selectedTextStyle}
+                  itemContainerStyle={styles.itemContainerStyle}
+                  itemTextStyle={styles.itemTextStyle}
+                  containerStyle={styles.containerStyle}
+                  data={sizeGroups.map((g) => ({
+                    label: g.name,
+                    value: g._id,
+                  }))}
+                  maxHeight={300}
+                  labelField="label"
+                  valueField="value"
+                  placeholder="Sélectionner un groupe de tailles"
+                  value={selectedGroupId}
+                  onChange={(item) => handleSelectGroup(item.value)}
+                />
+                <View style={styles.sizeList}>
+                  {selectedGroupId && groupSizes.length > 0 ? (
+                    groupSizes.map((size) => (
+                      <View key={size._id} style={styles.sizeRow}>
+                        <Text style={styles.sizeLabel}>{size.name}</Text>
+                        <TextInput
+                          style={styles.priceInput}
+                          placeholder="Prix"
+                          placeholderTextColor="#9CA3AF"
+                          keyboardType="decimal-pad"
+                          value={
+                            sizePrices[size._id] !== undefined
+                              ? String(sizePrices[size._id])
+                              : ""
+                          }
+                          onChangeText={(text) =>
+                            handlePriceChange(size._id, text)
+                          }
+                        />
+                      </View>
+                    ))
+                  ) : (
+                    <View style={styles.emptyBox}>
+                      <Text style={styles.emptyTitle}>
+                        Sélectionnez un groupe de tailles
+                      </Text>
+                      <Text style={styles.emptySubtitle}>
+                        Les tailles du groupe apparaîtront ici avec un champ
+                        prix.
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.sectionTitle}>Personnalisations</Text>
+                </View>
+                <Dropdown
+                  style={styles.dropdown}
+                  placeholderStyle={styles.placeholderStyle}
+                  selectedTextStyle={styles.selectedTextStyle}
+                  itemContainerStyle={styles.itemContainerStyle}
+                  itemTextStyle={styles.itemTextStyle}
+                  containerStyle={styles.containerStyle}
+                  data={toppingGroups.map((g) => ({
+                    label: g.name,
+                    value: g._id,
+                  }))}
+                  maxHeight={300}
+                  labelField="label"
+                  valueField="value"
+                  placeholder="Sélectionner un groupe de personnalisations"
+                  value={selectedToppingGroupId}
+                onChange={(item) => {
+                  setSelectedToppingGroupId(item.value);
+                  const found = toppingGroups.find((g) => g._id === item.value);
+                  setSelectedToppingGroupName(found?.name || "");
+                }}
+                />
+                {selectedToppingGroupName ? (
+                  <View style={styles.infoBadge}>
+                    <Text style={styles.infoBadgeText}>
+                      Groupe sélectionné : {selectedToppingGroupName}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
           </View>
         </ScrollView>
+        <TouchableOpacity style={styles.saveButton} onPress={saveItem}>
+          <Text style={styles.saveLabel}>Ajouter</Text>
+        </TouchableOpacity>
       </View>
-    </View>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 };
 
@@ -511,82 +499,305 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(50,44,44,0.4)",
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 100,
+    zIndex: 30,
   },
   model: {
     backgroundColor: "white",
-    borderRadius: 10,
-    paddingVertical: 40,
-    paddingHorizontal: 40,
-    width: "90%",
-    height: "90%",
+    borderRadius: 16,
+    paddingVertical: 24,
+    paddingHorizontal: 24,
+    width: "95%",
+    maxWidth: 1100,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  image: { flexDirection: "row", marginTop: 40, alignItems: "center" },
-  text: {
-    fontFamily: Fonts.LATO_BOLD,
-    fontSize: 20,
-  },
-  name: {
+  headerRow: {
     flexDirection: "row",
-    marginTop: 20,
+    justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 12,
   },
-
+  title: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 24,
+    color: "#111827",
+  },
+  subtitle: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 4,
+  },
+  closeButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.gry,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  errorBanner: {
+    backgroundColor: "rgba(225,79,79,0.12)",
+    borderColor: "rgba(225,79,79,0.4)",
+    borderWidth: 1,
+    color: Colors.danger,
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+  scroll: { flex: 1 },
+  scrollContent: {
+    paddingBottom: 20,
+    gap: 20,
+    flexGrow: 1,
+  },
+  formGrid: {
+    flexDirection: "row",
+    gap: 18,
+    flexWrap: "wrap",
+  },
+  leftColumn: {
+    flex: 1,
+    gap: 14,
+  },
+  rightColumn: {
+    flex: 1,
+    gap: 16,
+  },
+  sectionTitle: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 16,
+    color: "#111827",
+  },
+  imageUpload: {
+    width: "100%",
+    aspectRatio: 1,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: Colors.border,
+    backgroundColor: Colors.gry,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 14,
+  },
+  imagePreview: {
+    resizeMode: "cover",
+    width: "100%",
+    height: "100%",
+    borderRadius: 12,
+  },
+  uploadLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 15,
+    color: "#374151",
+  },
+  uploadHint: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 13,
+    color: "#9CA3AF",
+  },
+  field: {
+    gap: 6,
+  },
+  label: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 15,
+    color: "#111827",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 15,
+    backgroundColor: Colors.gry,
+    color: "#111827",
+  },
+  textArea: {
+    height: 120,
+    textAlignVertical: "top",
+  },
   dropdown: {
-    height: 40,
-    width: 300,
-    borderColor: Colors.primary,
-    borderWidth: 2,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-
-    marginLeft: 20,
-  },
-  selectedStyle: {
-    height: 18,
-  },
-  icon: {
-    marginRight: 5,
+    height: 46,
+    borderColor: Colors.border,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: Colors.gry,
   },
   itemContainerStyle: {
-    padding: 0,
-    margin: 0,
+    paddingVertical: 8,
   },
   itemTextStyle: {
-    fontSize: 18,
-    padding: 0,
-    margin: 0,
+    fontSize: 15,
+    fontFamily: Fonts.LATO_REGULAR,
+    color: "#111827",
   },
   containerStyle: {
-    paddingHorizontal: 0,
-    margin: 0,
+    marginTop: -25,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
-
   placeholderStyle: {
-    fontSize: 18,
+    fontSize: 15,
     fontFamily: Fonts.LATO_REGULAR,
+    color: "#9CA3AF",
   },
   selectedTextStyle: {
-    fontSize: 18,
-    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 15,
+    fontFamily: Fonts.LATO_BOLD,
+    color: "#111827",
   },
-  priceBox: {
+  card: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 14,
     backgroundColor: "white",
+    padding: 14,
+    gap: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cardHeader: {
+    gap: 2,
+  },
+  cardSubtitle: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 13,
+    color: "#6B7280",
+  },
+  sizeList: {
+    gap: 10,
+  },
+  sizeRow: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     borderWidth: 1,
-    borderRadius: 5,
-    padding: 5,
-    marginTop: 20,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: Colors.gry,
   },
-  prices: { marginTop: 40 },
+  sizeLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#111827",
+  },
   priceInput: {
+    width: 140,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: "white",
     fontFamily: Fonts.LATO_REGULAR,
-    fontSize: 18,
-    paddingLeft: 10,
-    paddingRight: 10,
+    fontSize: 14,
+    color: "#111827",
+    textAlign: "right",
   },
-  customizations: {
-    marginTop: 40,
+  emptyBox: {
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: Colors.border,
+    borderRadius: 12,
+    padding: 14,
+    backgroundColor: Colors.gry,
+    gap: 4,
+  },
+  emptyTitle: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#111827",
+  },
+  emptySubtitle: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 13,
+    color: "#6B7280",
+  },
+  infoBadge: {
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: Colors.gry,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  infoBadgeText: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#1b1b1b",
+  },
+  customizationList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  pill: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: Colors.gry,
+  },
+  pillText: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#111827",
+  },
+  addPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.primary,
+  },
+  addPillText: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#1b1b1b",
+  },
+  saveButton: {
+    alignSelf: "flex-end",
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 26,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  saveLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 16,
+    color: "#1b1b1b",
   },
 });

@@ -54,122 +54,81 @@ const AddItemModel = ({ setItems, menuItems, setShowAddItemModel }) => {
     setShowAddItemModel(false);
   };
   return (
-    <View
-      style={{
-        position: "absolute",
-        alignSelf: "center",
-        justifySelf: "center",
-        zIndex: 2000,
-        borderWidth: 2,
-        borderColor: Colors.primary,
-        borderRadius: 16,
-        backgroundColor: "white",
-        paddingRight: 20,
-        paddingLeft: 20,
-        paddingVertical: 20,
-        width: 500,
-      }}
-    >
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-          Ajouter un article
-        </Text>
-        <TouchableOpacity onPress={() => setShowAddItemModel(false)}>
-          <AntDesign name="close" size={40} color="gray" />
+    <View style={styles.overlay}>
+      <View style={styles.card}>
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.title}>Ajouter un article</Text>
+            <Text style={styles.subtitle}>
+              Sélectionnez l'article, la taille et la quantité.
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setShowAddItemModel(false)}
+          >
+            <AntDesign name="close" size={28} color="#6B7280" />
+          </TouchableOpacity>
+        </View>
+
+        {error.length > 0 && <Text style={styles.errorBanner}>{error}</Text>}
+
+        <View style={styles.field}>
+          <Text style={styles.label}>Article</Text>
+          <Dropdown
+            style={styles.dropdown}
+            placeholderStyle={styles.placeholderStyle}
+            selectedTextStyle={styles.selectedTextStyle}
+            itemContainerStyle={styles.itemContainerStyle}
+            itemTextStyle={styles.itemTextStyle}
+            containerStyle={styles.containerStyle}
+            data={menuItems}
+            maxHeight={260}
+            labelField="label"
+            valueField="label"
+            placeholder="Sélectionner un article"
+            value={item.name}
+            ref={itemRef}
+            onChange={(item) => setItem({ _id: item.value, name: item.label })}
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.label}>Taille</Text>
+          <Dropdown
+            style={styles.dropdown}
+            placeholderStyle={styles.placeholderStyle}
+            selectedTextStyle={styles.selectedTextStyle}
+            itemContainerStyle={styles.itemContainerStyle}
+            itemTextStyle={styles.itemTextStyle}
+            containerStyle={styles.containerStyle}
+            data={sizes}
+            maxHeight={260}
+            labelField="label"
+            valueField="label"
+            placeholder="Sélectionner une taille"
+            value={size}
+            ref={sizeRef}
+            onChange={(item) => setSize(item.value)}
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.label}>Quantité</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="0"
+            placeholderTextColor="#9CA3AF"
+            ref={quantityRef}
+            keyboardType="numeric"
+            onChangeText={(text) => setQuantity(text)}
+          />
+        </View>
+
+        <TouchableOpacity style={styles.saveButton} onPress={addItem}>
+          <Text style={styles.saveLabel}>Ajouter</Text>
         </TouchableOpacity>
       </View>
-      {error.length > 0 && (
-        <Text
-          style={{
-            fontFamily: Fonts.LATO_BOLD,
-            fontSize: 20,
-            color: "red",
-            textAlign: "center",
-          }}
-        >
-          {error}
-        </Text>
-      )}
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <Text style={styles.text}>article</Text>
-        <Dropdown
-          style={[styles.dropdown]}
-          placeholderStyle={styles.placeholderStyle}
-          selectedTextStyle={styles.selectedTextStyle}
-          selectedStyle={styles.selectedStyle}
-          itemContainerStyle={styles.itemContainerStyle}
-          itemTextStyle={styles.itemTextStyle}
-          containerStyle={styles.containerStyle}
-          data={menuItems}
-          maxHeight={300}
-          labelField="label"
-          valueField="label"
-          placeholder="Article"
-          value={item.name}
-          ref={itemRef}
-          onChange={(item) => setItem({ _id: item.value, name: item.label })}
-        />
-      </View>
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <Text style={styles.text}>Taille</Text>
-        <Dropdown
-          style={[styles.dropdown]}
-          placeholderStyle={styles.placeholderStyle}
-          selectedTextStyle={styles.selectedTextStyle}
-          selectedStyle={styles.selectedStyle}
-          itemContainerStyle={styles.itemContainerStyle}
-          itemTextStyle={styles.itemTextStyle}
-          containerStyle={styles.containerStyle}
-          data={sizes}
-          maxHeight={300}
-          labelField="label"
-          valueField="label"
-          placeholder="Taille"
-          value={size}
-          ref={sizeRef}
-          onChange={(item) => setSize(item.value)}
-        />
-      </View>
-      <View
-        style={{ flexDirection: "row", marginTop: 20, alignItems: "center" }}
-      >
-        <Text style={styles.text}>Quantité</Text>
-
-        <TextInput
-          style={{
-            fontFamily: Fonts.LATO_REGULAR,
-            fontSize: 20,
-            paddingVertical: 5,
-            paddingHorizontal: 8,
-            borderWidth: 2,
-            borderColor: Colors.primary,
-            marginLeft: 20,
-          }}
-          placeholder="0"
-          ref={quantityRef}
-          keyboardType="numeric"
-          onChangeText={(text) => setQuantity(text)}
-        />
-      </View>
-      <TouchableOpacity
-        style={{
-          marginTop: 40,
-          alignSelf: "flex-end",
-          backgroundColor: Colors.primary,
-          paddingHorizontal: 60,
-          paddingVertical: 10,
-          borderRadius: 5,
-        }}
-        onPress={addItem}
-      >
-        <Text style={styles.text}>Ajouter</Text>
-      </TouchableOpacity>
     </View>
   );
 };
@@ -177,47 +136,133 @@ const AddItemModel = ({ setItems, menuItems, setShowAddItemModel }) => {
 export default AddItemModel;
 
 const styles = StyleSheet.create({
-  text: {
-    fontFamily: Fonts.LATO_BOLD,
-    fontSize: 20,
+  overlay: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    top: 0,
+    left: 0,
+    backgroundColor: "rgba(50,44,44,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2000,
   },
-
-  icon: {
-    marginRight: 5,
+  card: {
+    width: "90%",
+    maxWidth: 560,
+    backgroundColor: "white",
+    borderRadius: 16,
+    paddingVertical: 24,
+    paddingHorizontal: 24,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
+    gap: 14,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  title: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 22,
+    color: "#111827",
+  },
+  subtitle: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 4,
+  },
+  closeButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.gry,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  errorBanner: {
+    backgroundColor: "rgba(225,79,79,0.12)",
+    borderColor: "rgba(225,79,79,0.4)",
+    borderWidth: 1,
+    color: Colors.danger,
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    padding: 10,
+    borderRadius: 10,
+  },
+  field: {
+    gap: 6,
+  },
+  label: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 15,
+    color: "#111827",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 15,
+    backgroundColor: Colors.gry,
+    color: "#111827",
   },
   dropdown: {
-    height: 40,
-    width: 300,
-    borderColor: Colors.primary,
-    borderWidth: 2,
-    paddingHorizontal: 5,
-    paddingVertical: 5,
-    marginLeft: 40,
-    marginVertical: 20,
-  },
-  selectedStyle: {
-    height: 18,
+    height: 46,
+    borderColor: Colors.border,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: Colors.gry,
   },
   itemContainerStyle: {
-    padding: 0,
-    margin: 0,
+    paddingVertical: 8,
   },
   itemTextStyle: {
-    fontSize: 18,
-    padding: 0,
-    margin: 0,
+    fontSize: 15,
+    fontFamily: Fonts.LATO_REGULAR,
+    color: "#111827",
   },
   containerStyle: {
-    paddingHorizontal: 0,
-    margin: 0,
+    marginTop: -25,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
 
   placeholderStyle: {
-    fontSize: 20,
+    fontSize: 15,
     fontFamily: Fonts.LATO_REGULAR,
+    color: "#9CA3AF",
   },
   selectedTextStyle: {
-    fontSize: 20,
-    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 15,
+    fontFamily: Fonts.LATO_BOLD,
+    color: "#111827",
+  },
+  saveButton: {
+    alignSelf: "flex-end",
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+  },
+  saveLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
   },
 });

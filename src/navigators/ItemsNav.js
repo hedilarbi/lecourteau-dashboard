@@ -5,6 +5,7 @@ import ItemsScreen from "../screens/ItemsScreen";
 import ItemScreen from "../screens/ItemScreen";
 import CategoriesScreen from "../screens/CategoriesScreen";
 import SizesScreen from "../screens/SizesScreen";
+import SizesGroupeScreen from "../screens/SizesGroupeScreen";
 
 const ItemsNav = () => {
   const Stack = createNativeStackNavigator();
@@ -20,17 +21,22 @@ const ItemsNav = () => {
       <Stack.Screen
         name="Item"
         component={ItemScreen}
-        options={{ title: "Article" }}
+        options={{ title: "Article", headerShown: false }}
       />
       <Stack.Screen
         name="Categories"
         component={CategoriesScreen}
-        options={{ title: "Categorie" }}
+        options={{ title: "Categorie", headerShown: false }}
       />
       <Stack.Screen
         name="Sizes"
         component={SizesScreen}
-        options={{ title: "Tailles" }}
+        options={{ title: "Tailles", headerShown: false }}
+      />
+      <Stack.Screen
+        name="SizeGroups"
+        component={SizesGroupeScreen}
+        options={{ title: "Groupes de tailles", headerShown: false }}
       />
     </Stack.Navigator>
   );

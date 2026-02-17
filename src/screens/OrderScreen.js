@@ -1,6 +1,7 @@
 import {
   ActivityIndicator,
-  Image,
+  Alert,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,8 +17,11 @@ import { Entypo } from "@expo/vector-icons";
 import useGetOrder from "../hooks/useGetOrder";
 import { convertDate } from "../utils/dateHandlers";
 import { useRoute } from "@react-navigation/native";
-import { Foundation } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import {
+  cancelUberDirectDelivery,
+  createUberDirectDelivery,
+  updateDeliveryProvider,
   updatePaymentStatus,
   updatePrice,
   updateStatus,
@@ -25,6 +29,9 @@ import {
 import SuccessModel from "../components/models/SuccessModel";
 import FailModel from "../components/models/FailModel";
 import ErrorScreen from "../components/ErrorScreen";
+import { useSelector } from "react-redux";
+import { selectStaffData, selectStaffToken } from "../redux/slices/StaffSlice";
+import BackButton from "../components/BackButton";
 
 const OrderScreen = () => {
   const route = useRoute();
@@ -39,36 +46,152 @@ const OrderScreen = () => {
     tvq,
     tps,
   } = useGetOrder(id);
+  const staff = useSelector(selectStaffData);
+  const token = useSelector(selectStaffToken);
 
-  const [updateStatusMode, setUpdateStatusMode] = useState(false);
   const [updatePriceMode, setUpdatePriceMode] = useState(false);
   const [showSuccessModel, setShowSuccessModel] = useState(false);
   const [showFailModal, setShowFailModal] = useState(false);
   const [status, setStatus] = useState("");
   const [price, setPrice] = useState("");
 
+  const [driversList, setDriversList] = useState([]);
+  const [driver, setDriver] = useState({});
   const [updateDriverMode, setUpdateDriverMode] = useState(false);
   const [payment_status, setPaymentStatus] = useState(null);
+  const [isCreatingUberDelivery, setIsCreatingUberDelivery] = useState(false);
+  const [isUpdatingDeliveryProvider, setIsUpdatingDeliveryProvider] =
+    useState(false);
+  const [isCancelingUberDelivery, setIsCancelingUberDelivery] = useState(false);
+  const [isEditingDeliveryProvider, setIsEditingDeliveryProvider] =
+    useState(false);
+  const [selectedDeliveryProvider, setSelectedDeliveryProvider] = useState("");
 
-  const statusOptions = [
+  const restaurantId =
+    (typeof staff?.restaurant === "object"
+      ? staff?.restaurant?._id
+      : staff?.restaurant) ||
+    order?.restaurant?._id ||
+    order?.restaurant;
+  const hasUberDelivery = Boolean(order?.uber_delivery_id);
+  const isDeliveryOrder = ["delivery", "devliery"].includes(
+    String(order?.type || "").toLowerCase(),
+  );
+  const isUberProvider = order?.delivery_provider === "uber_direct";
+  const normalizedUberStatus = String(order?.uber_status || "")
+    .toLowerCase()
+    .trim();
+  const isUberRetryableStatus = [
+    "canceled",
+    "cancelled",
+    "returned",
+    "failed",
+  ].includes(normalizedUberStatus);
+  const isUberCompletedStatus = normalizedUberStatus === "delivered";
+  const hasActiveUberDelivery =
+    isUberProvider &&
+    hasUberDelivery &&
+    !isUberRetryableStatus &&
+    !isUberCompletedStatus;
+  const promoCode = order?.promoCode;
+  const hasPromoCode = Boolean(promoCode?.code);
+  const hasPromoAmount =
+    promoCode?.amount !== null && promoCode?.amount !== undefined;
+  const hasPromoPercent =
+    promoCode?.percent !== null && promoCode?.percent !== undefined;
+  const hasFreeItemPromo =
+    promoCode?.type === "free_item" && Boolean(promoCode?.freeItem?.name);
+  const formattedPromoAmount = hasPromoAmount
+    ? Number.isNaN(Number(promoCode.amount))
+      ? `${promoCode.amount} $`
+      : `${Number(promoCode.amount).toFixed(2)} $`
+    : null;
+
+  const baseStatusOptions = [
+    { label: OrderStatus.ON_GOING, value: OrderStatus.ON_GOING },
+    { label: OrderStatus.PROGRAMMED, value: OrderStatus.PROGRAMMED },
     { label: OrderStatus.READY, value: OrderStatus.READY },
     { label: OrderStatus.DONE, value: OrderStatus.DONE },
     { label: OrderStatus.IN_DELIVERY, value: OrderStatus.IN_DELIVERY },
 
     { label: OrderStatus.CANCELED, value: OrderStatus.CANCELED },
   ];
-  const setOrderStatusColor = (status) => {
-    switch (status) {
-      case OrderStatus.READY:
-        return "#2AB2DB";
-      case OrderStatus.DONE:
-        return "#2AB2DB";
-      case OrderStatus.IN_DELIVERY:
-        return "#2AB2DB";
-      case OrderStatus.CANCELED:
-        return "#FF0707";
-    }
+  const statusOptions =
+    order?.status &&
+    !baseStatusOptions.some((option) => option.value === order.status)
+      ? [{ label: order.status, value: order.status }, ...baseStatusOptions]
+      : baseStatusOptions;
+  const deliveryProviderOptions = [
+    { label: "Livraison Uber", value: "uber_direct" },
+    { label: "Livraison interne", value: "staff" },
+  ];
+  const uberStatusTranslations = {
+    pending: "en cours",
+    pickup: "ramassage en cours",
+    pickup_complete: "ramassage terminé",
+    dropoff: "livraison en cours",
+    delivered: "livrée",
+    canceled: "annulée par Uber",
+    cancelled: "annulée par Uber",
+    return: "retour en cours",
+    returned: "retournée",
+    failed: "échouée chez Uber",
+    unassigned: "en attente d'un livreur",
+    courier_assigned: "livreur assigné",
+    courier_at_pickup: "livreur arrivé au point de ramassage",
+    courier_picked_up: "commande récupérée",
+    courier_at_dropoff: "livreur arrivé au point de livraison",
   };
+
+  const isRetryableUberStatusValue = (uberStatus) =>
+    ["canceled", "cancelled", "returned", "failed"].includes(
+      String(uberStatus || "")
+        .toLowerCase()
+        .trim(),
+    );
+
+  const formatDeliveryProviderLabel = (provider) => {
+    if (provider === "uber_direct") return "Uber Direct";
+    if (provider === "staff") return "Interne";
+    return provider;
+  };
+
+  const translateUberStatus = (uberStatus, courierImminent) => {
+    const normalizedStatus = String(uberStatus || "")
+      .toLowerCase()
+      .trim();
+    const imminent = Boolean(courierImminent);
+
+    if (normalizedStatus === "pending") {
+      return "en attente de livreur";
+    }
+    if (normalizedStatus === "pickup") {
+      return imminent
+        ? "livreur arrive au restaurant (environ 1 min)"
+        : "livreur en route vers le restaurant";
+    }
+    if (normalizedStatus === "dropoff") {
+      return imminent
+        ? "livreur arrive chez le client (environ 1 min)"
+        : "livraison en route vers le client";
+    }
+
+    return uberStatusTranslations[normalizedStatus] || uberStatus;
+  };
+
+  const formatDateWithoutSeconds = (dateInString) => {
+    const date = new Date(dateInString);
+    if (Number.isNaN(date.getTime())) return "—";
+
+    return date.toLocaleString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   useEffect(() => {
     if (showFailModal) {
       const timer = setTimeout(() => {
@@ -80,13 +203,17 @@ const OrderScreen = () => {
   }, [showFailModal]);
 
   const updateOrderStatus = async () => {
+    const nextStatus = status || order?.status;
+    if (!nextStatus) {
+      return;
+    }
+
     setIsLoading(true);
-    updateStatus(order._id, status)
+    updateStatus(order._id, nextStatus, token)
       .then((response) => {
         if (response.status) {
           setShowSuccessModel(true);
-          setUpdateStatusMode(false);
-          setOrder({ ...order, status });
+          setOrder({ ...order, status: nextStatus });
         } else {
           setShowFailModal(true);
         }
@@ -123,6 +250,15 @@ const OrderScreen = () => {
     }
   }, [showSuccessModel]);
 
+  useEffect(() => {
+    setSelectedDeliveryProvider(order?.delivery_provider || "");
+    setIsEditingDeliveryProvider(!order?.delivery_provider);
+  }, [order?.delivery_provider]);
+
+  useEffect(() => {
+    setStatus(order?.status || "");
+  }, [order?.status]);
+
   const handleUpdateDriverMode = async () => {
     // setIsLoading(true);
     // try {
@@ -138,6 +274,10 @@ const OrderScreen = () => {
     //   setIsLoading(false);
     // }
     setUpdateDriverMode(true);
+  };
+
+  const handleRefresh = () => {
+    setRefresh((prev) => prev + 1);
   };
 
   // const updateDriver = async () => {
@@ -182,6 +322,215 @@ const OrderScreen = () => {
     }
   };
 
+  const handleApplyDeliveryProvider = async () => {
+    if (!order?._id || !isDeliveryOrder) {
+      return;
+    }
+
+    if (!token) {
+      Alert.alert(
+        "Session expirée",
+        "Reconnectez-vous pour modifier le mode de livraison.",
+      );
+      return;
+    }
+
+    if (!["staff", "uber_direct"].includes(selectedDeliveryProvider)) {
+      Alert.alert(
+        "Choix invalide",
+        "Sélectionnez un mode de livraison valide.",
+      );
+      return;
+    }
+
+    if (selectedDeliveryProvider === "uber_direct" && !restaurantId) {
+      Alert.alert(
+        "Restaurant introuvable",
+        "Impossible de créer la livraison Uber sans restaurant.",
+      );
+      return;
+    }
+
+    setIsUpdatingDeliveryProvider(true);
+    try {
+      const previousProvider = order?.delivery_provider || null;
+      const providerResponse = await updateDeliveryProvider(
+        order._id,
+        selectedDeliveryProvider,
+        token,
+      );
+
+      if (!providerResponse.status) {
+        Alert.alert(
+          "Mise à jour impossible",
+          providerResponse.message || "Une erreur est survenue.",
+        );
+        return;
+      }
+
+      if (selectedDeliveryProvider === "staff") {
+        setOrder((prev) => ({
+          ...prev,
+          delivery_provider: "staff",
+        }));
+        setSelectedDeliveryProvider("staff");
+        setIsEditingDeliveryProvider(false);
+        setShowSuccessModel(true);
+        setRefresh((prev) => prev + 1);
+        return;
+      }
+
+      const shouldCreateUberDelivery =
+        !hasUberDelivery ||
+        previousProvider !== "uber_direct" ||
+        isRetryableUberStatusValue(order?.uber_status);
+
+      if (!shouldCreateUberDelivery) {
+        setOrder((prev) => ({
+          ...prev,
+          delivery_provider: "uber_direct",
+        }));
+        setSelectedDeliveryProvider("uber_direct");
+        setIsEditingDeliveryProvider(false);
+        setShowSuccessModel(true);
+        setRefresh((prev) => prev + 1);
+        return;
+      }
+
+      setIsCreatingUberDelivery(true);
+      const deliveryResponse = await createUberDirectDelivery(
+        restaurantId,
+        order._id,
+        token,
+      );
+
+      if (!deliveryResponse.status) {
+        if (previousProvider !== "uber_direct") {
+          await updateDeliveryProvider(order._id, previousProvider, token);
+        }
+        setOrder((prev) => ({
+          ...prev,
+          delivery_provider: previousProvider,
+        }));
+        setSelectedDeliveryProvider(previousProvider || "");
+        setIsEditingDeliveryProvider(!previousProvider);
+        Alert.alert(
+          "Création Uber Direct échouée",
+          deliveryResponse.message || "Une erreur est survenue.",
+        );
+        return;
+      }
+
+      const uberDelivery = deliveryResponse.data || {};
+      setOrder((prev) => ({
+        ...prev,
+        delivery_provider: "uber_direct",
+        uber_delivery_id:
+          uberDelivery?.id ||
+          uberDelivery?.delivery_id ||
+          prev?.uber_delivery_id,
+        uber_status: uberDelivery?.status || prev?.uber_status,
+        uber_courier_imminent:
+          uberDelivery?.courier_imminent ?? prev?.uber_courier_imminent,
+        uber_tracking_url:
+          uberDelivery?.tracking_url || prev?.uber_tracking_url,
+        uber_pickup_eta: uberDelivery?.pickup_eta || prev?.uber_pickup_eta,
+        uber_dropoff_eta: uberDelivery?.dropoff_eta || prev?.uber_dropoff_eta,
+      }));
+      setSelectedDeliveryProvider("uber_direct");
+      setIsEditingDeliveryProvider(false);
+      setShowSuccessModel(true);
+      setRefresh((prev) => prev + 1);
+    } catch (err) {
+      Alert.alert(
+        "Mise à jour impossible",
+        err?.message || "Une erreur est survenue.",
+      );
+    } finally {
+      setIsUpdatingDeliveryProvider(false);
+      setIsCreatingUberDelivery(false);
+    }
+  };
+
+  const handleCancelUberDelivery = () => {
+    if (!order?._id || !order?.uber_delivery_id) {
+      Alert.alert(
+        "Livraison introuvable",
+        "Aucune livraison Uber active à annuler.",
+      );
+      return;
+    }
+
+    if (!restaurantId) {
+      Alert.alert(
+        "Restaurant introuvable",
+        "Impossible d'annuler la livraison Uber sans restaurant.",
+      );
+      return;
+    }
+
+    if (!token) {
+      Alert.alert(
+        "Session expirée",
+        "Reconnectez-vous pour annuler la livraison Uber.",
+      );
+      return;
+    }
+
+    Alert.alert(
+      "Annuler la livraison Uber",
+      "Voulez-vous vraiment annuler cette livraison Uber Direct ?",
+      [
+        { text: "Non", style: "cancel" },
+        {
+          text: "Oui, annuler",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setIsCancelingUberDelivery(true);
+              const response = await cancelUberDirectDelivery(
+                restaurantId,
+                order.uber_delivery_id,
+                token,
+              );
+
+              if (!response.status) {
+                Alert.alert(
+                  "Annulation impossible",
+                  response.message || "Une erreur est survenue.",
+                );
+                return;
+              }
+
+              const canceledDelivery = response.data || {};
+              setOrder((prev) => ({
+                ...prev,
+                delivery_provider: null,
+                uber_delivery_id: null,
+                uber_status: canceledDelivery?.status || "canceled",
+                uber_courier_imminent: null,
+                uber_tracking_url: null,
+                uber_pickup_eta: null,
+                uber_dropoff_eta: null,
+              }));
+              setSelectedDeliveryProvider("");
+              setIsEditingDeliveryProvider(true);
+              setShowSuccessModel(true);
+              setRefresh((prev) => prev + 1);
+            } catch (err) {
+              Alert.alert(
+                "Annulation impossible",
+                err?.message || "Une erreur est survenue.",
+              );
+            } finally {
+              setIsCancelingUberDelivery(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   if (isLoading) {
     return (
       <View
@@ -201,1099 +550,587 @@ const OrderScreen = () => {
     return <ErrorScreen setRefresh={setRefresh} />;
   }
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.screen}>
       {showSuccessModel && <SuccessModel />}
       {showFailModal && (
         <FailModel message="Oops ! Quelque chose s'est mal passé" />
       )}
       <ScrollView
-        style={{ flex: 1, backgroundColor: Colors.screenBg }}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
+        }
       >
-        <View style={{ flex: 1, padding: 16 }}>
-          <View>
-            <Text
-              style={{
-                fontFamily: Fonts.LATO_BOLD,
-                fontSize: 24,
-                marginTop: 20,
-              }}
-            >
-              Instructions
-            </Text>
-            <View
-              style={{
-                backgroundColor: "white",
-                borderRadius: 10,
-                padding: 15,
-                marginTop: 10,
-              }}
-            >
+        <BackButton />
+        <View style={styles.topCard}>
+          <View style={styles.topRow}>
+            <Text style={styles.pageTitle}>Commande #{order.code || "—"}</Text>
+            <View style={styles.topInlineMetaRow}>
               <Text
-                style={{
-                  fontFamily: Fonts.LATO_REGULAR,
-                  fontSize: 20,
-                  marginLeft: 10,
-                  textAlign: "center",
-                }}
+                style={[styles.topInlineMetaText, styles.topInlineMetaTextType]}
               >
-                {order.instructions ? order.instructions : "Aucune"}
+                Type: {isDeliveryOrder ? "Livraison" : "Emporter"}
+              </Text>
+              <Text style={styles.topInlineMetaText}>
+                Créé le {formatDateWithoutSeconds(order.createdAt)}
+              </Text>
+              <Text style={styles.topInlineMetaText}>
+                Prix: {parseFloat(order.total_price).toFixed(2)} $
               </Text>
             </View>
           </View>
-          {order.promoCode?.type === "free_item" && (
-            <View>
-              <Text
-                style={{
-                  fontFamily: Fonts.LATO_BOLD,
-                  fontSize: 24,
-                  marginTop: 20,
-                }}
-              >
-                Code Promo (Article gratuit)
+          {isDeliveryOrder && (
+            <View style={styles.deliveryAddressRow}>
+              <Text style={styles.metaItem}>
+                Adresse de livraison : {order.address}
               </Text>
-              <View
-                style={{
-                  backgroundColor: "white",
-                  borderRadius: 10,
-                  padding: 15,
-                  marginTop: 10,
-                }}
-              >
-                <Text
-                  style={{
-                    fontFamily: Fonts.LATO_REGULAR,
-                    fontSize: 20,
-                    marginLeft: 10,
-                    textAlign: "center",
-                  }}
-                >
-                  {order.promoCode?.freeItem.name}
-                </Text>
-              </View>
             </View>
           )}
-          <View>
-            <Text
-              style={{
-                fontFamily: Fonts.LATO_BOLD,
-                fontSize: 24,
-                marginTop: 20,
-              }}
-            >
-              Articles
+          <View style={styles.orderStatusCard}>
+            <Text style={styles.deliveryProviderTitle}>
+              Etat de la commande :
             </Text>
-
-            {order.orderItems?.length > 0 ? (
-              <ScrollView
-                style={{
-                  marginTop: 20,
-                  backgroundColor: "white",
-                }}
+            <View style={styles.deliveryProviderPickerRow}>
+              <View style={styles.deliveryProviderDropdownWrapper}>
+                <Dropdown
+                  style={[styles.dropdown, styles.statusDropdown]}
+                  placeholderStyle={styles.placeholderStyle}
+                  selectedTextStyle={styles.selectedTextStyle}
+                  selectedStyle={styles.selectedStyle}
+                  itemContainerStyle={styles.itemContainerStyle}
+                  itemTextStyle={styles.itemTextStyle}
+                  containerStyle={styles.containerStyle}
+                  data={statusOptions}
+                  maxHeight={220}
+                  labelField="label"
+                  valueField="value"
+                  placeholder="Choisir l'état"
+                  value={status || null}
+                  onChange={(item) => setStatus(item.value)}
+                />
+              </View>
+              <TouchableOpacity
+                style={styles.uberButton}
+                activeOpacity={0.9}
+                onPress={updateOrderStatus}
               >
+                <Ionicons name="checkmark-circle" size={16} color="#1b1b1b" />
+                <Text style={styles.uberButtonLabel}>Valider</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          {order.scheduled?.isScheduled && order.scheduled?.scheduledFor ? (
+            <View style={styles.topSecondaryMetaRow}>
+              <Text style={styles.topSecondaryMetaText}>
+                Programmé le{" "}
+                {formatDateWithoutSeconds(order.scheduled.scheduledFor)}
+              </Text>
+            </View>
+          ) : null}
+          {isDeliveryOrder && (
+            <View style={styles.deliveryProviderCard}>
+              <Text style={styles.deliveryProviderTitle}>
+                Mode de livraison
+              </Text>
+              <View style={styles.uberActionsRow}>
+                {order.delivery_provider ? (
+                  <View style={styles.uberStatusPill}>
+                    <Text style={styles.uberStatusLabel}>
+                      Livraison par:{" "}
+                      {formatDeliveryProviderLabel(order.delivery_provider)}
+                    </Text>
+                  </View>
+                ) : null}
+                {hasActiveUberDelivery ? (
+                  <TouchableOpacity
+                    style={[
+                      styles.uberButton,
+                      styles.cancelButton,
+                      isCancelingUberDelivery && styles.uberButtonDisabled,
+                    ]}
+                    disabled={isCancelingUberDelivery}
+                    activeOpacity={0.9}
+                    onPress={handleCancelUberDelivery}
+                  >
+                    {isCancelingUberDelivery ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Ionicons name="close-circle" size={16} color="#FFFFFF" />
+                    )}
+                    <Text style={styles.cancelButtonLabel}>Annuler</Text>
+                  </TouchableOpacity>
+                ) : null}
+                {(order.delivery_provider === "staff" ||
+                  (order.delivery_provider === "uber_direct" &&
+                    (isUberRetryableStatus || !hasUberDelivery))) &&
+                !isEditingDeliveryProvider ? (
+                  <TouchableOpacity
+                    style={[styles.uberButton, styles.modifyButton]}
+                    activeOpacity={0.9}
+                    onPress={() => setIsEditingDeliveryProvider(true)}
+                  >
+                    <Ionicons name="pencil" size={16} color="#1D4ED8" />
+                    <Text style={styles.modifyButtonLabel}>Modifier</Text>
+                  </TouchableOpacity>
+                ) : null}
+                {isUberProvider && order.uber_status ? (
+                  <View style={styles.uberStatusPill}>
+                    <Text style={styles.uberStatusLabel}>
+                      Livraison Uber :{" "}
+                      {translateUberStatus(
+                        order.uber_status,
+                        order.uber_courier_imminent,
+                      )}
+                    </Text>
+                  </View>
+                ) : null}
+                {isUberProvider && order.uber_pickup_eta ? (
+                  <View style={styles.uberEtaPill}>
+                    <Text style={styles.uberEtaLabel}>
+                      Pickup estimé:{" "}
+                      {formatDateWithoutSeconds(order.uber_pickup_eta)}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+              {(!order.delivery_provider || isEditingDeliveryProvider) && (
+                <View style={styles.deliveryProviderPickerRow}>
+                  <View style={styles.deliveryProviderDropdownWrapper}>
+                    <Dropdown
+                      style={[styles.dropdown, styles.deliveryProviderDropdown]}
+                      placeholderStyle={styles.placeholderStyle}
+                      selectedTextStyle={styles.selectedTextStyle}
+                      selectedStyle={styles.selectedStyle}
+                      itemContainerStyle={styles.itemContainerStyle}
+                      itemTextStyle={styles.itemTextStyle}
+                      containerStyle={styles.containerStyle}
+                      data={deliveryProviderOptions}
+                      maxHeight={220}
+                      labelField="label"
+                      valueField="value"
+                      placeholder="Choisir le mode"
+                      value={selectedDeliveryProvider || null}
+                      onChange={(item) =>
+                        setSelectedDeliveryProvider(item.value)
+                      }
+                    />
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.uberButton,
+                      (isUpdatingDeliveryProvider || isCreatingUberDelivery) &&
+                        styles.uberButtonDisabled,
+                    ]}
+                    disabled={
+                      isUpdatingDeliveryProvider ||
+                      isCreatingUberDelivery ||
+                      !selectedDeliveryProvider
+                    }
+                    activeOpacity={0.9}
+                    onPress={handleApplyDeliveryProvider}
+                  >
+                    {isUpdatingDeliveryProvider || isCreatingUberDelivery ? (
+                      <ActivityIndicator size="small" color="#1b1b1b" />
+                    ) : (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={16}
+                        color="#1b1b1b"
+                      />
+                    )}
+                    <Text style={styles.uberButtonLabel}>Valider</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Instructions</Text>
+          </View>
+          <View style={styles.instructionsBox}>
+            <Text style={styles.instructionsText}>
+              {order.instructions ? order.instructions : "Aucune"}
+            </Text>
+          </View>
+        </View>
+
+        {hasFreeItemPromo && (
+          <View style={styles.promoFreeItemBanner}>
+            <Text style={styles.promoFreeItemBannerText}>
+              Code promo article gratuit: {promoCode.freeItem.name}
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.card}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Panier</Text>
+          </View>
+
+          <View style={styles.subSection}>
+            <Text style={styles.subSectionTitle}>Articles</Text>
+            {order.orderItems?.length > 0 ? (
+              <View style={styles.listContainer}>
+                <View style={styles.listHeader}>
+                  <Text style={[styles.listHeaderCell, { flex: 0.5 }]}>
+                    Article
+                  </Text>
+                  <Text style={[styles.listHeaderCell, { flex: 1 }]}>
+                    Commentaire
+                  </Text>
+                  <Text style={[styles.listHeaderCell, { width: 80 }]}>
+                    Taille
+                  </Text>
+                  <Text style={[styles.listHeaderCell, { flex: 1 }]}>
+                    Options
+                  </Text>
+                  <Text style={[styles.listHeaderCell, { width: 80 }]}>
+                    Prix
+                  </Text>
+                </View>
                 {order.orderItems?.map((item, index) => (
                   <View
                     key={item._id}
                     style={[
-                      styles.row,
-                      index % 2
-                        ? { backgroundColor: "transparent" }
-                        : { backgroundColor: "rgba(247,166,0,0.3)" },
+                      styles.listRow,
+                      index % 2 === 0 && styles.listRowAlt,
                     ]}
                   >
                     <Text
-                      style={[styles.rowCell, { width: "20%" }]}
+                      style={[styles.listCell, { flex: 0.5 }]}
                       numberOfLines={2}
                     >
                       {item.item.name}
                     </Text>
                     <Text
-                      style={[styles.rowCell, { width: "15%" }]}
-                      numberOfLines={3}
+                      style={[styles.listCell, { flex: 1 }]}
+                      numberOfLines={2}
                     >
-                      {item.comment || ""}
+                      {item.comment || "—"}
                     </Text>
-                    <Text style={[styles.rowCell, { width: "10%" }]}>
+                    <Text style={[styles.listCell, { width: 80 }]}>
                       {item.size}
                     </Text>
-
-                    <Text style={[styles.rowCell, { flex: 1 }]}>
-                      {item.customizations?.map((custo) => {
-                        return custo.name + "/";
-                      })}
+                    <Text style={[styles.listCell, { flex: 1 }]}>
+                      {item.customizations
+                        ?.map((custo) => custo.name)
+                        .join(", ")}
                     </Text>
-                    <Text style={[styles.rowCell, { width: "15%" }]}>
-                      {item.price.toFixed(2)} $
+                    <Text style={[styles.listCell, { width: 80 }]}>
+                      {parseFloat(item.price).toFixed(2)} $
                     </Text>
                   </View>
                 ))}
-              </ScrollView>
+              </View>
             ) : (
-              <View
-                style={{
-                  backgroundColor: "white",
-                  borderRadius: 10,
-                  paddingVertical: 10,
-                  alignItems: "center",
-                  marginTop: 20,
-                }}
-              >
-                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                  Vide
-                </Text>
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>Aucun article</Text>
               </View>
             )}
           </View>
-          <View>
-            <Text
-              style={{
-                fontFamily: Fonts.LATO_BOLD,
-                fontSize: 24,
-                marginTop: 20,
-              }}
-            >
-              Offres
-            </Text>
 
+          <View style={styles.subSection}>
+            <Text style={styles.subSectionTitle}>Offres</Text>
             {order.offers?.length > 0 ? (
-              <ScrollView
-                style={{
-                  marginTop: 20,
-                  backgroundColor: "white",
-                }}
-              >
+              <View style={styles.listContainer}>
+                <View style={styles.listHeader}>
+                  <Text style={[styles.listHeaderCell, { flex: 1.5 }]}>
+                    Offre
+                  </Text>
+                  <Text style={[styles.listHeaderCell, { flex: 2 }]}>
+                    Articles
+                  </Text>
+                  <Text style={[styles.listHeaderCell, { flex: 1 }]}>Prix</Text>
+                </View>
                 {order.offers?.map((item, index) => (
                   <View
                     key={item._id}
                     style={[
-                      {
-                        width: "100%",
-                        flexDirection: "row",
-                        gap: 50,
-                        alignItems: "center",
-
-                        paddingVertical: 12,
-                        paddingHorizontal: 10,
-                      },
-                      index % 2
-                        ? { backgroundColor: "transparent" }
-                        : { backgroundColor: "rgba(247,166,0,0.3)" },
+                      styles.listRow,
+                      index % 2 === 0 && styles.listRowAlt,
                     ]}
                   >
-                    <Text style={[styles.rowCell]} numberOfLines={1}>
+                    <Text
+                      style={[styles.listCell, { flex: 1.5 }]}
+                      numberOfLines={1}
+                    >
                       {item.offer?.name}
                     </Text>
-                    <View>
-                      {item.items?.map((offerItem, index) => (
-                        <View style={{ flexDirection: "row" }} key={index}>
-                          <Text
-                            style={[styles.rowCell]}
-                            numberOfLines={2}
-                            key={index}
-                          >
+                    <View style={[styles.listCell, { flex: 2 }]}>
+                      {item.items?.map((offerItem, i) => (
+                        <Text key={i} style={styles.subText}>
+                          <Text style={styles.offerItemName}>
                             {offerItem.item.name}
                           </Text>
-
-                          <Text style={{ marginLeft: 10 }}>(</Text>
-                          {offerItem.customizations?.map((custo, i) => {
-                            return (
-                              <Text
-                                style={{
-                                  fontFamily: Fonts.LATO_REGULAR,
-                                  fontSize: 20,
-                                }}
-                                key={i}
-                              >
-                                {custo.name},{" "}
-                              </Text>
-                            );
-                          })}
-                          <Text>)</Text>
-                        </View>
+                          {offerItem.customizations?.length ? (
+                            <Text style={styles.offerItemCustomizations}>
+                              {" "}
+                              (
+                              {offerItem.customizations
+                                ?.map((c) => c.name)
+                                .join(", ")}
+                              )
+                            </Text>
+                          ) : null}
+                        </Text>
                       ))}
                     </View>
-                    <Text style={[styles.rowCell]} numberOfLines={1}>
-                      {item.offer?.price.toFixed(2)} $
+                    <Text style={[styles.listCell, { flex: 1 }]}>
+                      {parseFloat(item.price).toFixed(2)} $
                     </Text>
                   </View>
                 ))}
-              </ScrollView>
+              </View>
             ) : (
-              <View
-                style={{
-                  backgroundColor: "white",
-                  borderRadius: 10,
-                  paddingVertical: 10,
-                  alignItems: "center",
-                  marginTop: 20,
-                }}
-              >
-                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                  Vide
-                </Text>
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>Aucune offre</Text>
               </View>
             )}
           </View>
 
-          <View>
-            <Text
-              style={{
-                fontFamily: Fonts.LATO_BOLD,
-                fontSize: 24,
-                marginTop: 20,
-              }}
-            >
-              Récompense
-            </Text>
-
+          <View style={styles.subSection}>
+            <Text style={styles.subSectionTitle}>Récompenses</Text>
             {order.rewards?.length > 0 ? (
-              <ScrollView
-                style={{
-                  marginTop: 20,
-                  backgroundColor: "white",
-                }}
-              >
+              <View style={styles.listContainer}>
+                <View style={styles.listHeader}>
+                  <Text style={[styles.listHeaderCell, { flex: 1 }]}>
+                    Article
+                  </Text>
+                </View>
                 {order.rewards?.map((item, index) => (
                   <View
                     key={index}
-                    style={[
-                      styles.row,
-                      index % 2
-                        ? { backgroundColor: "transparent" }
-                        : { backgroundColor: "rgba(247,166,0,0.3)" },
-                    ]}
+                    style={[styles.listRow, styles.listRowAlt1]}
                   >
-                    <Text style={[styles.rowCell]} numberOfLines={1}>
+                    <Text
+                      style={[styles.listCell1, { flex: 1 }]}
+                      numberOfLines={1}
+                    >
                       {item.item.name}
                     </Text>
                   </View>
                 ))}
-              </ScrollView>
+              </View>
             ) : (
-              <View
-                style={{
-                  backgroundColor: "white",
-                  borderRadius: 10,
-                  paddingVertical: 10,
-                  alignItems: "center",
-                  marginTop: 20,
-                }}
-              >
-                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                  Vide
-                </Text>
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>Aucune récompense</Text>
               </View>
             )}
           </View>
-          <View>
-            <Text
-              style={{
-                fontFamily: Fonts.LATO_BOLD,
-                fontSize: 24,
-                marginVertical: 10,
-              }}
-            >
-              Informations générale
-            </Text>
-            <View
-              style={{
-                backgroundColor: "white",
-                borderRadius: 10,
-                padding: 20,
-                marginTop: 10,
-              }}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                <View style={{ flex: 1 / 2 }}>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 20,
-                      }}
-                    >
-                      Etat:
-                    </Text>
-                    {updateStatusMode ? (
-                      <>
-                        <Dropdown
-                          style={[styles.dropdown]}
-                          placeholderStyle={styles.placeholderStyle}
-                          selectedTextStyle={styles.selectedTextStyle}
-                          selectedStyle={styles.selectedStyle}
-                          itemContainerStyle={styles.itemContainerStyle}
-                          itemTextStyle={styles.itemTextStyle}
-                          containerStyle={styles.containerStyle}
-                          data={statusOptions}
-                          maxHeight={300}
-                          labelField="label"
-                          valueField="label"
-                          placeholder={order.status}
-                          value={status}
-                          onChange={(item) => setStatus(item.label)}
-                        />
-                        <TouchableOpacity
-                          style={{
-                            marginRight: 15,
-                            backgroundColor: Colors.primary,
-                            borderRadius: 5,
-                            alignItems: "center",
-                            paddingHorizontal: 15,
-                            paddingVertical: 5,
-                          }}
-                          onPress={updateOrderStatus}
-                        >
-                          <Text style={{ fontFamily: Fonts.LATO_BOLD }}>
-                            Entregistrer
-                          </Text>
-                        </TouchableOpacity>
-                      </>
-                    ) : (
-                      <>
-                        <Text
-                          style={{
-                            fontFamily: Fonts.LATO_REGULAR,
-                            fontSize: 20,
-                            marginLeft: 10,
-                            flex: 1,
-                            color: setOrderStatusColor(order.status),
-                          }}
-                        >
-                          {order.status}
-                        </Text>
-                        <TouchableOpacity
-                          style={{ marginRight: 15 }}
-                          onPress={() => setUpdateStatusMode(true)}
-                        >
-                          <Foundation
-                            name="pencil"
-                            size={28}
-                            color={Colors.primary}
-                          />
-                        </TouchableOpacity>
-                      </>
-                    )}
-                  </View>
-                  {/* {order.payment_status !== undefined &&
-                    order.payment_method !== "card" && (
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Text
-                          style={{
-                            fontFamily: Fonts.LATO_BOLD,
-                            fontSize: 20,
-                          }}
-                        >
-                          Etat du paiement:
-                        </Text>
-                        {updateDriverMode ? (
-                          <>
-                            <Dropdown
-                              style={[styles.dropdown]}
-                              placeholderStyle={styles.placeholderStyle}
-                              selectedTextStyle={styles.selectedTextStyle}
-                              selectedStyle={styles.selectedStyle}
-                              itemContainerStyle={styles.itemContainerStyle}
-                              itemTextStyle={styles.itemTextStyle}
-                              containerStyle={styles.containerStyle}
-                              data={[
-                                { label: "Payé", value: true },
-                                { label: "Non payé", value: false },
-                              ]}
-                              maxHeight={300}
-                              labelField="label"
-                              valueField="label"
-                              value={
-                                order.payment_status === true
-                                  ? "Payé"
-                                  : "Non payé"
-                              }
-                              onChange={(item) => setPaymentStatus(item.value)}
-                            />
-                            <TouchableOpacity
-                              style={{
-                                marginRight: 15,
-                                backgroundColor: Colors.primary,
-                                borderRadius: 5,
-                                alignItems: "center",
-                                paddingHorizontal: 15,
-                                paddingVertical: 5,
-                              }}
-                              onPress={handlePaymentStatus}
-                            >
-                              <Text style={{ fontFamily: Fonts.LATO_BOLD }}>
-                                Entregistrer
-                              </Text>
-                            </TouchableOpacity>
-                          </>
-                        ) : (
-                          <>
-                            <Text
-                              style={{
-                                fontFamily: Fonts.LATO_REGULAR,
-                                fontSize: 20,
-                                marginLeft: 10,
-                                flex: 1,
-                                color: "black",
-                              }}
-                            >
-                              {order.payment_status === true
-                                ? "Payé"
-                                : "Non payé"}
-                            </Text>
-                            <TouchableOpacity
-                              style={{ marginRight: 15 }}
-                              onPress={handleUpdateDriverMode}
-                            >
-                              <Foundation
-                                name="pencil"
-                                size={28}
-                                color={Colors.primary}
-                              />
-                            </TouchableOpacity>
-                          </>
-                        )}
-                      </View>
-                    )} */}
-                  {/* {order.payment_status !== undefined &&
-                    order.payment_method === "card" && (
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          marginTop: 10,
-                        }}
-                      >
-                        <Text
-                          style={{
-                            fontFamily: Fonts.LATO_BOLD,
-                            fontSize: 20,
-                          }}
-                        >
-                          Etat du paiement:
-                        </Text>
-                        <Text
-                          style={{
-                            fontFamily: Fonts.LATO_REGULAR,
-                            fontSize: 20,
-                            marginLeft: 10,
-                          }}
-                        >
-                          {order.payment_status === true ? "Payé" : "Non payé"}{" "}
-                        </Text>
-                      </View>
-                    )} */}
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      marginTop: 10,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 20,
-                      }}
-                    >
-                      Code:
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        marginLeft: 10,
-                      }}
-                    >
-                      {order.code}
-                    </Text>
-                  </View>
-                  {/* <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      marginTop: 10,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 20,
-                      }}
-                    >
-                      Methode de paiement
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        marginLeft: 10,
-                      }}
-                    >
-                      {order.payment_method === "cash" ? "Espèce" : "Carte"}
-                    </Text>
-                  </View> */}
+        </View>
 
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      marginTop: 10,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 20,
-                      }}
-                    >
-                      Type
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        marginLeft: 10,
-                      }}
-                    >
-                      {order.type === "delivery" ? "Livraison" : "Emporter"}
-                    </Text>
-                  </View>
-
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      marginTop: 10,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 20,
-                      }}
-                    >
-                      Crée le:
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        marginLeft: 10,
-                      }}
-                    >
-                      {convertDate(order.createdAt)}
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      marginTop: 10,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 20,
-                      }}
-                    >
-                      Nombre d'article:
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        marginLeft: 10,
-                      }}
-                    >
-                      {order.orderItems?.length +
-                        order.offers?.length +
-                        order.rewards?.length}{" "}
-                      article(s)
-                    </Text>
-                  </View>
-                  {order.promoCode && (
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginTop: 10,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontFamily: Fonts.LATO_BOLD,
-                          fontSize: 20,
-                        }}
-                      >
-                        Code promo:
-                      </Text>
-                      <Text
-                        style={{
-                          fontFamily: Fonts.LATO_REGULAR,
-                          fontSize: 20,
-                          marginLeft: 10,
-                        }}
-                      >
-                        {order.promoCode.type === "free_item"
-                          ? "Article gratuit"
-                          : order.promoCode.type === "percent"
-                          ? `${order.promoCode.percent}% de réduction`
-                          : `${order.promoCode.amount} $ de réduction`}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-                <View style={{ flex: 1 / 2 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 20,
-                      }}
-                    >
-                      Totale:
-                    </Text>
-                    {updatePriceMode ? (
-                      <>
-                        <TextInput
-                          style={{
-                            fontFamily: Fonts.LATO_REGULAR,
-                            fontSize: 20,
-                            borderWidth: 1,
-                            paddingHorizontal: 5,
-                            paddingVertical: 2,
-                            marginLeft: 10,
-                            borderRadius: 5,
-                            flex: 1,
-                          }}
-                          keyboardType="numeric"
-                          placeholder={parseFloat(order.total_price).toFixed(2)}
-                          onChangeText={(text) => setPrice(text)}
-                        />
-                        <TouchableOpacity
-                          style={{
-                            marginRight: 15,
-                            marginLeft: 10,
-                            backgroundColor: Colors.primary,
-                            borderRadius: 5,
-                            alignItems: "center",
-                            paddingHorizontal: 15,
-                            paddingVertical: 5,
-                          }}
-                          onPress={updateOrderPrice}
-                        >
-                          <Text style={{ fontFamily: Fonts.LATO_BOLD }}>
-                            Entregistrer
-                          </Text>
-                        </TouchableOpacity>
-                      </>
-                    ) : (
-                      <>
-                        <Text
-                          style={{
-                            fontFamily: Fonts.LATO_REGULAR,
-                            fontSize: 20,
-                            marginLeft: 10,
-                            flex: 1,
-                          }}
-                        >
-                          {parseFloat(order.total_price).toFixed(2)} $
-                        </Text>
-                        <TouchableOpacity
-                          style={{ marginRight: 15 }}
-                          onPress={() => setUpdatePriceMode(true)}
-                        >
-                          <Foundation
-                            name="pencil"
-                            size={28}
-                            color={Colors.primary}
-                          />
-                        </TouchableOpacity>
-                      </>
-                    )}
-                  </View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      marginTop: 10,
-
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 20,
-                      }}
-                    >
-                      Sous-totale:
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        marginLeft: 10,
-                      }}
-                    >
-                      {order.sub_total.toFixed(2)} $
-                    </Text>
-                  </View>
-                  {order.discount > 0 && (
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        marginTop: 10,
-
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontFamily: Fonts.LATO_BOLD,
-                          fontSize: 20,
-                        }}
-                      >
-                        Sous-totale apres remise:
-                      </Text>
-                      <Text
-                        style={{
-                          fontFamily: Fonts.LATO_REGULAR,
-                          fontSize: 20,
-                          marginLeft: 10,
-                        }}
-                      >
-                        {order.sub_total_after_discount?.toFixed(2)} $ (-{" "}
-                        {order.discount} %)
-                      </Text>
-                    </View>
-                  )}
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      marginTop: 10,
-
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 20,
-                      }}
-                    >
-                      TVQ:
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        marginLeft: 10,
-                      }}
-                    >
-                      {tvq.toFixed(2)} $
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      marginTop: 10,
-
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 20,
-                      }}
-                    >
-                      TPS:
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        marginLeft: 10,
-                      }}
-                    >
-                      {tps.toFixed(2)} $
-                    </Text>
-                  </View>
-
-                  {order.type === "delivery" && (
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        marginTop: 10,
-
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontFamily: Fonts.LATO_BOLD,
-                          fontSize: 20,
-                        }}
-                      >
-                        Frais de livraison:
-                      </Text>
-                      <Text
-                        style={{
-                          fontFamily: Fonts.LATO_REGULAR,
-                          fontSize: 20,
-                          marginLeft: 10,
-                        }}
-                      >
-                        {order.delivery_fee.toFixed(2)} $
-                      </Text>
-                    </View>
-                  )}
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      marginTop: 10,
-
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 20,
-                      }}
-                    >
-                      Pourboire:
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        marginLeft: 10,
-                      }}
-                    >
-                      {order.tip?.toFixed(2)} $
-                    </Text>
-                  </View>
-                </View>
-              </View>
+        <View style={styles.card}>
+          <View style={styles.sectionHeaderRow}>
+            <View>
+              <Text style={styles.sectionTitle}>Informations générale</Text>
             </View>
           </View>
-          <View>
-            <Text
-              style={{
-                fontFamily: Fonts.LATO_BOLD,
-                fontSize: 24,
-                marginTop: 20,
-              }}
-            >
-              Informations Client
-            </Text>
-            <View
-              style={{
-                backgroundColor: "white",
-                borderRadius: 10,
-                padding: 20,
-                marginTop: 10,
-              }}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                <View style={{ flex: 1 / 2 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 20,
-                      }}
-                    >
-                      Nom & prénom:
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        marginLeft: 10,
-                      }}
-                    >
-                      {order.user?.name}
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      marginTop: 10,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 20,
-                      }}
-                    >
-                      Téléphone:
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        marginLeft: 10,
-                      }}
-                    >
-                      {order?.user?.phone_number}
-                    </Text>
-                  </View>
-                </View>
-                <View style={{ flex: 1 / 2 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 20,
-                      }}
-                    >
-                      E-mail:
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        marginLeft: 10,
-                      }}
-                    >
-                      {order.user?.email}
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      marginTop: 10,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 20,
-                      }}
-                    >
-                      Adresse:
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        marginLeft: 10,
-                        width: "70%",
-                        flexWrap: "wrap",
-                      }}
-                      numberOfLines={2}
-                    >
-                      {order.address}
-                    </Text>
-                  </View>
-                </View>
+          <View style={styles.infoColumns}>
+            <View style={styles.infoColumn}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Code</Text>
+                <Text style={styles.infoValue}>{order.code}</Text>
               </View>
-            </View>
-          </View>
-
-          <View>
-            <Text
-              style={{
-                fontFamily: Fonts.LATO_BOLD,
-                fontSize: 24,
-                marginTop: 20,
-              }}
-            >
-              Review
-            </Text>
-            <View
-              style={{
-                backgroundColor: "white",
-                borderRadius: 10,
-                paddingVertical: 10,
-                alignItems: "center",
-                marginTop: 20,
-              }}
-            >
-              {order.review.status ? (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-
-                    width: "100%",
-                    paddingHorizontal: 12,
-                  }}
-                >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      flex: 1 / 3,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 24,
-                        marginRight: 12,
-                      }}
-                    >
-                      Note:
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 24,
-                        marginRight: 12,
-                      }}
-                    >
-                      {order.review.rating}
-                    </Text>
-                    <Entypo name="star" size={32} color="gold" />
-                  </View>
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 24,
-                        marginRight: 12,
-                      }}
-                    >
-                      Commentaire:
-                    </Text>
-                    <Text
-                      style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 24 }}
-                    >
-                      {order.review.comment}
-                    </Text>
-                  </View>
-                </View>
-              ) : (
-                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                  Aucune review
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Type</Text>
+                <Text style={styles.infoValue}>
+                  {isDeliveryOrder ? "Livraison" : "Emporter"}
                 </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Créé le</Text>
+                <Text style={styles.infoValue}>
+                  {convertDate(order.createdAt)}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Articles</Text>
+                <Text style={styles.infoValue}>
+                  {order.orderItems?.length +
+                    order.offers?.length +
+                    order.rewards?.length}{" "}
+                  article(s)
+                </Text>
+              </View>
+              {hasPromoCode && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Code promo</Text>
+                  <Text style={styles.infoValue}>{promoCode.code}</Text>
+                </View>
+              )}
+              {hasPromoAmount && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Rabais</Text>
+                  <Text style={styles.infoValue}>{formattedPromoAmount}</Text>
+                </View>
+              )}
+              {hasPromoPercent && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Rabais</Text>
+                  <Text style={styles.infoValue}>{promoCode.percent} %</Text>
+                </View>
+              )}
+              {hasFreeItemPromo && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Article gratuit</Text>
+                  <Text style={styles.infoValue}>
+                    {promoCode.freeItem?.name}
+                  </Text>
+                </View>
+              )}
+
+              {order.discount > 0 && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Rabais première commande</Text>
+                  <Text style={styles.infoValue}>{order.discount} %</Text>
+                </View>
+              )}
+              {isUberProvider && order.uber_pickup_eta && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Arrivée livreur (pickup)</Text>
+                  <Text style={styles.infoValue}>
+                    {formatDateWithoutSeconds(order.uber_pickup_eta)}
+                  </Text>
+                </View>
+              )}
+              {isUberProvider && order.uber_dropoff_eta && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Livraison estimée</Text>
+                  <Text style={styles.infoValue}>
+                    {formatDateWithoutSeconds(order.uber_dropoff_eta)}
+                  </Text>
+                </View>
               )}
             </View>
+            <View style={styles.infoColumn}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Total</Text>
+                {updatePriceMode ? (
+                  <View style={styles.valueWithIcon}>
+                    <TextInput
+                      style={styles.priceInput}
+                      keyboardType="numeric"
+                      placeholder={parseFloat(order.total_price).toFixed(2)}
+                      onChangeText={(text) => setPrice(text)}
+                    />
+                    <TouchableOpacity
+                      style={styles.smallButton}
+                      onPress={updateOrderPrice}
+                    >
+                      <Text style={styles.smallButtonLabel}>Enregistrer</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.valueWithIcon}>
+                    <Text style={styles.infoValue}>
+                      {parseFloat(order.total_price).toFixed(2)} $
+                    </Text>
+                    <TouchableOpacity
+                      style={[styles.iconButton, styles.editButton]}
+                      onPress={() => setUpdatePriceMode(true)}
+                    >
+                      <Ionicons name="pencil" size={20} color="#1D4ED8" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Sous-total</Text>
+                <Text style={styles.infoValue}>
+                  {order.sub_total.toFixed(2)} $
+                </Text>
+              </View>
+
+              {order.discount > 0 && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Après remise</Text>
+                  <Text style={styles.infoValue}>
+                    {order.sub_total_after_discount?.toFixed(2)} $ (-{" "}
+                    {order.discount} %)
+                  </Text>
+                </View>
+              )}
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>TVQ</Text>
+                <Text style={styles.infoValue}>{tvq.toFixed(2)} $</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>TPS</Text>
+                <Text style={styles.infoValue}>{tps.toFixed(2)} $</Text>
+              </View>
+              {isDeliveryOrder && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Frais de livraison</Text>
+                  <Text style={styles.infoValue}>
+                    {order.delivery_fee.toFixed(2)} $
+                  </Text>
+                </View>
+              )}
+
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Pourboire</Text>
+                <Text style={styles.infoValue}>{order.tip?.toFixed(2)} $</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Informations Client</Text>
+          </View>
+          <View style={styles.infoColumns}>
+            <View style={styles.infoColumn}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Nom & prénom</Text>
+                <Text style={styles.infoValue}>{order.user?.name}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Téléphone</Text>
+                <Text style={styles.infoValue}>
+                  {order?.user?.phone_number}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.infoColumn}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>E-mail</Text>
+                <Text style={styles.infoValue}>{order.user?.email}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Adresse</Text>
+                <Text style={[styles.infoValue, { flex: 1 }]} numberOfLines={2}>
+                  {order.address}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Critique</Text>
+          </View>
+          <View style={styles.reviewBox}>
+            {order.review.status ? (
+              <View style={styles.reviewRow}>
+                <View style={styles.reviewScore}>
+                  <Text style={styles.reviewLabel}>Note</Text>
+                  <Text style={styles.reviewValue}>{order.review.rating}</Text>
+                  <Entypo name="star" size={24} color="gold" />
+                </View>
+                <View style={styles.reviewComment}>
+                  <Text style={styles.reviewLabel}>Commentaire</Text>
+                  <Text style={styles.reviewText}>{order.review.comment}</Text>
+                </View>
+              </View>
+            ) : (
+              <Text style={styles.emptyText}>Aucune critique</Text>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -1304,60 +1141,305 @@ const OrderScreen = () => {
 export default OrderScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
-    top: 0,
-    left: 0,
-    backgroundColor: "rgba(50,44,44,0.4)",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 100,
+  screen: {
+    flex: 1,
+    backgroundColor: Colors.screenBg,
   },
-  model: {
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 32,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    gap: 14,
+  },
+  topCard: {
+    backgroundColor: Colors.gry,
+    borderRadius: 18,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "flex-start",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+  topInlineMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
+    minWidth: 180,
+  },
+  topInlineMetaText: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#374151",
     backgroundColor: "white",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 10,
-    paddingVertical: 40,
-    paddingHorizontal: 40,
-    width: "70%",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
   },
-  image: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    resizeMode: "cover",
+  topInlineMetaTextType: {
+    color: Colors.primary,
+    borderColor: "rgba(247,166,0,0.35)",
+    backgroundColor: "rgba(247,166,0,0.12)",
   },
-  infoContainer: {},
-  infoTextContainer: {
+  deliveryAddressRow: {
+    marginTop: 10,
+  },
+  topSecondaryMetaRow: {
+    marginTop: 10,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  topSecondaryMetaText: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#374151",
+    backgroundColor: "white",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  pageTitle: {
+    fontFamily: Fonts.BEBAS_NEUE,
+    fontSize: 34,
+    color: "#1b1b1b",
+  },
+  orderStatusCard: {
+    marginTop: 12,
+    gap: 10,
+  },
+  deliveryProviderCard: {
+    marginTop: 12,
+    gap: 10,
+  },
+  deliveryProviderTitle: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
+  },
+  deliveryProviderPickerRow: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
   },
-  title: { fontFamily: Fonts.LATO_REGULAR, fontSize: 20 },
-  infoContent: { fontFamily: Fonts.LATO_REGULAR, fontSize: 16, marginLeft: 20 },
-
-  row: {
-    width: "100%",
+  deliveryProviderDropdownWrapper: {
+    flex: 1,
+    minWidth: 170,
+    maxWidth: 300,
+  },
+  deliveryProviderDropdown: {
+    flex: 1,
+    minWidth: 170,
+  },
+  uberActionsRow: {
     flexDirection: "row",
-    gap: 50,
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  uberButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  uberButtonDisabled: {
+    opacity: 0.65,
+  },
+  uberButtonLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#1b1b1b",
+  },
+  cancelButton: {
+    backgroundColor: "#DC2626",
+    borderColor: "rgba(127,29,29,0.35)",
+  },
+  cancelButtonLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#FFFFFF",
+  },
+  modifyButton: {
+    backgroundColor: "white",
+    borderColor: "rgba(29,78,216,0.25)",
+  },
+  modifyButtonLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#1D4ED8",
+  },
+  uberStatusPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(29,78,216,0.25)",
+    backgroundColor: "rgba(29,78,216,0.12)",
+  },
+  uberStatusLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#1D4ED8",
+  },
+  uberEtaPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(20,184,166,0.25)",
+    backgroundColor: "rgba(20,184,166,0.12)",
+  },
+  uberEtaLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#0F766E",
+  },
+  metaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginTop: 10,
+  },
+  metaItem: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#374151",
+    backgroundColor: "white",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    flexShrink: 1,
+    maxWidth: "100%",
+  },
+  metaItemPrimary: {
+    color: Colors.primary,
+    borderColor: "rgba(247,166,0,0.35)",
+    backgroundColor: "rgba(247,166,0,0.12)",
+  },
+  promoFreeItemBanner: {
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  promoFreeItemBannerText: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 15,
+    color: "#1b1b1b",
+    textAlign: "center",
+  },
+  card: {
+    backgroundColor: Colors.gry,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontFamily: Fonts.BEBAS_NEUE,
+    fontSize: 26,
+    color: "#1b1b1b",
+  },
+  sectionSubtitle: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 13,
+    color: Colors.tgry,
+    marginTop: 2,
+  },
+  infoColumns: {
+    flexDirection: "row",
+    gap: 16,
+    flexWrap: "wrap",
+  },
+  infoColumn: {
+    flex: 1,
+    gap: 10,
+    minWidth: "48%",
+  },
+  infoRow: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
-    paddingHorizontal: 10,
+    gap: 10,
+    flexWrap: "wrap",
   },
-  rowCell: {
+  infoLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 15,
+    color: "#1b1b1b",
+    flexShrink: 0,
+  },
+  infoValue: {
     fontFamily: Fonts.LATO_REGULAR,
-    fontSize: 20,
+    fontSize: 15,
+    color: Colors.tgry,
+  },
+  valueWithIcon: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+    justifyContent: "flex-end",
+    flexWrap: "wrap",
+  },
+  infoDropdown: {
+    flex: 1,
+    minWidth: 160,
+  },
+  statusDropdown: {
+    flexGrow: 1,
+    minWidth: 160,
+    maxWidth: 220,
   },
   dropdown: {
-    height: 30,
-
-    borderColor: "black",
-    borderWidth: 0.5,
-    paddingHorizontal: 3,
+    height: 42,
+    borderColor: "rgba(0,0,0,0.15)",
+    borderWidth: 1,
+    paddingHorizontal: 12,
     paddingVertical: 2,
     flex: 1,
-    marginHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: "white",
   },
   selectedStyle: {
     height: 18,
@@ -1370,9 +1452,10 @@ const styles = StyleSheet.create({
     margin: 0,
   },
   itemTextStyle: {
-    fontSize: 18,
+    fontSize: 16,
     padding: 0,
     margin: 0,
+    fontFamily: Fonts.LATO_REGULAR,
   },
   containerStyle: {
     paddingHorizontal: 0,
@@ -1380,11 +1463,183 @@ const styles = StyleSheet.create({
   },
 
   placeholderStyle: {
-    fontSize: 18,
+    fontSize: 14,
     fontFamily: Fonts.LATO_REGULAR,
+    color: Colors.tgry,
   },
   selectedTextStyle: {
-    fontSize: 18,
+    fontSize: 14,
+    fontFamily: Fonts.LATO_BOLD,
+    color: "#1b1b1b",
+  },
+  smallButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  smallButtonLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#1b1b1b",
+  },
+  priceInput: {
     fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 15,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    minWidth: 90,
+    borderColor: "rgba(0,0,0,0.12)",
+    backgroundColor: "white",
+    color: "#1b1b1b",
+  },
+  instructionsBox: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  instructionsText: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 15,
+    color: "#1b1b1b",
+    textAlign: "left",
+  },
+  listContainer: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    overflow: "hidden",
+  },
+  listHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: Colors.screenBg,
+    borderBottomWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  listHeaderCell: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: Colors.tgry,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  listRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  listRowAlt: {
+    backgroundColor: "rgba(247, 165, 0, 0.6)",
+  },
+  listRowAlt1: {
+    backgroundColor: "#c6372f",
+  },
+  listCell: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 14,
+    color: "#1b1b1b",
+  },
+  listCell1: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 14,
+    color: "white",
+  },
+  subText: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 13,
+    color: "black",
+  },
+  offerItemName: {
+    fontFamily: Fonts.LATO_BOLD,
+    color: "#1b1b1b",
+  },
+  offerItemCustomizations: {
+    fontFamily: Fonts.LATO_REGULAR,
+    color: "#1b1b1b",
+  },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+  },
+  emptyText: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 16,
+    color: Colors.tgry,
+  },
+  subSection: {
+    gap: 10,
+    marginTop: 10,
+  },
+  subSectionTitle: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 16,
+    color: "#1b1b1b",
+  },
+  reviewBox: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    alignItems: "flex-start",
+  },
+  reviewRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 18,
+    flexWrap: "wrap",
+  },
+  reviewScore: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  reviewLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 16,
+    color: "#1b1b1b",
+  },
+  reviewValue: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 18,
+    color: "#1b1b1b",
+  },
+  reviewComment: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+  reviewText: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 15,
+    color: Colors.tgry,
+  },
+  iconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: "white",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  editButton: {
+    backgroundColor: "rgba(29,78,216,0.12)",
+    borderColor: "rgba(29,78,216,0.25)",
   },
 });

@@ -4,6 +4,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ScrollView,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -62,63 +63,84 @@ const NotificationsScreen = () => {
       {showFailModal && (
         <FailModel message="Oops ! Quelque chose s'est mal passé" />
       )}
-      <View style={styles.container}>
-        <View style={styles.btns_container}>
-          <TouchableOpacity
-            style={
-              activePage === "notifications"
-                ? styles.active_nav_btns
-                : styles.inactive_nav_btns
-            }
-            onPress={() => setActivePage("notifications")}
-          >
-            <Text style={styles.nav_btns_txt}>Notifications</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={
-              activePage === "sms"
-                ? styles.active_nav_btns
-                : styles.inactive_nav_btns
-            }
-            onPress={() => setActivePage("sms")}
-          >
-            <Text style={styles.nav_btns_txt}>SMS</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={
-              activePage === "emails"
-                ? styles.active_nav_btns
-                : styles.inactive_nav_btns
-            }
-            onPress={() => setActivePage("emails")}
-          >
-            <Text style={styles.nav_btns_txt}>E-Mails</Text>
-          </TouchableOpacity>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            <Text style={styles.title}>Notifications</Text>
+            <Text style={styles.subtitle}>
+              Choisissez le canal et envoyez des messages ciblés.
+            </Text>
+          </View>
+          <View style={styles.badgeRow}>
+            <View style={styles.badge}>
+              <Text style={styles.badgeLabel}>Push</Text>
+            </View>
+            <View style={styles.badge}>
+              <Text style={styles.badgeLabel}>SMS</Text>
+            </View>
+            <View style={styles.badge}>
+              <Text style={styles.badgeLabel}>E-mail</Text>
+            </View>
+          </View>
         </View>
-        <View style={styles.main_container}>
-          {activePage === "notifications" && (
-            <SendNotifications
-              setIsLoading={setIsLoading}
-              setShowFailModal={setShowFailModal}
-              setShowSuccessModel={setShowSuccessModel}
-            />
-          )}
-          {activePage === "sms" && (
-            <SendSMS
-              setIsLoading={setIsLoading}
-              setShowFailModal={setShowFailModal}
-              setShowSuccessModel={setShowSuccessModel}
-            />
-          )}
-          {activePage === "emails" && (
-            <SendMails
-              setIsLoading={setIsLoading}
-              setShowFailModal={setShowFailModal}
-              setShowSuccessModel={setShowSuccessModel}
-            />
-          )}
+
+        <View style={styles.layout}>
+          <View style={styles.navCard}>
+            {[
+              { key: "notifications", label: "Notifications" },
+              { key: "sms", label: "SMS" },
+              { key: "emails", label: "E-mails" },
+            ].map((tab) => (
+              <TouchableOpacity
+                key={tab.key}
+                style={[
+                  styles.navButton,
+                  activePage === tab.key && styles.navButtonActive,
+                ]}
+                onPress={() => setActivePage(tab.key)}
+                activeOpacity={0.9}
+              >
+                <Text
+                  style={[
+                    styles.navLabel,
+                    activePage === tab.key && styles.navLabelActive,
+                  ]}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View style={styles.panel}>
+            {activePage === "notifications" && (
+              <SendNotifications
+                setIsLoading={setIsLoading}
+                setShowFailModal={setShowFailModal}
+                setShowSuccessModel={setShowSuccessModel}
+              />
+            )}
+            {activePage === "sms" && (
+              <SendSMS
+                setIsLoading={setIsLoading}
+                setShowFailModal={setShowFailModal}
+                setShowSuccessModel={setShowSuccessModel}
+              />
+            )}
+            {activePage === "emails" && (
+              <SendMails
+                setIsLoading={setIsLoading}
+                setShowFailModal={setShowFailModal}
+                setShowSuccessModel={setShowSuccessModel}
+              />
+            )}
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -129,45 +151,105 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: Colors.screenBg,
-    justifyContent: "center",
   },
-  container: {
-    flexDirection: "row",
-    alignItems: "center",
+  scroll: {
     flex: 1,
-
-    marginHorizontal: 40,
   },
-  btns_container: {
-    height: "60%",
-
-    justifyContent: "space-between",
+  content: {
+    padding: 20,
+    gap: 16,
+    flexGrow: 1,
   },
-  active_nav_btns: {
-    backgroundColor: Colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 20,
-    paddingHorizontal: 40,
-    borderRadius: 12,
+  header: {
+    backgroundColor: Colors.gry,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 5,
+    gap: 10,
   },
-  inactive_nav_btns: {
+  headerText: {
+    gap: 4,
+  },
+  title: {
+    fontFamily: Fonts.BEBAS_NEUE,
+    fontSize: 34,
+    color: "#1b1b1b",
+  },
+  subtitle: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 15,
+    color: Colors.tgry,
+  },
+  badgeRow: {
+    flexDirection: "row",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: "rgba(247,166,0,0.14)",
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  badgeLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 12,
+    color: "#1b1b1b",
+  },
+  layout: {
+    flexDirection: "row",
+    gap: 16,
+    flexWrap: "wrap",
+  },
+  navCard: {
+    minWidth: 200,
+    backgroundColor: Colors.gry,
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    gap: 8,
+  },
+  navButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
     backgroundColor: "white",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 20,
-    paddingHorizontal: 40,
-    borderRadius: 12,
-    borderWidth: 2,
+  },
+  navButtonActive: {
+    backgroundColor: Colors.primary,
     borderColor: Colors.primary,
   },
-  nav_btns_txt: { fontFamily: Fonts.LATO_BOLD, fontSize: 24 },
-  main_container: {
-    backgroundColor: "white",
-    borderRadius: 12,
-
+  navLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 15,
+    color: Colors.tgry,
+  },
+  navLabelActive: {
+    color: "#1b1b1b",
+  },
+  panel: {
     flex: 1,
-    marginLeft: 20,
-    marginVertical: 40,
+    minHeight: 300,
+    backgroundColor: Colors.gry,
+    borderRadius: 16,
+    padding: 0,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 5,
   },
 });

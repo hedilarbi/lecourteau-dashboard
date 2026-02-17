@@ -1,5 +1,6 @@
 import {
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -14,8 +15,8 @@ import SearchBar from "../components/SearchBar";
 import DeleteWarning from "../components/models/DeleteWarning";
 import CreateItemModel from "../components/models/CreateItemModel";
 import AddButton from "../components/AddButton";
-import CreateCategoryModel from "../components/models/CreateCategoryModel";
-import { Feather } from "@expo/vector-icons";
+
+import { Entypo, Feather } from "@expo/vector-icons";
 import { filterMenuItems, filterRestaurantMenuItems } from "../utils/filters";
 import {
   deleteMenuItem,
@@ -33,13 +34,14 @@ import ErrorScreen from "../components/ErrorScreen";
 import MenuItemsFilter from "../components/MenuItemsFilter";
 import RenderMenuItem from "../components/RenderMenuItem";
 import Spinner from "../components/Spinner";
+import PageHeader from "../components/ui/PageHeader";
 
 const ItemsScreen = () => {
   const { role, restaurant } = useSelector(selectStaffData);
   const navigation = useNavigation();
   const [deleteWarningModelState, setDeleteWarningModelState] = useState(false);
   const [showCreateItemModel, setShowCreateItemModel] = useState(false);
-  const [showCreateCategoryModel, setShowCreateCategoryModel] = useState(false);
+
   const [categories, setCategories] = useState([]);
   const [refresh, setRefresh] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -179,7 +181,7 @@ const ItemsScreen = () => {
   }
 
   return (
-    <SafeAreaView style={{ backgroundColor: Colors.screenBg, flex: 1 }}>
+    <SafeAreaView style={styles.screen}>
       {deleteWarningModelState && (
         <DeleteWarning
           id={menuItem}
@@ -191,11 +193,6 @@ const ItemsScreen = () => {
       )}
       {isTriLoading && <Spinner visibility={isTriLoading} />}
 
-      {showCreateCategoryModel && (
-        <CreateCategoryModel
-          setShowCreateCategoryModel={setShowCreateCategoryModel}
-        />
-      )}
       {showCreateItemModel && (
         <CreateItemModel
           setShowCreateItemModel={setShowCreateItemModel}
@@ -203,232 +200,168 @@ const ItemsScreen = () => {
         />
       )}
 
-      <View style={{ flex: 1, padding: 20 }}>
-        <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
-          Articles
-        </Text>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginTop: 30,
-            justifyContent: "space-between",
-          }}
-        >
-          {role === Roles.ADMIN ? (
-            <SearchBar
-              setter={setMenuItems}
-              list={menuItemsList}
-              filter={filterMenuItems}
-            />
-          ) : (
-            <SearchBar
-              setter={setMenuItems}
-              list={menuItemsList}
-              filter={filterRestaurantMenuItems}
-            />
-          )}
-          {role === Roles.ADMIN && (
-            <AddButton setShowModel={setShowCreateItemModel} text="Article" />
-          )}
-          {role === Roles.ADMIN && (
-            <AddButton
-              setShowModel={setShowCreateCategoryModel}
-              text="Catégorie"
-            />
-          )}
-          {role === Roles.ADMIN && (
-            <TouchableOpacity
-              style={{
-                backgroundColor: Colors.primary,
-                paddingBottom: 10,
-                paddingLeft: 20,
-                paddingRight: 20,
-                paddingTop: 10,
-                borderWidth: 1,
-                borderRadius: 5,
-                flexDirection: "row",
-                alignItems: "center",
-              }}
-              onPress={() => navigation.navigate("Categories")}
-            >
-              <Text
-                style={{
-                  fontFamily: Fonts.LATO_BOLD,
-                  fontSize: 20,
-                  color: "black",
-                  marginLeft: 10,
-                }}
-              >
-                Liste des catégories
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginTop: 12,
-          }}
-        >
+      <ScrollView
+        style={styles.body}
+        contentContainerStyle={styles.bodyContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <PageHeader
+          title="Articles"
+          subtitle="Gérez votre menu et ses disponibilités"
+          pills={[{ label: `${menuItems.length} article(s)` }]}
+          rightContent={
+            <View style={styles.headerActions}>
+              <View style={styles.searchRow}>
+                {role === Roles.ADMIN ? (
+                  <SearchBar
+                    setter={setMenuItems}
+                    list={menuItemsList}
+                    filter={filterMenuItems}
+                    placeholder="Chercher un article"
+                  />
+                ) : (
+                  <SearchBar
+                    setter={setMenuItems}
+                    list={menuItemsList}
+                    filter={filterRestaurantMenuItems}
+                    placeholder="Chercher un article"
+                  />
+                )}
+              </View>
+              {role === Roles.ADMIN && (
+                <View style={styles.headerButtons}>
+                  <TouchableOpacity
+                    style={styles.secondaryButton}
+                    onPress={() => navigation.navigate("Categories")}
+                    activeOpacity={0.9}
+                  >
+                    <Text style={styles.secondaryLabel}>
+                      Gérer les catégories
+                    </Text>
+                    <Feather name="chevron-right" size={16} color="#1b1b1b" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.secondaryButton}
+                    onPress={() => navigation.navigate("SizeGroups")}
+                    activeOpacity={0.9}
+                  >
+                    <Text style={styles.secondaryLabel}>
+                      Gérer les groupes de tailles
+                    </Text>
+                    <Feather name="chevron-right" size={16} color="#1b1b1b" />
+                  </TouchableOpacity>
+                  <AddButton
+                    setShowModel={setShowCreateItemModel}
+                    text="Article"
+                  />
+                </View>
+              )}
+            </View>
+          }
+        />
+
+        <View style={styles.filtersRow}>
           {role === Roles.ADMIN && (
             <View>
               {triMode ? (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 12,
-                  }}
-                >
+                <View style={styles.triActions}>
                   <TouchableOpacity
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      backgroundColor: Colors.primary,
-                      paddingVertical: 10,
-                      borderRadius: 5,
-                      paddingHorizontal: 18,
-                      justifyContent: "space-between",
-                    }}
+                    style={styles.primaryButton}
                     onPress={saveTri}
+                    activeOpacity={0.9}
                   >
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 18,
-                      }}
-                    >
-                      Sauvegarder
-                    </Text>
+                    <Text style={styles.primaryLabel}>Sauvegarder</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      backgroundColor: Colors.tgry,
-                      paddingVertical: 10,
-                      borderRadius: 5,
-                      paddingHorizontal: 18,
-                      justifyContent: "space-between",
-                    }}
+                    style={styles.ghostButton}
                     onPress={discardTri}
+                    activeOpacity={0.9}
                   >
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_BOLD,
-                        fontSize: 18,
-                        color: "black",
-                      }}
-                    >
-                      Annuler
-                    </Text>
+                    <Text style={styles.ghostLabel}>Annuler</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <TouchableOpacity
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    backgroundColor: Colors.primary,
-                    paddingVertical: 10,
-                    borderRadius: 5,
-                    paddingHorizontal: 18,
-                    justifyContent: "space-between",
-                  }}
+                  style={styles.primaryButton}
                   onPress={() => setTriMode(true)}
+                  activeOpacity={0.9}
                 >
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_BOLD,
-                      fontSize: 18,
-                    }}
-                  >
-                    Modifier l'ordre
-                  </Text>
+                  <Text style={styles.primaryLabel}>Modifier l&apos;ordre</Text>
                 </TouchableOpacity>
               )}
             </View>
           )}
           <TouchableOpacity
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: Colors.primary,
-              paddingVertical: 10,
-              borderRadius: 5,
-
-              width: "15%",
-              justifyContent: "space-between",
-              paddingHorizontal: 10,
-            }}
+            style={[
+              styles.filterButton,
+              showMenuFilter && styles.filterButtonActive,
+            ]}
             onPress={() => setShowMenuFilter(!showMenuFilter)}
+            activeOpacity={0.9}
           >
             <Text
-              style={{
-                fontFamily: Fonts.LATO_BOLD,
-                fontSize: 18,
-              }}
+              style={[
+                styles.filterLabel,
+                showMenuFilter && styles.filterLabelActive,
+              ]}
             >
               Filtre
             </Text>
             {showMenuFilter ? (
-              <Feather name="chevron-up" size={24} color="black" />
+              <Feather name="chevron-up" size={18} color="#1b1b1b" />
             ) : (
-              <Feather name="chevron-down" size={24} color="black" />
+              <Feather name="chevron-down" size={18} color="#1b1b1b" />
             )}
           </TouchableOpacity>
         </View>
-        {showMenuFilter && (
-          <MenuItemsFilter
-            categories={categories}
-            setMenuItemFilter={setMenuItemFilter}
-            menuItemFilter={menuItemFilter}
-            menuItemsList={menuItemsList}
-            setMenuItems={setMenuItems}
-            role={role}
-          />
-        )}
 
-        {menuItems.length > 0 ? (
-          <FlatList
-            data={menuItems}
-            keyExtractor={(item) => item._id}
-            renderItem={({ item, index }) => (
-              <RenderMenuItem
-                item={item}
-                index={index}
-                role={role}
-                handleShowMenuItemModel={handleShowMenuItemModel}
-                handleShowDeleteWarning={handleShowDeleteWarning}
-                updateAvailability={updateAvailability}
-                handleTri={handleTri}
-                triMode={triMode}
-              />
-            )}
-            ref={flatList}
-            style={{ marginTop: 10 }}
-            scrollEventThrottle={30}
-          />
-        ) : (
-          <View
-            style={{
-              flex: 1,
-              justifyContent: "center",
-              alignItems: "center",
-              backgroundColor: "white",
-              borderRadius: 16,
-              marginTop: 20,
-            }}
-          >
-            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-              Aucun Article
-            </Text>
+        {showMenuFilter && (
+          <View style={styles.filterCard}>
+            <MenuItemsFilter
+              categories={categories}
+              setMenuItemFilter={setMenuItemFilter}
+              menuItemFilter={menuItemFilter}
+              menuItemsList={menuItemsList}
+              setMenuItems={setMenuItems}
+              role={role}
+            />
           </View>
         )}
-      </View>
+
+        <View style={styles.listCard}>
+          {menuItems.length > 0 ? (
+            <FlatList
+              data={menuItems}
+              keyExtractor={(item) => item._id}
+              renderItem={({ item, index }) => (
+                <RenderMenuItem
+                  item={item}
+                  index={index}
+                  role={role}
+                  handleShowMenuItemModel={handleShowMenuItemModel}
+                  handleShowDeleteWarning={handleShowDeleteWarning}
+                  updateAvailability={updateAvailability}
+                  handleTri={handleTri}
+                  triMode={triMode}
+                />
+              )}
+              ref={flatList}
+              style={styles.list}
+              contentContainerStyle={styles.listContent}
+              scrollEventThrottle={30}
+              scrollEnabled={false}
+            />
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>Aucun Article</Text>
+              <Text style={styles.emptySubtitle}>
+                Ajoutez un article ou ajustez vos filtres.
+              </Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -436,22 +369,148 @@ const ItemsScreen = () => {
 export default ItemsScreen;
 
 const styles = StyleSheet.create({
-  row: {
+  screen: {
+    backgroundColor: Colors.screenBg,
+    flex: 1,
+  },
+  body: {
+    flex: 1,
+  },
+  bodyContent: {
+    padding: 20,
+    gap: 14,
+    paddingBottom: 24,
+  },
+  headerActions: {
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: 10,
+  },
+  searchRow: {
     width: "100%",
+    minWidth: 260,
+    height: 44,
+  },
+  secondaryButton: {
     flexDirection: "row",
-    gap: 50,
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  secondaryLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
+  },
+  headerButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  filtersRow: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+  },
+  triActions: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  primaryButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  primaryLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
+  },
+  ghostButton: {
+    backgroundColor: "white",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  ghostLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: Colors.tgry,
+  },
+  filterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
     paddingVertical: 10,
-    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.1)",
+    backgroundColor: "white",
   },
-  image: {
-    width: 100,
-    height: 100,
-    resizeMode: "contain",
+  filterButtonActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
-  rowCell: {
+  filterLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: Colors.tgry,
+  },
+  filterLabelActive: {
+    color: "#1b1b1b",
+  },
+  filterCard: {
+    backgroundColor: Colors.gry,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    padding: 12,
+  },
+  listCard: {
+    backgroundColor: Colors.gry,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 5,
+    overflow: "hidden",
+  },
+  list: {
+    width: "100%",
+  },
+  listContent: {
+    paddingVertical: 6,
+  },
+  emptyState: {
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyTitle: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 18,
+    color: "#1b1b1b",
+  },
+  emptySubtitle: {
     fontFamily: Fonts.LATO_REGULAR,
-    fontSize: 20,
+    fontSize: 14,
+    color: Colors.tgry,
+    marginTop: 4,
+    textAlign: "center",
   },
 });

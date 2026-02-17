@@ -112,7 +112,7 @@ const EmployeeScreen = () => {
       if (response.status) {
         let list = [];
         response?.data.map((item) =>
-          list.push({ value: item._id, label: item.name })
+          list.push({ value: item._id, label: item.name }),
         );
         setRestaurants(list);
       }
@@ -142,7 +142,7 @@ const EmployeeScreen = () => {
       employee.name,
       employee.username,
       workAt,
-      employee.role
+      employee.role,
     )
       .then((response) => {
         if (response.status) {
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
   },
   containerStyle: {
     paddingHorizontal: 0,
-    margin: 0,
+    marginTop: -10,
   },
 
   placeholderStyle: {

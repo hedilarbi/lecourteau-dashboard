@@ -1,41 +1,62 @@
-import { View, Text, TextInput } from "react-native";
 import React from "react";
+import { View, TextInput, StyleSheet } from "react-native";
 import { Entypo } from "@expo/vector-icons";
 import { Colors, Fonts } from "../constants";
-const SearchBar = ({ setter, list, filter }) => {
-  const filterList = (text) => {
+
+const SearchBar = ({
+  setter,
+  list = [],
+  filter,
+  placeholder = "Chercher",
+  onChangeText,
+  value,
+}) => {
+  const handleChange = (text) => {
+    if (onChangeText) {
+      onChangeText(text);
+      return;
+    }
+    if (!filter || !setter) return;
     const newList = filter(list, text);
     setter(newList);
   };
-  return (
-    <View
-      style={{
-        backgroundColor: "white",
-        flexDirection: "row",
-        width: 300,
-        alignItems: "center",
-        paddingBottom: 4,
-        paddingTop: 4,
-        paddingLeft: 4,
 
-        borderWidth: 1,
-        borderRadius: 5,
-      }}
-    >
-      <Entypo name="magnifying-glass" size={24} color={Colors.mgry} />
+  return (
+    <View style={styles.container}>
+      <Entypo name="magnifying-glass" size={18} color={Colors.mgry} />
       <TextInput
-        style={{
-          fontFamily: Fonts.LATO_REGULAR,
-          fontSize: 20,
-          marginLeft: 5,
-          flex: 1,
-        }}
-        placeholder="Chercher"
-        onChangeText={(text) => filterList(text)}
+        style={styles.input}
+        placeholder={placeholder}
+        onChangeText={handleChange}
         placeholderTextColor={Colors.mgry}
+        value={value}
       />
     </View>
   );
 };
 
 export default SearchBar;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "white",
+    paddingHorizontal: 12,
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+  },
+  input: {
+    flex: 1,
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 16,
+    height: "100%",
+    paddingVertical: 0,
+    textAlignVertical: "center",
+    color: "#1b1b1b",
+  },
+});

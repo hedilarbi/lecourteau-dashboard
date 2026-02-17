@@ -6,4 +6,5 @@ export default {
   READY: "Prête",
   IN_DELIVERY: "En Livraison",
   DONE: "Terminée",
+  PROGRAMMED: "Programmé",
 };

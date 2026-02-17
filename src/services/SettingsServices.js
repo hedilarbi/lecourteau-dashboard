@@ -25,13 +25,18 @@ const getSettings = async () => {
   }
 };
 
-const updateSettings = async (id, settings) => {
+const updateSettings = async (id, settings, token) => {
   try {
     let response = await axios.put(
       `${API_URL}/restaurants/update/settings/${id}`,
       {
         settings,
-      }
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
     );
 
     if (response?.status === 200) {

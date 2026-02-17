@@ -11,30 +11,26 @@ import {
   View,
 } from "react-native";
 import React, { useCallback, useEffect, useState } from "react";
-import { Entypo, FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import { Entypo, MaterialIcons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { Colors, Fonts, OrderStatus, Roles } from "../constants";
-import SearchBar from "../components/SearchBar";
 import DeleteWarning from "../components/models/DeleteWarning";
 
 import {
   confirmOrder,
   deleteOrder,
   getOrderFiltred,
-  getOrders,
   getRestaurantOrderFiltred,
 } from "../services/OrdersServices";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { convertDate } from "../utils/dateHandlers";
 import { useSelector } from "react-redux";
-import { selectStaffData } from "../redux/slices/StaffSlice";
-import {
-  getRestaurantList,
-  getRestaurantOrders,
-} from "../services/RestaurantServices";
-import { filterOrdersByCode } from "../utils/filters";
+import { selectStaffData, selectStaffToken } from "../redux/slices/StaffSlice";
+import { getRestaurantList } from "../services/RestaurantServices";
 import ErrorScreen from "../components/ErrorScreen";
 import { Dropdown } from "react-native-element-dropdown";
+import PageHeader from "../components/ui/PageHeader";
 
 const OrdersScreen = () => {
   const navigation = useNavigation();
@@ -50,8 +46,12 @@ const OrdersScreen = () => {
 
       case OrderStatus.ON_GOING:
         return "#F3A32B";
+      case OrderStatus.PROGRAMMED:
+        return "#14B8A6";
       case OrderStatus.CANCELED:
         return "#FF0707";
+      default:
+        return Colors.tgry;
     }
   };
   const [isLoading, setIsLoading] = useState(false);
@@ -71,7 +71,8 @@ const OrdersScreen = () => {
     value: "",
   });
   const [showFilters, setShowFilters] = useState(false);
-
+  const [confirmingOrderId, setConfirmingOrderId] = useState(null);
+  const token = useSelector(selectStaffToken);
   const fetchData = async () => {
     setIsLoading(true);
     setError(false);
@@ -110,7 +111,7 @@ const OrdersScreen = () => {
             list.push({
               label: r.name,
               value: r._id,
-            })
+            }),
           );
           setRestaurantList(list);
         }
@@ -149,23 +150,34 @@ const OrdersScreen = () => {
   // );
 
   const confirm = async (id) => {
+    if (confirmingOrderId === id) {
+      return;
+    }
+
+    setConfirmingOrderId(id);
     try {
-      const response = await confirmOrder(id);
+      const response = await confirmOrder(id, token);
       if (response.status) {
-        setRefresh((prev) => prev + 1);
+        setOrders((prevOrders) =>
+          prevOrders.map((order) =>
+            order._id === id ? { ...order, confirmed: true } : order,
+          ),
+        );
       } else {
         console.log(response.message);
         Alert.alert("Une erreur s'est produite");
       }
     } catch (e) {
       Alert.alert("Une erreur s'est produite");
+    } finally {
+      setConfirmingOrderId(null);
     }
   };
 
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="black" />
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
@@ -175,7 +187,7 @@ const OrdersScreen = () => {
   }
 
   return (
-    <SafeAreaView style={{ backgroundColor: Colors.screenBg, flex: 1 }}>
+    <SafeAreaView style={styles.screen}>
       {deleteWarningModelState && (
         <DeleteWarning
           id={orderId}
@@ -187,421 +199,253 @@ const OrdersScreen = () => {
         />
       )}
 
-      <View style={{ flex: 1, padding: 20 }}>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
-            Commandes
-          </Text>
-
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginTop: 12,
-            }}
-          >
-            <View
-              style={{
-                backgroundColor: "white",
-                flexDirection: "row",
-                width: 300,
-                alignItems: "center",
-                paddingBottom: 4,
-                paddingTop: 4,
-                paddingLeft: 4,
-
-                borderWidth: 1,
-                borderRadius: 5,
-              }}
-            >
-              <Entypo name="magnifying-glass" size={24} color={Colors.mgry} />
-              <TextInput
-                style={{
-                  fontFamily: Fonts.LATO_REGULAR,
-                  fontSize: 20,
-                  marginLeft: 5,
-                  flex: 1,
-                }}
-                placeholder="Chercher par nom"
-                onChangeText={(text) => setSearch(text)}
-                placeholderTextColor={Colors.mgry}
-                value={search}
-              />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={fetchData} />
+        }
+      >
+        <PageHeader
+          title="Commandes"
+          subtitle="Filtrez, recherchez et gérez vos commandes en cours."
+          pills={[
+            { label: `${orders.length} commande(s)` },
+            role === Roles.ADMIN
+              ? { label: selectedRestaurant.label || "Tous les restaurants" }
+              : null,
+          ].filter(Boolean)}
+          rightContent={
+            <View style={styles.headerActions}>
+              <View style={styles.searchInput}>
+                <Entypo name="magnifying-glass" size={18} color={Colors.mgry} />
+                <TextInput
+                  style={styles.searchField}
+                  placeholder="Chercher par nom ou code"
+                  onChangeText={(text) => setSearch(text)}
+                  placeholderTextColor={Colors.mgry}
+                  value={search}
+                />
+              </View>
+              <TouchableOpacity
+                style={styles.searchButton}
+                onPress={fetchData}
+                activeOpacity={0.9}
+              >
+                <Text style={styles.searchButtonLabel}>Rechercher</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.filterToggle}
+                onPress={() => setShowFilters((prev) => !prev)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.filterToggleLabel}>
+                  {showFilters ? "Masquer" : "Afficher"} les filtres
+                </Text>
+                <Entypo
+                  name={showFilters ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color="#1b1b1b"
+                />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={{
-                marginLeft: 12,
-                backgroundColor: Colors.primary,
-                padding: 10,
-                borderRadius: 10,
-              }}
-              onPress={fetchData}
-            >
-              <Text style={{ color: "white" }}>Rechercher</Text>
-            </TouchableOpacity>
+          }
+        />
+
+        {showFilters && (
+          <View style={styles.filtersCard}>
+            <View style={styles.chipsRow}>
+              {[
+                { label: "Tout", value: "" },
+                {
+                  label: OrderStatus.PROGRAMMED,
+                  value: OrderStatus.PROGRAMMED,
+                },
+                { label: OrderStatus.READY, value: OrderStatus.READY },
+                { label: OrderStatus.ON_GOING, value: OrderStatus.ON_GOING },
+                {
+                  label: OrderStatus.IN_DELIVERY,
+                  value: OrderStatus.IN_DELIVERY,
+                },
+                { label: OrderStatus.DONE, value: OrderStatus.DONE },
+              ].map((option) => (
+                <TouchableOpacity
+                  key={option.value || "all"}
+                  style={[
+                    styles.chip,
+                    filter === option.value && styles.chipActive,
+                  ]}
+                  onPress={() => setFilter(option.value)}
+                  activeOpacity={0.85}
+                >
+                  <Text
+                    style={[
+                      styles.chipLabel,
+                      filter === option.value && styles.chipLabelActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {role === Roles.ADMIN && (
+              <View style={styles.dropdownRow}>
+                <Text style={styles.dropdownLabel}>Restaurant</Text>
+                <Dropdown
+                  style={[styles.dropdown]}
+                  placeholderStyle={styles.placeholderStyle}
+                  selectedTextStyle={styles.selectedTextStyle}
+                  selectedStyle={styles.selectedStyle}
+                  itemContainerStyle={styles.itemContainerStyle}
+                  itemTextStyle={styles.itemTextStyle}
+                  containerStyle={styles.containerStyle}
+                  data={restaurantList}
+                  maxHeight={300}
+                  labelField="label"
+                  valueField="label"
+                  value={selectedRestaurant.label}
+                  onChange={(item) => setSelectedRestaurant(item)}
+                />
+              </View>
+            )}
           </View>
-        </View>
-        <TouchableOpacity
-          style={{
-            flexDirection: "row",
-            backgroundColor: Colors.primary,
-            padding: 10,
-            borderRadius: 10,
-            justifyContent: "space-between",
-            alignItems: "center",
-            width: 140,
-            marginTop: 15,
-          }}
-          onPress={() => setShowFilters((prev) => !prev)}
-        >
-          <Text
-            style={{
-              fontFamily: Fonts.LATO_BOLD,
-              fontSize: 20,
-            }}
-          >
-            Filtres
-          </Text>
-          {showFilters ? (
-            <Entypo name="chevron-up" size={24} color="black" />
-          ) : (
-            <Entypo name="chevron-down" size={24} color="black" />
-          )}
-        </TouchableOpacity>
-        <View
-          style={{
-            marginTop: 20,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 40,
-            display: showFilters ? "flex" : "none",
-          }}
-        >
-          <TouchableOpacity
-            style={[
-              {
-                paddingHorizontal: 20,
-                paddingVertical: 10,
-                borderRadius: 10,
-                alignItems: "center",
-                borderWidth: 1,
-              },
-              filter === ""
-                ? { backgroundColor: Colors.primary }
-                : { backgroundColor: "white" },
-            ]}
-            onPress={() => setFilter("")}
-          >
-            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-              Tout
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              {
-                paddingHorizontal: 20,
-                paddingVertical: 10,
-                borderRadius: 10,
-                alignItems: "center",
-                borderWidth: 1,
-              },
-              filter === OrderStatus.READY
-                ? { backgroundColor: Colors.primary }
-                : { backgroundColor: "white" },
-            ]}
-            onPress={() => setFilter(OrderStatus.READY)}
-          >
-            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-              {OrderStatus.READY}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              {
-                paddingHorizontal: 20,
-                paddingVertical: 10,
-                borderRadius: 10,
-                alignItems: "center",
-                borderWidth: 1,
-              },
-              filter === OrderStatus.ON_GOING
-                ? { backgroundColor: Colors.primary }
-                : { backgroundColor: "white" },
-            ]}
-            onPress={() => setFilter(OrderStatus.ON_GOING)}
-          >
-            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-              {OrderStatus.ON_GOING}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              {
-                paddingHorizontal: 20,
-                paddingVertical: 10,
-                borderRadius: 10,
-                alignItems: "center",
-                borderWidth: 1,
-              },
-              filter === OrderStatus.IN_DELIVERY
-                ? { backgroundColor: Colors.primary }
-                : { backgroundColor: "white" },
-            ]}
-            onPress={() => setFilter(OrderStatus.IN_DELIVERY)}
-          >
-            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-              {OrderStatus.IN_DELIVERY}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              {
-                paddingHorizontal: 20,
-                paddingVertical: 10,
-                borderRadius: 10,
-                alignItems: "center",
-                borderWidth: 1,
-              },
-              filter === OrderStatus.DONE
-                ? { backgroundColor: Colors.primary }
-                : { backgroundColor: "white" },
-            ]}
-            onPress={() => setFilter(OrderStatus.DONE)}
-          >
-            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-              {OrderStatus.DONE}
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <View
-          style={{
-            display: showFilters ? "flex" : "none",
-            marginTop: 20,
-          }}
-        >
-          <Dropdown
-            style={[styles.dropdown]}
-            placeholderStyle={styles.placeholderStyle}
-            selectedTextStyle={styles.selectedTextStyle}
-            selectedStyle={styles.selectedStyle}
-            itemContainerStyle={styles.itemContainerStyle}
-            itemTextStyle={styles.itemTextStyle}
-            containerStyle={styles.containerStyle}
-            data={restaurantList}
-            maxHeight={300}
-            labelField="label"
-            valueField="label"
-            value={selectedRestaurant.label}
-            onChange={(item) => setSelectedRestaurant(item)}
-          />
-        </View>
-        <View style={{ flex: 1 }}>
+        )}
+
+        <View style={styles.tableCard}>
+          <View style={styles.tableHeader}>
+            <Text style={[styles.headerCell, { flex: 1.2 }]}>Statut</Text>
+            <Text style={[styles.headerCell, { flex: 1 }]}>Code</Text>
+            <Text style={[styles.headerCell, { flex: 1 }]}>Type</Text>
+            <Text style={[styles.headerCell, { flex: 1 }]}>Total</Text>
+            {role === Roles.ADMIN && (
+              <Text style={[styles.headerCell, { flex: 1.2 }]}>Créé</Text>
+            )}
+            <Text style={[styles.headerCell, { width: 90 }]}>Actions</Text>
+          </View>
           {orders.length > 0 ? (
             <ScrollView
-              style={{
-                width: "100%",
-                marginTop: 15,
-                borderWidth: 1,
-                borderColor: "black",
-              }}
+              style={styles.tableScroll}
               refreshControl={
                 <RefreshControl refreshing={isLoading} onRefresh={fetchData} />
               }
             >
-              {role === Roles.ADMIN
-                ? orders.map((order, index) => (
-                    <View
-                      key={order._id}
-                      style={[
-                        styles.row,
-                        index % 2
-                          ? { backgroundColor: "transparent" }
-                          : { backgroundColor: "rgba(247,166,0,0.3)" },
-                      ]}
-                    >
-                      <Text
+              {orders.map((order, index) => {
+                const isAdmin = role === Roles.ADMIN;
+                const isConfirming = confirmingOrderId === order._id;
+                return (
+                  <View
+                    key={order._id}
+                    style={[styles.row, index % 2 === 0 && styles.rowAlt]}
+                  >
+                    <View style={[styles.cell, { flex: 1.2 }]}>
+                      <View
                         style={[
-                          styles.rowCell,
+                          styles.statusPill,
                           {
-                            width: "10%",
-                            color: setOrderStatusColor(order.status),
+                            backgroundColor: `${setOrderStatusColor(
+                              order.status,
+                            )}22`,
+                            borderColor: `${setOrderStatusColor(
+                              order.status,
+                            )}55`,
                           },
                         ]}
                       >
-                        {order.status}
-                      </Text>
-                      <Text style={[styles.rowCell, { width: "15%" }]}>
-                        {order.code}
-                      </Text>
-                      <Text style={[styles.rowCell, { width: "10%" }]}>
-                        {order.type === "delivery" ? "Livraison" : "Emporter"}
-                      </Text>
-
-                      <Text style={[styles.rowCell, { width: "10%" }]}>
-                        {order.total_price.toFixed(2)} $
-                      </Text>
-                      <Text style={[styles.rowCell, { flex: 1 }]}>
-                        {convertDate(order.createdAt)}
-                      </Text>
-
-                      <TouchableOpacity
-                        style={{
-                          justifyContent: "center",
-                          alignItems: "center",
-                        }}
-                        onPress={() =>
-                          navigation.navigate("Order", { id: order._id })
-                        }
-                      >
-                        <FontAwesome name="pencil" size={24} color="#2AB2DB" />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={{
-                          justifyContent: "center",
-                          alignItems: "center",
-                        }}
-                        onPress={() => handleShowDeleteWarning(order._id)}
-                      >
-                        <MaterialIcons
-                          name="delete"
-                          size={24}
-                          color="#F31A1A"
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  ))
-                : orders.map((order, index) => (
-                    <View
-                      key={order._id}
-                      style={[
-                        styles.row,
-                        index % 2
-                          ? { backgroundColor: "transparent" }
-                          : { backgroundColor: "rgba(247,166,0,0.3)" },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.rowCell,
-                          {
-                            width: "10%",
-                            color: setOrderStatusColor(order.status),
-                          },
-                        ]}
-                      >
-                        {order.status}
-                      </Text>
-                      <Text style={[styles.rowCell, { width: "15%" }]}>
-                        {order.code}
-                      </Text>
-                      <Text style={[styles.rowCell, { width: "10%" }]}>
-                        {order.type === "delivery" ? "Livraison" : "Emporter"}
-                      </Text>
-
-                      <Text style={[styles.rowCell, { width: "10%" }]}>
-                        {order.total_price.toFixed(2)} $
-                      </Text>
-                      {/* <Text style={[styles.rowCell, { flex: 1 }]}>
-                        {convertDate(order.createdAt)}
-                      </Text> */}
-                      <View style={{ flex: 1 }}>
-                        {!order.confirmed && (
-                          <TouchableOpacity
-                            style={{
-                              backgroundColor: "black",
-                              width: "50%",
-                              paddingHorizontal: 24,
-                              paddingVertical: 8,
-                              borderWidth: 1,
-                              borderColor: "white",
-                            }}
-                            onPress={() => confirm(order._id)}
-                          >
-                            <Text style={{ color: "white" }}>Confirmer</Text>
-                          </TouchableOpacity>
-                        )}
+                        <Text
+                          style={[
+                            styles.statusLabel,
+                            { color: setOrderStatusColor(order.status) },
+                          ]}
+                        >
+                          {order.status}
+                        </Text>
                       </View>
+                    </View>
+                    <Text style={[styles.cell, { flex: 1 }]}>{order.code}</Text>
+                    <Text style={[styles.cell, { flex: 1 }]}>
+                      {order.type === "delivery" ? "Livraison" : "Emporter"}
+                    </Text>
+
+                    <Text style={[styles.cell, { flex: 1 }]}>
+                      {order.total_price.toFixed(2)} $
+                    </Text>
+                    {isAdmin && (
+                      <Text style={[styles.cell, { flex: 1.2 }]}>
+                        {convertDate(order.createdAt)}
+                      </Text>
+                    )}
+
+                    <View style={[styles.actions, { width: 90 }]}>
+                      {!isAdmin && !order.confirmed && (
+                        <TouchableOpacity
+                          style={[
+                            styles.confirmButton,
+                            isConfirming && styles.confirmButtonDisabled,
+                          ]}
+                          onPress={() => confirm(order._id)}
+                          disabled={isConfirming}
+                        >
+                          {isConfirming ? (
+                            <ActivityIndicator size="small" color="#1b1b1b" />
+                          ) : (
+                            <Text style={styles.confirmLabel}>Confirmer</Text>
+                          )}
+                        </TouchableOpacity>
+                      )}
                       <TouchableOpacity
-                        style={{
-                          justifyContent: "center",
-                          alignItems: "center",
-                        }}
+                        style={[styles.iconButton, styles.editButton]}
                         onPress={() =>
                           navigation.navigate("Order", { id: order._id })
                         }
                       >
-                        <FontAwesome name="pencil" size={24} color="#2AB2DB" />
+                        <Ionicons name="pencil" size={18} color="#1D4ED8" />
                       </TouchableOpacity>
+                      {isAdmin && (
+                        <TouchableOpacity
+                          style={styles.iconButton}
+                          onPress={() => handleShowDeleteWarning(order._id)}
+                        >
+                          <MaterialIcons
+                            name="delete-outline"
+                            size={20}
+                            color="#C43131"
+                          />
+                        </TouchableOpacity>
+                      )}
                     </View>
-                  ))}
+                  </View>
+                );
+              })}
             </ScrollView>
           ) : (
-            <View
-              style={{
-                backgroundColor: "white",
-                flex: 1,
-                marginTop: 20,
-                borderRadius: 10,
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-                Aucune Commande
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>Aucune Commande</Text>
+              <Text style={styles.emptySubtitle}>
+                Ajustez vos filtres ou rafraîchissez la liste.
               </Text>
             </View>
           )}
         </View>
-        <View style={{ flexDirection: "row", justifyContent: "center" }}>
-          <Text
-            style={{
-              fontFamily: Fonts.LATO_REGULAR,
-              fontSize: 20,
-            }}
-          >
-            {"Page " + page + (pages > 0 ? "/" + pages : "")}
+
+        <View style={styles.paginationInfo}>
+          <Text style={styles.paginationLabel}>
+            {`Page ${page}${pages > 0 ? `/${pages}` : ""}`}
           </Text>
         </View>
-        <View
-          style={{
-            marginTop: 16,
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexDirection: "row",
-          }}
-        >
-          <View>
-            <TouchableOpacity
-              onPress={() => setPage((prev) => prev - 1)}
-              style={{
-                backgroundColor: page <= 1 ? "gray" : Colors.primary,
-                padding: 10,
-                borderRadius: 10,
-              }}
-              disabled={page <= 1}
-            >
-              <Text style={{ color: "white" }}>Précédent</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={styles.paginationRow}>
+          <TouchableOpacity
+            onPress={() => setPage((prev) => prev - 1)}
+            style={[styles.pageButton, page <= 1 && styles.pageButtonDisabled]}
+            disabled={page <= 1}
+          >
+            <Text style={styles.pageButtonLabel}>Précédent</Text>
+          </TouchableOpacity>
           {pages > 0 && (
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View style={styles.pageInputRow}>
               <TextInput
-                style={{
-                  fontFamily: Fonts.LATO_REGULAR,
-                  fontSize: 20,
-
-                  width: 100,
-                  borderWidth: 1,
-                  borderRadius: 5,
-                  padding: 5,
-                  borderColor: Colors.mgry,
-                }}
+                style={styles.pageInput}
                 placeholder="Page"
                 onChangeText={(text) => setNavigaTo(text)}
                 placeholderTextColor={Colors.mgry}
@@ -609,37 +453,33 @@ const OrdersScreen = () => {
                 value={navigaTo}
               />
               <TouchableOpacity
-                style={{
-                  marginLeft: 12,
-                  backgroundColor: Colors.primary,
-                  padding: 10,
-                  borderRadius: 10,
-                }}
+                style={styles.pageGoButton}
                 onPress={() => {
-                  setPage(parseInt(navigaTo));
+                  const targetPage = parseInt(navigaTo, 10);
+                  if (!isNaN(targetPage)) {
+                    setPage(targetPage);
+                  }
                   setNavigaTo("");
                 }}
+                disabled={!navigaTo}
               >
-                <Text style={{ color: "white" }}>Rechercher</Text>
+                <Text style={styles.pageButtonLabel}>Aller</Text>
               </TouchableOpacity>
             </View>
           )}
 
-          <View>
-            <TouchableOpacity
-              onPress={() => setPage((prev) => prev + 1)}
-              style={{
-                backgroundColor: page >= pages ? "gray" : Colors.primary,
-                padding: 10,
-                borderRadius: 10,
-              }}
-              disabled={page >= pages}
-            >
-              <Text style={{ color: "white" }}>Suivant</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={() => setPage((prev) => prev + 1)}
+            style={[
+              styles.pageButton,
+              page >= pages && styles.pageButtonDisabled,
+            ]}
+            disabled={page >= pages}
+          >
+            <Text style={styles.pageButtonLabel}>Suivant</Text>
+          </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -647,42 +487,135 @@ const OrdersScreen = () => {
 export default OrdersScreen;
 
 const styles = StyleSheet.create({
-  row: {
-    width: "100%",
-    flexDirection: "row",
-    gap: 50,
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-    paddingHorizontal: 10,
+  screen: {
+    backgroundColor: Colors.screenBg,
+    flex: 1,
   },
-  rowCell: {
+  container: {
+    flex: 1,
+  },
+  content: {
+    flexGrow: 1,
+    padding: 20,
+    gap: 14,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  filterToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  filterToggleLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
+  },
+  searchInput: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "white",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+  },
+  searchField: {
+    flex: 1,
     fontFamily: Fonts.LATO_REGULAR,
-    fontSize: 20,
+    fontSize: 16,
+    color: "#1b1b1b",
+  },
+  searchButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  searchButtonLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
+  },
+  filtersCard: {
+    backgroundColor: Colors.gry,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    gap: 12,
+  },
+  chipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    backgroundColor: "white",
+  },
+  chipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  chipLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: Colors.tgry,
+  },
+  chipLabelActive: {
+    color: "#1b1b1b",
+  },
+  dropdownRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  dropdownLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
   },
   dropdown: {
-    height: 40,
-    width: 350,
+    height: 44,
+    flex: 1,
     borderColor: Colors.primary,
-    borderWidth: 2,
-    paddingHorizontal: 5,
-    paddingVertical: 5,
-    backgroundColor: Colors.primary,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    backgroundColor: "white",
+    borderRadius: 12,
   },
   selectedStyle: {
     height: 18,
-  },
-  icon: {
-    marginRight: 5,
   },
   itemContainerStyle: {
     padding: 0,
     margin: 0,
   },
   itemTextStyle: {
-    fontSize: 18,
-    padding: 0,
+    fontSize: 16,
+    padding: 8,
     margin: 0,
+    fontFamily: Fonts.LATO_REGULAR,
   },
   containerStyle: {
     paddingHorizontal: 0,
@@ -690,11 +623,180 @@ const styles = StyleSheet.create({
   },
 
   placeholderStyle: {
-    fontSize: 20,
+    fontSize: 14,
     fontFamily: Fonts.LATO_REGULAR,
+    color: Colors.tgry,
   },
   selectedTextStyle: {
-    fontSize: 20,
+    fontSize: 14,
+    fontFamily: Fonts.LATO_BOLD,
+    color: "#1b1b1b",
+  },
+  tableCard: {
+    flex: 1,
+    backgroundColor: Colors.gry,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  tableHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    backgroundColor: "white",
+    borderBottomWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  headerCell: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: Colors.tgry,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  tableScroll: {
+    flex: 1,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    gap: 10,
+  },
+  rowAlt: {
+    backgroundColor: "rgba(247,166,0,0.08)",
+  },
+  cell: {
     fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 15,
+    color: "#1b1b1b",
+  },
+  statusPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignSelf: "flex-start",
+  },
+  statusLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+  },
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 8,
+  },
+  iconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: "white",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  editButton: {
+    backgroundColor: "rgba(29,78,216,0.12)",
+    borderColor: "rgba(29,78,216,0.25)",
+  },
+  confirmButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  confirmButtonDisabled: {
+    opacity: 0.7,
+  },
+  confirmLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 12,
+    color: "#1b1b1b",
+  },
+  emptyState: {
+    minHeight: 200,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyTitle: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 18,
+    color: "#1b1b1b",
+  },
+  emptySubtitle: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 14,
+    color: Colors.tgry,
+    marginTop: 4,
+    textAlign: "center",
+  },
+  paginationInfo: {
+    alignItems: "center",
+  },
+  paginationLabel: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 16,
+    color: Colors.tgry,
+  },
+  paginationRow: {
+    marginTop: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  pageButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  pageButtonDisabled: {
+    backgroundColor: Colors.mgry,
+  },
+  pageButtonLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
+  },
+  pageInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  pageInput: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 14,
+    width: 90,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderColor: "rgba(0,0,0,0.12)",
+    backgroundColor: "white",
+    color: "#1b1b1b",
+  },
+  pageGoButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
   },
 });

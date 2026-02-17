@@ -220,7 +220,7 @@ const OfferScreen = () => {
     );
   }
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.screen}>
       {showSuccessModel && <SuccessModel />}
       {showFailModal && (
         <FailModel message="Oops ! Quelque chose s'est mal passé" />
@@ -241,340 +241,151 @@ const OfferScreen = () => {
         />
       )}
       <ScrollView
-        style={{ flex: 1, backgroundColor: Colors.screenBg }}
-        contentContainerStyle={{ paddingBottom: 12 }}
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
         bounces={false}
         showsVerticalScrollIndicator={false}
       >
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "flex-end",
-            marginTop: 20,
-            marginHorizontal: 20,
-          }}
-        >
-          {updateMode ? (
-            <TouchableOpacity
-              style={{
-                backgroundColor: Colors.gry,
-                borderRadius: 5,
-                alignItems: "center",
-                paddingHorizontal: 30,
-                paddingVertical: 10,
-              }}
-              onPress={() => setUpdateMode(false)}
-            >
-              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                Annuler
+        <View style={styles.section}>
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={styles.title}>Informations</Text>
+              <Text style={styles.subtitle}>
+                Consultez et modifiez les détails de l'offre.
               </Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={{
-                backgroundColor: Colors.primary,
-                borderRadius: 5,
-                alignItems: "center",
-                paddingHorizontal: 30,
-                paddingVertical: 10,
-              }}
-              onPress={activateUpdateMode}
-            >
-              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                Modifier
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <View style={{ paddingHorizontal: 20 }}>
-          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-            Informations
-          </Text>
-          <View
-            style={{
-              backgroundColor: "white",
-              borderRadius: 10,
-              padding: 16,
-              flexDirection: "row",
-              marginTop: 20,
-            }}
-          >
+            </View>
             {updateMode ? (
               <TouchableOpacity
-                style={{
-                  width: 200,
-                  height: 200,
-                  borderRadius: 16,
-                  backgroundColor: "gray",
-
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-                onPress={pickImage}
+                style={[styles.actionButton, styles.cancelButton]}
+                onPress={() => setUpdateMode(false)}
               >
-                {image ? (
-                  <Image
-                    source={{ uri: image }}
-                    style={{
-                      resizeMode: "cover",
-                      width: "100%",
-                      height: "100%",
-                      borderRadius: 16,
-                    }}
-                  />
-                ) : (
-                  <Image
-                    source={{ uri: offer.image }}
-                    style={{
-                      width: 200,
-                      height: 200,
-                      resizeMode: "cover",
-                      borderRadius: 10,
-                    }}
-                  />
-                )}
+                <Text style={styles.actionLabel}>Annuler</Text>
               </TouchableOpacity>
             ) : (
-              <Image
-                source={{ uri: offer.image }}
-                style={{
-                  width: 200,
-                  height: 200,
-                  resizeMode: "cover",
-                  borderRadius: 10,
-                }}
-              />
+              <TouchableOpacity
+                style={[styles.actionButton, styles.editButton]}
+                onPress={activateUpdateMode}
+              >
+                <Text style={styles.actionLabel}>Modifier</Text>
+              </TouchableOpacity>
             )}
-            <View style={{ marginLeft: 20, justifyContent: "space-between" }}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                  Nom:
-                </Text>
+          </View>
+
+          <View style={styles.topRow}>
+            <View style={styles.imageColumn}>
+              <TouchableOpacity
+                style={styles.imageUpload}
+                onPress={pickImage}
+                activeOpacity={0.85}
+                disabled={!updateMode}
+              >
+                {image || offer.image ? (
+                  <Image
+                    source={{ uri: image || offer.image }}
+                    style={styles.imagePreview}
+                  />
+                ) : (
+                  <View style={{ alignItems: "center", gap: 8 }}>
+                    <Entypo name="camera" size={36} color="#6B7280" />
+                    <Text style={styles.uploadLabel}>
+                      Cliquez pour importer
+                    </Text>
+                    <Text style={styles.uploadHint}>JPG ou PNG</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.detailsColumn}>
+              <View style={styles.field}>
+                <Text style={styles.label}>Nom</Text>
                 {updateMode ? (
                   <TextInput
-                    style={{
-                      borderWidth: 2,
-
-                      paddingHorizontal: 8,
-                      paddingVertical: 5,
-                      borderColor: Colors.primary,
-                      fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 20,
-                      marginLeft: 10,
-                      width: "70%",
-                    }}
+                    style={styles.input}
+                    placeholder="Nom de l'offre"
+                    placeholderTextColor="#9CA3AF"
                     value={name}
                     onChangeText={(text) => setName(text)}
                   />
                 ) : (
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 20,
-                      marginLeft: 10,
-                    }}
-                  >
-                    {offer.name}
-                  </Text>
+                  <Text style={styles.valueText}>{offer.name}</Text>
                 )}
               </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginTop: 10,
-                }}
-              >
-                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                  Prix:
-                </Text>
-                {updateMode ? (
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <TextInput
-                      style={{
-                        borderWidth: 2,
 
-                        paddingHorizontal: 5,
-                        paddingVertical: 5,
-                        paddingHorizontal: 8,
-                        borderColor: Colors.primary,
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        marginLeft: 10,
-                      }}
-                      value={price.toString()}
+              <View style={styles.field}>
+                <Text style={styles.label}>Prix</Text>
+                {updateMode ? (
+                  <View style={styles.priceRow}>
+                    <TextInput
+                      style={[styles.input, styles.priceInput]}
+                      value={price?.toString() ?? ""}
                       onChangeText={(text) => setPrice(text)}
+                      keyboardType="numeric"
+                      placeholder="Prix"
+                      placeholderTextColor="#9CA3AF"
                     />
-                    <Text
-                      style={{
-                        fontFamily: Fonts.LATO_REGULAR,
-                        fontSize: 20,
-                        marginLeft: 10,
-                      }}
-                    >
-                      $
-                    </Text>
+                    <Text style={styles.priceSuffix}>$</Text>
                   </View>
                 ) : (
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 20,
-                      marginLeft: 10,
-                    }}
-                  >
-                    {offer.price.toFixed(2)} $
+                  <Text style={styles.valueText}>
+                    {offer.price ? `${offer.price.toFixed(2)} $` : "--"}
                   </Text>
                 )}
               </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginTop: 10,
-                }}
-              >
-                <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                  Date d'éxpiration:
-                </Text>
+
+              <View style={styles.field}>
+                <Text style={styles.label}>Date d'expiration</Text>
                 {updateMode ? (
                   <Calender setDate={setExpireAt} date={expireAt} />
                 ) : (
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 20,
-                      marginLeft: 10,
-                    }}
-                  >
-                    {convertDateToDate(offer.expireAt)}
+                  <Text style={styles.valueText}>
+                    {offer.expireAt ? convertDateToDate(offer.expireAt) : "--"}
                   </Text>
                 )}
+              </View>
+
+              <View style={[styles.card, styles.inlineCard]}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.sectionTitle}>Articles</Text>
+                </View>
+                <View style={styles.pillList}>
+                  {(updateMode ? items : offer.items || []).map(
+                    (entry, index) => (
+                      <View style={styles.pill} key={index}>
+                        <Text style={styles.pillText}>
+                          {entry?.item?.name || entry?.name || "--"} x{" "}
+                          {entry?.quantity ?? "--"}
+                        </Text>
+                        {updateMode && (
+                          <TouchableOpacity
+                            style={styles.pillAction}
+                            onPress={() => deleteFromItems(index)}
+                          >
+                            <AntDesign name="close" size={16} color="#6B7280" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    ),
+                  )}
+                  {updateMode && (
+                    <TouchableOpacity
+                      style={styles.addPill}
+                      onPress={() => setShowAddItemModel(true)}
+                    >
+                      <Entypo name="plus" size={18} color="#1b1b1b" />
+                      <Text style={styles.addPillText}>Ajouter</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
             </View>
           </View>
         </View>
 
-        <View style={{ marginTop: 20, paddingHorizontal: 20 }}>
-          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-            Articles
-          </Text>
-          {updateMode ? (
-            <View
-              style={{
-                backgroundColor: "white",
-                borderRadius: 10,
-                padding: 16,
-                marginTop: 10,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 20,
-                flexWrap: "wrap",
-              }}
-            >
-              {items.map((item, index) => (
-                <View
-                  key={index}
-                  style={{
-                    backgroundColor: Colors.primary,
-
-                    paddingVertical: 10,
-                    paddingHorizontal: 20,
-                    alignItems: "center",
-                    flexDirection: "row",
-                  }}
-                >
-                  <Text
-                    style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 20 }}
-                  >
-                    {item.item.name} x {item.quantity}
-                  </Text>
-                  <TouchableOpacity
-                    style={{ marginLeft: 20 }}
-                    onPress={() => deleteFromItems(index)}
-                  >
-                    <AntDesign name="close" size={24} color="black" />
-                  </TouchableOpacity>
-                </View>
-              ))}
-              <TouchableOpacity
-                style={{
-                  backgroundColor: Colors.primary,
-                  borderRadius: 5,
-                  paddingHorizontal: 10,
-                  paddingVertical: 10,
-                  alignItems: "center",
-                  flexDirection: "row",
-                }}
-                onPress={() => setShowAddItemModel(true)}
-              >
-                <Entypo name="plus" size={24} color="black" />
-                <Text
-                  style={{
-                    fontFamily: Fonts.LATO_BOLD,
-                    fontSize: 20,
-                    marginLeft: 10,
-                  }}
-                >
-                  Ajouter
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View
-              style={{
-                backgroundColor: "white",
-                padding: 16,
-                marginTop: 10,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 20,
-                flexWrap: "wrap",
-              }}
-            >
-              {offer.items?.map((item, index) => (
-                <View
-                  key={index}
-                  style={{
-                    backgroundColor: Colors.primary,
-                    paddingVertical: 10,
-                    paddingHorizontal: 20,
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 20 }}
-                  >
-                    {item.item.name} x {item.quantity}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
         {updateMode && (
-          <View
-            style={{
-              marginTop: 20,
-              flexDirection: "row",
-              justifyContent: "flex-end",
-              paddingHorizontal: 20,
-            }}
-          >
-            <TouchableOpacity
-              style={{
-                backgroundColor: Colors.primary,
-                borderRadius: 10,
-                alignItems: "center",
-                paddingHorizontal: 20,
-                paddingVertical: 10,
-              }}
-              onPress={() => saveUpdates()}
-            >
-              <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                Sauvergarder
-              </Text>
+          <View style={styles.saveRow}>
+            <TouchableOpacity style={styles.saveButton} onPress={saveUpdates}>
+              <Text style={styles.saveLabel}>Sauvegarder</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -585,4 +396,222 @@ const OfferScreen = () => {
 
 export default OfferScreen;
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: Colors.screenBg,
+  },
+  scroll: {
+    flex: 1,
+    backgroundColor: Colors.screenBg,
+  },
+  scrollContent: {
+    padding: 20,
+    gap: 16,
+    paddingBottom: 24,
+  },
+  actionButton: {
+    borderRadius: 10,
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  editButton: {
+    backgroundColor: Colors.primary,
+  },
+  cancelButton: {
+    backgroundColor: Colors.gry,
+  },
+  actionLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 16,
+    color: "#1b1b1b",
+  },
+  section: {
+    gap: 12,
+  },
+  card: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  title: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 22,
+    color: "#111827",
+  },
+  subtitle: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 4,
+  },
+  topRow: {
+    flexDirection: "row",
+    gap: 18,
+    flexWrap: "wrap",
+  },
+  imageColumn: {
+    flex: 1,
+    maxWidth: 320,
+    minWidth: 240,
+    gap: 14,
+  },
+  detailsColumn: {
+    flex: 1,
+    minWidth: 320,
+    gap: 14,
+  },
+  sectionTitle: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 16,
+    color: "#111827",
+  },
+  imageUpload: {
+    width: "100%",
+    aspectRatio: 1,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: Colors.border,
+    backgroundColor: Colors.gry,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 14,
+  },
+  imagePreview: {
+    resizeMode: "cover",
+    width: "100%",
+    height: "100%",
+    borderRadius: 12,
+  },
+  uploadLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 15,
+    color: "#374151",
+  },
+  uploadHint: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 13,
+    color: "#9CA3AF",
+  },
+  field: {
+    gap: 6,
+  },
+  label: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 15,
+    color: "#111827",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 15,
+    backgroundColor: Colors.gry,
+    color: "#111827",
+  },
+  valueText: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 15,
+    color: "#111827",
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  priceInput: {
+    flex: 1,
+  },
+  priceSuffix: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 16,
+    color: "#111827",
+  },
+  inlineCard: {
+    width: "100%",
+  },
+  cardHeader: {
+    gap: 2,
+  },
+  cardSubtitle: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 13,
+    color: "#6B7280",
+  },
+  pillList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  pill: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: Colors.gry,
+    gap: 6,
+  },
+  pillText: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#111827",
+  },
+  pillAction: {
+    padding: 2,
+  },
+  addPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.primary,
+  },
+  addPillText: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#1b1b1b",
+  },
+  saveRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+  },
+  saveButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  saveLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 16,
+    color: "#1b1b1b",
+  },
+});

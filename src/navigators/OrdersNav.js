@@ -18,7 +18,7 @@ const OrdersNav = () => {
       <Stack.Screen
         name="Order"
         component={OrderScreen}
-        options={{ title: "Commande" }}
+        options={{ title: "Commande", headerShown: false }}
       />
     </Stack.Navigator>
   );

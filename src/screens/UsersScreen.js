@@ -9,7 +9,8 @@ import {
   TextInput,
 } from "react-native";
 import React, { useEffect, useState } from "react";
-import { Entypo, FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import { Entypo, MaterialIcons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { Colors, Fonts } from "../constants";
 
@@ -25,6 +26,9 @@ import { useNavigation } from "@react-navigation/native";
 import ErrorScreen from "../components/ErrorScreen";
 import LoadingScreen from "../components/LoadingScreen";
 import BanWarning from "../components/models/BanWarning";
+import PageHeader from "../components/ui/PageHeader";
+import { Card, tableStyles } from "../components/ui/Surface";
+import SearchBar from "../components/SearchBar";
 
 const UsersScreen = () => {
   const navigation = useNavigation();
@@ -92,7 +96,7 @@ const UsersScreen = () => {
   }
 
   return (
-    <SafeAreaView style={{ backgroundColor: Colors.screenBg, flex: 1 }}>
+    <SafeAreaView style={styles.screen}>
       {deleteWarningModelState && (
         <DeleteWarning
           id={userId}
@@ -118,243 +122,290 @@ const UsersScreen = () => {
         />
       )}
 
-      <View style={{ flex: 1, padding: 20 }}>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
-            Utilisateurs
-          </Text>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginTop: 12,
-            }}
-          >
-            <View
-              style={{
-                backgroundColor: "white",
-                flexDirection: "row",
-                width: 300,
-                alignItems: "center",
-                paddingBottom: 4,
-                paddingTop: 4,
-                paddingLeft: 4,
-
-                borderWidth: 1,
-                borderRadius: 5,
-              }}
-            >
-              <Entypo name="magnifying-glass" size={24} color={Colors.mgry} />
-              <TextInput
-                style={{
-                  fontFamily: Fonts.LATO_REGULAR,
-                  fontSize: 20,
-                  marginLeft: 5,
-                  flex: 1,
-                }}
-                placeholder="Chercher par nom"
-                onChangeText={(text) => setSearch(text)}
-                placeholderTextColor={Colors.mgry}
-                value={search}
-              />
-            </View>
-            <TouchableOpacity
-              style={{
-                marginLeft: 12,
-                backgroundColor: Colors.primary,
-                padding: 10,
-                borderRadius: 10,
-              }}
-              onPress={fetchData}
-            >
-              <Text style={{ color: "white" }}>Rechercher</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {users?.length > 0 ? (
-          <ScrollView
-            style={{
-              width: "100%",
-              marginTop: 30,
-              borderWidth: 1,
-              borderColor: "black",
-            }}
-            refreshControl={
-              <RefreshControl refreshing={isLoading} onRefresh={fetchData} />
-            }
-          >
-            {users.map((user, index) => (
-              <View
-                key={user._id}
-                style={[
-                  styles.row,
-                  index % 2
-                    ? { backgroundColor: "transparent" }
-                    : { backgroundColor: "rgba(247,166,0,0.3)" },
-                ]}
-              >
-                <Text style={[styles.rowCell, { width: "20%" }]}>
-                  {user.name}
-                </Text>
-                <Text style={[styles.rowCell, { width: "20%" }]}>
-                  {user.phone_number}
-                </Text>
-                <Text style={[styles.rowCell, { flex: 1 }]}>{user.email}</Text>
-                <TouchableOpacity
-                  style={{
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                  onPress={() => handleShowUserModel(user._id)}
-                >
-                  <FontAwesome name="pencil" size={24} color="#2AB2DB" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={{
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                  onPress={() => handleShowDeleteWarning(user._id)}
-                >
-                  <MaterialIcons name="delete" size={24} color="#F31A1A" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={{
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                  onPress={() => handleShowBanWarning(user)}
-                >
-                  <Entypo
-                    name="block"
-                    size={24}
-                    color={user.isBanned ? "green" : "#F31A1A"}
-                  />
-                </TouchableOpacity>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <PageHeader
+          title="Utilisateurs"
+          subtitle="Recherchez, consultez et gérez les comptes."
+          pills={[
+            { label: `Page ${page}${pages > 0 ? `/${pages}` : ""}` },
+            { label: `${users.length} utilisateur(s)` },
+          ]}
+          rightContent={
+            <View style={styles.searchRow}>
+              <View style={styles.searchFieldWrap}>
+                <SearchBar
+                  placeholder="Chercher par nom"
+                  onChangeText={setSearch}
+                  value={search}
+                />
               </View>
-            ))}
-          </ScrollView>
-        ) : (
-          <View
-            style={{
-              flex: 1,
-              justifyContent: "center",
-              alignItems: "center",
-              backgroundColor: "white",
-              borderRadius: 16,
-              marginTop: 20,
-            }}
-          >
-            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-              Aucun Utilisateur
+              <TouchableOpacity
+                style={styles.searchButton}
+                onPress={fetchData}
+                activeOpacity={0.9}
+              >
+                <Text style={styles.searchButtonLabel}>Rechercher</Text>
+              </TouchableOpacity>
+            </View>
+          }
+        />
+
+        <Card style={styles.tableCard}>
+          <View style={tableStyles.header}>
+            <Text style={[tableStyles.headerCell, { flex: 1.1 }]}>Nom</Text>
+            <Text style={[tableStyles.headerCell, { flex: 1 }]}>
+              Téléphone
+            </Text>
+            <Text style={[tableStyles.headerCell, { flex: 1.4 }]}>Email</Text>
+            <Text style={[tableStyles.headerCell, { width: 120 }]}>
+              Actions
             </Text>
           </View>
-        )}
-        <View style={{ flexDirection: "row", justifyContent: "center" }}>
-          <Text
-            style={{
-              fontFamily: Fonts.LATO_REGULAR,
-              fontSize: 20,
-            }}
-          >
-            {"Page " + page + (pages > 0 ? "/" + pages : "")}
+          {users?.length > 0 ? (
+            <ScrollView
+              style={styles.tableScroll}
+              refreshControl={
+                <RefreshControl refreshing={isLoading} onRefresh={fetchData} />
+              }
+            >
+              {users.map((user, index) => (
+                <View
+                  key={user._id}
+                  style={[
+                    tableStyles.row,
+                    index % 2 === 0 && tableStyles.rowAlt,
+                  ]}
+                >
+                  <Text style={[tableStyles.cell, { flex: 1.1 }]}>
+                    {user.name}
+                  </Text>
+                  <Text style={[tableStyles.cell, { flex: 1 }]}>
+                    {user.phone_number}
+                  </Text>
+                  <Text
+                    style={[tableStyles.cell, { flex: 1.4 }]}
+                    numberOfLines={1}
+                  >
+                    {user.email}
+                  </Text>
+                  <View style={[tableStyles.actions, { width: 120 }]}>
+                    <TouchableOpacity
+                      style={[tableStyles.iconButton, styles.editButton]}
+                      onPress={() => handleShowUserModel(user._id)}
+                    >
+                      <Ionicons name="pencil" size={18} color="#1D4ED8" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={tableStyles.iconButton}
+                      onPress={() => handleShowDeleteWarning(user._id)}
+                    >
+                      <MaterialIcons
+                        name="delete-outline"
+                        size={20}
+                        color={Colors.danger}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={tableStyles.iconButton}
+                      onPress={() => handleShowBanWarning(user)}
+                    >
+                      <Entypo
+                        name="block"
+                        size={20}
+                        color={user.isBanned ? Colors.success : Colors.danger}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>Aucun Utilisateur</Text>
+              <Text style={styles.emptySubtitle}>
+                Essayez une autre recherche ou rafraîchissez la page.
+              </Text>
+            </View>
+          )}
+        </Card>
+
+        <View style={styles.paginationInfo}>
+          <Text style={styles.paginationLabel}>
+            {`Page ${page}${pages > 0 ? `/${pages}` : ""}`}
           </Text>
         </View>
-        <View
-          style={{
-            marginTop: 16,
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexDirection: "row",
-          }}
-        >
-          <View>
-            <TouchableOpacity
-              onPress={() => setPage((prev) => prev - 1)}
-              style={{
-                backgroundColor: page <= 1 ? "gray" : Colors.primary,
-                padding: 10,
-                borderRadius: 10,
-              }}
-              disabled={page <= 1}
-            >
-              <Text style={{ color: "white" }}>Précédent</Text>
-            </TouchableOpacity>
-          </View>
-          {pages > 0 && (
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <TextInput
-                style={{
-                  fontFamily: Fonts.LATO_REGULAR,
-                  fontSize: 20,
+        <View style={styles.paginationRow}>
+          <TouchableOpacity
+            onPress={() => setPage((prev) => prev - 1)}
+            style={[
+              styles.pageButton,
+              page <= 1 && styles.pageButtonDisabled,
+            ]}
+            disabled={page <= 1}
+          >
+            <Text style={styles.pageButtonLabel}>Précédent</Text>
+          </TouchableOpacity>
 
-                  width: 100,
-                  borderWidth: 1,
-                  borderRadius: 5,
-                  padding: 5,
-                  borderColor: Colors.mgry,
-                }}
-                placeholder="Page"
+          {pages > 0 && (
+            <View style={styles.pageInputRow}>
+              <TextInput
+                style={styles.pageInput}
+                placeholder="Aller à"
                 onChangeText={(text) => setNavigaTo(text)}
                 placeholderTextColor={Colors.mgry}
                 keyboardType="numeric"
                 value={navigaTo}
               />
               <TouchableOpacity
-                style={{
-                  marginLeft: 12,
-                  backgroundColor: Colors.primary,
-                  padding: 10,
-                  borderRadius: 10,
-                }}
+                style={[
+                  styles.pageButton,
+                  !navigaTo && styles.pageButtonDisabled,
+                ]}
                 onPress={() => {
-                  setPage(parseInt(navigaTo));
+                  const target = parseInt(navigaTo, 10);
+                  if (!isNaN(target)) {
+                    setPage(target);
+                  }
                   setNavigaTo("");
                 }}
+                disabled={!navigaTo}
               >
-                <Text style={{ color: "white" }}>Rechercher</Text>
+                <Text style={styles.pageButtonLabel}>Aller</Text>
               </TouchableOpacity>
             </View>
           )}
 
-          <View>
-            <TouchableOpacity
-              onPress={() => setPage((prev) => prev + 1)}
-              style={{
-                backgroundColor: page >= pages ? "gray" : Colors.primary,
-                padding: 10,
-                borderRadius: 10,
-              }}
-              disabled={page >= pages}
-            >
-              <Text style={{ color: "white" }}>Suivant</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={() => setPage((prev) => prev + 1)}
+            style={[
+              styles.pageButton,
+              page >= pages && styles.pageButtonDisabled,
+            ]}
+            disabled={page >= pages}
+          >
+            <Text style={styles.pageButtonLabel}>Suivant</Text>
+          </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
 const styles = StyleSheet.create({
-  row: {
-    width: "100%",
+  screen: {
+    backgroundColor: Colors.screenBg,
+    flex: 1,
+  },
+  container: {
+    flex: 1,
+  },
+  content: {
+    flexGrow: 1,
+    padding: 20,
+    gap: 14,
+  },
+  searchRow: {
     flexDirection: "row",
-    gap: 50,
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  searchFieldWrap: {
+    flex: 1,
+    minWidth: 260,
+  },
+  searchButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: Colors.primary,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  searchButtonLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
+  },
+  tableCard: {
+    flex: 1,
+    overflow: "hidden",
+  },
+  tableScroll: {
+    flex: 1,
+  },
+  emptyState: {
+    minHeight: 200,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyTitle: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 18,
+    color: "#1b1b1b",
+  },
+  emptySubtitle: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 14,
+    color: Colors.tgry,
+    marginTop: 4,
+    textAlign: "center",
+  },
+  editButton: {
+    backgroundColor: "rgba(29,78,216,0.12)",
+    borderColor: "rgba(29,78,216,0.25)",
+  },
+  paginationInfo: {
+    alignItems: "center",
+  },
+  paginationLabel: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 16,
+    color: Colors.tgry,
+  },
+  paginationRow: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
-    paddingHorizontal: 10,
+    marginTop: 6,
   },
-  rowCell: {
+  pageButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  pageButtonDisabled: {
+    backgroundColor: Colors.mgry,
+    borderColor: Colors.mgry,
+  },
+  pageButtonLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
+  },
+  pageInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  pageInput: {
     fontFamily: Fonts.LATO_REGULAR,
-    fontSize: 20,
+    fontSize: 14,
+    width: 90,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderColor: Colors.border,
+    backgroundColor: Colors.card,
+    color: "#1b1b1b",
   },
 });
 

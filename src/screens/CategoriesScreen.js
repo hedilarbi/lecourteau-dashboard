@@ -5,8 +5,10 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
+  TextInput,
+  SafeAreaView,
+  RefreshControl,
 } from "react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -16,19 +18,24 @@ import {
 } from "../services/MenuItemServices";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import DeleteWarning from "../components/models/DeleteWarning";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { RefreshControl } from "react-native-gesture-handler";
 import { Colors, Fonts, Roles } from "../constants";
-import { FontAwesome, MaterialIcons, Entypo } from "@expo/vector-icons";
+import { MaterialIcons, Entypo } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import UpdateCategoryModal from "../components/models/UpdateCategoryModal";
 import Spinner from "../components/Spinner";
 import { useSelector } from "react-redux";
 import { selectStaffData } from "../redux/slices/StaffSlice";
+import PageHeader from "../components/ui/PageHeader";
+import { Card, tableStyles } from "../components/ui/Surface";
+import BackButton from "../components/BackButton";
+import AddButton from "../components/AddButton";
+import CreateCategoryModel from "../components/models/CreateCategoryModel";
 
 const CategoriesScreen = () => {
   const navigation = useNavigation();
   const { role } = useSelector(selectStaffData);
   const [deleteWarningModelState, setDeleteWarningModelState] = useState(false);
+  const [showCreateCategoryModel, setShowCreateCategoryModel] = useState(false);
   const [showUpdateCategorygModal, setShowUpdateCategorygModal] =
     useState(false);
   const [refresh, setRefresh] = useState(0);
@@ -38,6 +45,7 @@ const CategoriesScreen = () => {
   const [categoriesList, setCategoriesList] = useState([]);
   const [isTriLoading, setIsTriLoading] = useState(false);
   const [triMode, setTriMode] = useState(false);
+  const [search, setSearch] = useState("");
   const handleTri = async (from, to) => {
     const categoriesCopy = [...categories];
     categoriesCopy[from].order = to;
@@ -105,8 +113,20 @@ const CategoriesScreen = () => {
     setCategory(id);
     setDeleteWarningModelState(true);
   };
+  const handleSearch = () => {
+    const query = search.trim().toLowerCase();
+    if (!query) {
+      setCategories(categoriesList);
+      return;
+    }
+    const filtered = categoriesList.filter((item) => {
+      const name = item.name?.toLowerCase() || "";
+      return name.includes(query);
+    });
+    setCategories(filtered);
+  };
   return (
-    <SafeAreaView style={{ backgroundColor: Colors.screenBg, flex: 1 }}>
+    <SafeAreaView style={styles.screen}>
       {deleteWarningModelState && (
         <DeleteWarning
           id={category}
@@ -114,6 +134,11 @@ const CategoriesScreen = () => {
           setRefresh={setRefresh}
           message={`Etes-vous sûr de vouloir supprimer cet article ?`}
           deleter={deleteCategory}
+        />
+      )}
+      {showCreateCategoryModel && (
+        <CreateCategoryModel
+          setShowCreateCategoryModel={setShowCreateCategoryModel}
         />
       )}
       {showUpdateCategorygModal && (
@@ -125,247 +150,329 @@ const CategoriesScreen = () => {
       )}
       {isTriLoading && <Spinner visibility={isTriLoading} />}
 
-      <View style={{ flex: 1, padding: 20 }}>
-        <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
-          Catégories
-        </Text>
-        <TouchableOpacity
-          style={{
-            backgroundColor: Colors.primary,
-            paddingBottom: 10,
-            paddingLeft: 20,
-            paddingRight: 20,
-            paddingTop: 10,
-            borderWidth: 1,
-            borderRadius: 5,
-            flexDirection: "row",
-            alignItems: "center",
-            width: "30%",
-            justifyContent: "center",
-            marginTop: 20,
-          }}
-          onPress={() => navigation.navigate("Sizes")}
-        >
-          <Text
-            style={{
-              fontFamily: Fonts.LATO_BOLD,
-              fontSize: 20,
-              color: "black",
-              marginLeft: 10,
-            }}
-          >
-            Liste des tailles
-          </Text>
-        </TouchableOpacity>
-        {role === Roles.ADMIN && (
-          <View>
-            {triMode ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 12,
-                  width: "25%",
-                  marginTop: 20,
-                }}
-              >
-                <TouchableOpacity
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    backgroundColor: Colors.primary,
-                    paddingVertical: 10,
-                    borderRadius: 5,
-                    paddingHorizontal: 18,
-                    justifyContent: "space-between",
-                  }}
-                  onPress={saveTri}
-                >
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_BOLD,
-                      fontSize: 18,
-                    }}
-                  >
-                    Sauvegarder
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    backgroundColor: Colors.tgry,
-                    paddingVertical: 10,
-                    borderRadius: 5,
-                    paddingHorizontal: 18,
-                    justifyContent: "space-between",
-                  }}
-                  onPress={discardTri}
-                >
-                  <Text
-                    style={{
-                      fontFamily: Fonts.LATO_BOLD,
-                      fontSize: 18,
-                      color: "black",
-                    }}
-                  >
-                    Annuler
-                  </Text>
-                </TouchableOpacity>
+      <ScrollView
+        style={styles.body}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <BackButton />
+        <PageHeader
+          title="Catégories"
+          subtitle="Organisez et réordonnez vos catégories"
+          pills={[
+            { label: `${categories.length} catégorie(s)` },
+            triMode ? { label: "Mode tri activé" } : null,
+          ].filter(Boolean)}
+          rightContent={
+            <View style={styles.headerActions}>
+              <View style={styles.searchBar}>
+                <Entypo name="magnifying-glass" size={18} color={Colors.mgry} />
+                <TextInput
+                  style={styles.searchField}
+                  placeholder="Chercher une catégorie"
+                  onChangeText={(text) => setSearch(text)}
+                  placeholderTextColor={Colors.mgry}
+                  value={search}
+                  onSubmitEditing={handleSearch}
+                  returnKeyType="search"
+                />
               </View>
-            ) : (
+
               <TouchableOpacity
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: Colors.primary,
-                  paddingVertical: 10,
-                  borderRadius: 5,
-                  paddingHorizontal: 18,
-                  justifyContent: "space-between",
-                  marginTop: 20,
-                  width: "25%",
-                }}
-                onPress={() => setTriMode(true)}
+                style={styles.searchButton}
+                onPress={handleSearch}
+                activeOpacity={0.9}
               >
-                <Text
-                  style={{
-                    fontFamily: Fonts.LATO_BOLD,
-                    fontSize: 18,
-                  }}
-                >
-                  Modifier l'ordre
-                </Text>
+                <Text style={styles.searchButtonLabel}>Rechercher</Text>
               </TouchableOpacity>
-            )}
-          </View>
-        )}
-        {isLoading ? (
-          <View
-            style={{
-              flex: 1,
 
-              width: "100%",
-
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <ActivityIndicator size={"large"} color="black" />
-          </View>
-        ) : categories.length > 0 ? (
-          <ScrollView
-            style={{ width: "100%", marginTop: 30 }}
-            refreshControl={
-              <RefreshControl refreshing={isLoading} onRefresh={fetchData} />
-            }
-          >
-            {categories.map((item, index) => (
-              <View
-                key={item._id}
-                style={[
-                  styles.row,
-                  index % 2
-                    ? { backgroundColor: "transparent" }
-                    : { backgroundColor: "rgba(247,166,0,0.3)" },
-                ]}
-              >
-                <Image style={[styles.image]} source={{ uri: item.image }} />
-                <Text style={[styles.rowCell, { flex: 1 }]}>{item.name}</Text>
-                <TouchableOpacity
-                  style={{
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                  onPress={() => handleShowUpdateCategoryModel(item)}
-                >
-                  <FontAwesome name="pencil" size={24} color="#2AB2DB" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={{
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                  onPress={() => handleShowDeleteWarning(item._id)}
-                >
-                  <MaterialIcons name="delete" size={24} color="#F31A1A" />
-                </TouchableOpacity>
-                {triMode && (
-                  <View
-                    style={{ justifyContent: "space-between", height: 100 }}
-                  >
-                    <TouchableWithoutFeedback
-                      style={{
-                        justifyContent: "center",
-                        alignItems: "center",
-                        padding: 4,
-                      }}
-                      onPress={() => handleTri(index, index - 1)}
+              <AddButton
+                setShowModel={setShowCreateCategoryModel}
+                text="Catégorie"
+              />
+              {role === Roles.ADMIN &&
+                (triMode ? (
+                  <View style={styles.triActions}>
+                    <TouchableOpacity
+                      style={styles.primaryButton}
+                      onPress={saveTri}
+                      activeOpacity={0.9}
                     >
-                      <Entypo
-                        name="chevron-with-circle-up"
-                        size={28}
-                        color="black"
-                      />
-                    </TouchableWithoutFeedback>
-                    <TouchableWithoutFeedback
-                      style={{
-                        justifyContent: "center",
-                        alignItems: "center",
-                        padding: 4,
-                      }}
-                      onPress={() => handleTri(index, index + 1)}
+                      <Text style={styles.primaryLabel}>Sauvegarder</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.ghostButton}
+                      onPress={discardTri}
+                      activeOpacity={0.9}
                     >
-                      <Entypo
-                        name="chevron-with-circle-down"
-                        size={28}
-                        color="black"
-                      />
-                    </TouchableWithoutFeedback>
+                      <Text style={styles.ghostLabel}>Annuler</Text>
+                    </TouchableOpacity>
                   </View>
-                )}
-              </View>
-            ))}
-          </ScrollView>
-        ) : (
-          <View
-            style={{
-              flex: 1,
-              justifyContent: "center",
-              alignItems: "center",
-              backgroundColor: "white",
-              borderRadius: 16,
-              marginTop: 20,
-            }}
-          >
-            <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-              Aucune Catégories
-            </Text>
-          </View>
-        )}
-      </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.primaryButton}
+                    onPress={() => setTriMode(true)}
+                    activeOpacity={0.9}
+                  >
+                    <Text style={styles.primaryLabel}>
+                      Modifier l&apos;ordre
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+            </View>
+          }
+        />
+
+        <Card style={styles.listCard}>
+          {isLoading ? (
+            <View style={styles.loader}>
+              <ActivityIndicator size={"large"} color={Colors.primary} />
+            </View>
+          ) : categories.length > 0 ? (
+            <ScrollView
+              style={styles.listScroll}
+              refreshControl={
+                <RefreshControl refreshing={isLoading} onRefresh={fetchData} />
+              }
+            >
+              {categories.map((item, index) => (
+                <View
+                  key={item._id}
+                  style={[
+                    tableStyles.row,
+                    index % 2 === 0 && tableStyles.rowAlt,
+                  ]}
+                >
+                  <Image style={styles.image} source={{ uri: item.image }} />
+                  <View style={styles.info}>
+                    <Text style={styles.categoryName}>{item.name}</Text>
+                  </View>
+                  <View style={[tableStyles.actions, { width: 150 }]}>
+                    <TouchableOpacity
+                      style={[tableStyles.iconButton, styles.editButton]}
+                      onPress={() => handleShowUpdateCategoryModel(item)}
+                    >
+                      <Ionicons name="pencil" size={18} color="#1D4ED8" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={tableStyles.iconButton}
+                      onPress={() => handleShowDeleteWarning(item._id)}
+                    >
+                      <MaterialIcons
+                        name="delete-outline"
+                        size={20}
+                        color={Colors.danger}
+                      />
+                    </TouchableOpacity>
+                    {triMode && (
+                      <View style={styles.triButtons}>
+                        <TouchableOpacity
+                          style={styles.triButton}
+                          onPress={() => handleTri(index, index - 1)}
+                        >
+                          <Entypo
+                            name="chevron-with-circle-up"
+                            size={22}
+                            color="#1b1b1b"
+                          />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.triButton}
+                          onPress={() => handleTri(index, index + 1)}
+                        >
+                          <Entypo
+                            name="chevron-with-circle-down"
+                            size={22}
+                            color="#1b1b1b"
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>Aucune Catégorie</Text>
+              <Text style={styles.emptySubtitle}>
+                Ajoutez vos premières catégories pour commencer.
+              </Text>
+            </View>
+          )}
+        </Card>
+      </ScrollView>
     </SafeAreaView>
   );
 };
 
 export default CategoriesScreen;
 const styles = StyleSheet.create({
-  row: {
-    width: "100%",
+  screen: {
+    backgroundColor: Colors.screenBg,
+    flex: 1,
+  },
+  body: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  content: {
+    flexGrow: 1,
+    gap: 14,
+    paddingBottom: 20,
+    marginTop: 10,
+  },
+  headerActions: {
     flexDirection: "row",
-    gap: 50,
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: Colors.card,
+    paddingHorizontal: 12,
     paddingVertical: 10,
-    paddingHorizontal: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  searchField: {
+    flex: 1,
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 16,
+    color: "#1b1b1b",
+  },
+  searchButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  searchButtonLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
+  },
+  secondaryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  secondaryLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
+  },
+  triActions: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  primaryButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  primaryLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
+  },
+  ghostButton: {
+    backgroundColor: "white",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  ghostLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: Colors.tgry,
+  },
+  editButton: {
+    backgroundColor: "rgba(29,78,216,0.12)",
+    borderColor: "rgba(29,78,216,0.25)",
+  },
+  listCard: {
+    flex: 1,
+    overflow: "hidden",
+  },
+  loader: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  listScroll: {
+    flex: 1,
   },
   image: {
-    width: 100,
-    height: 100,
+    width: 72,
+    height: 72,
     resizeMode: "contain",
   },
-  rowCell: {
+  info: {
+    flex: 1,
+  },
+  categoryName: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 18,
+    color: "#1b1b1b",
+  },
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  iconButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: "white",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  triButtons: {
+    gap: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  triButton: {
+    padding: 4,
+  },
+  emptyState: {
+    minHeight: 220,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyTitle: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 18,
+    color: "#1b1b1b",
+  },
+  emptySubtitle: {
     fontFamily: Fonts.LATO_REGULAR,
-    fontSize: 20,
+    fontSize: 14,
+    color: Colors.tgry,
+    marginTop: 4,
+    textAlign: "center",
   },
 });

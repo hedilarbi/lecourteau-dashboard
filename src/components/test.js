@@ -64,7 +64,7 @@ const Home = ({ navigation }) => {
     const locPermissionDenied = await locationPermission();
     if (locPermissionDenied) {
       const { latitude, longitude, heading } = await getCurrentLocation();
-      console.log("get live location after 4 second", heading);
+
       animate(latitude, longitude);
       updateState({
         heading: heading,
@@ -90,7 +90,6 @@ const Home = ({ navigation }) => {
     navigation.navigate("chooseLocation", { getCordinates: fetchValue });
   };
   const fetchValue = (data) => {
-    console.log("this is data", data);
     updateState({
       destinationCords: {
         latitude: data.destinationCords.latitude,
@@ -173,13 +172,11 @@ const Home = ({ navigation }) => {
               optimizeWaypoints={true}
               onStart={(params) => {
                 console.log(
-                  `Started routing between "${params.origin}" and "${params.destination}"`
+                  `Started routing between "${params.origin}" and "${params.destination}"`,
                 );
               }}
               onReady={(result) => {
-                console.log(`Distance: ${result.distance} km`);
-                console.log(`Duration: ${result.duration} min.`);
-                fetchTime(result.distance, result.duration),
+                (fetchTime(result.distance, result.duration),
                   mapRef.current.fitToCoordinates(result.coordinates, {
                     edgePadding: {
                       // right: 30,
@@ -187,7 +184,7 @@ const Home = ({ navigation }) => {
                       // left: 30,
                       // top: 100,
                     },
-                  });
+                  }));
               }}
               onError={(errorMessage) => {
                 // console.log('GOT AN ERROR');

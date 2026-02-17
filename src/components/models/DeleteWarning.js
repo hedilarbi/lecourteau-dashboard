@@ -72,19 +72,7 @@ const DeleteWarning = ({
         <FailModel message="Oops ! Quelque chose s'est mal passé" />
       )}
       {isLoading && (
-        <View
-          style={{
-            flex: 1,
-            position: "absolute",
-            top: 0,
-            width: "100%",
-            height: "100%",
-            left: 0,
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 10000,
-          }}
-        >
+        <View style={styles.loaderOverlay}>
           <ActivityIndicator size={"large"} color="black" />
         </View>
       )}
@@ -128,17 +116,36 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     zIndex: 100,
   },
+  loaderOverlay: {
+    flex: 1,
+    position: "absolute",
+    top: 0,
+    width: "100%",
+    height: "100%",
+    left: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10000,
+    backgroundColor: "rgba(0,0,0,0.15)",
+  },
   model: {
     backgroundColor: "white",
-    borderRadius: 10,
+    borderRadius: 16,
     padding: 20,
+    width: "80%",
+    maxWidth: 420,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 10,
   },
   titleContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
   textContainer: {
-    marginLeft: 20,
+    marginLeft: 16,
   },
   title: {
     fontFamily: Fonts.LATO_BOLD,
@@ -148,28 +155,33 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.LATO_REGULAR,
     fontSize: 16,
     marginTop: 5,
+    color: "#444",
   },
   btnsContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 30,
+    justifyContent: "flex-end",
+    gap: 12,
+    marginTop: 28,
   },
   cancelBtn: {
-    borderRadius: 5,
-    paddingHorizontal: 25,
+    borderRadius: 12,
+    paddingHorizontal: 18,
     paddingVertical: 10,
-    backgroundColor: "#6B5959",
-    color: "white",
+    backgroundColor: "#f2f2f2",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
   },
   confirmBtn: {
-    borderRadius: 5,
-    paddingHorizontal: 25,
+    borderRadius: 12,
+    paddingHorizontal: 18,
     paddingVertical: 10,
     backgroundColor: "#FF0707",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.12)",
   },
   btnText: {
-    fontFamily: Fonts.LATO_REGULAR,
-    fontSize: 18,
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 16,
     color: "white",
   },
 });

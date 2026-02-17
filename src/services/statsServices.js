@@ -1,7 +1,7 @@
 import { API_URL } from "@env";
 import axios from "axios";
 
-const getInitialStats = async (date, from, to) => {
+const getInitialStats = async (date, from, to, token) => {
   try {
     let getInitialStatsResponse = await axios.get(`${API_URL}/stats/initial`, {
       params: {
@@ -9,6 +9,7 @@ const getInitialStats = async (date, from, to) => {
         from,
         to,
       },
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
 
     if (getInitialStatsResponse?.status === 200) {
@@ -30,10 +31,13 @@ const getInitialStats = async (date, from, to) => {
     };
   }
 };
-const getRestaurantStats = async (id) => {
+const getRestaurantStats = async (id, token) => {
   try {
     let getInitialStatsResponse = await axios.get(
-      `${API_URL}/stats/initial/${id}`
+      `${API_URL}/stats/initial/${id}`,
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      }
     );
 
     if (getInitialStatsResponse?.status === 200) {

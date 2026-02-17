@@ -1,8 +1,16 @@
 export default {
   primary: "#F7A600",
-  screenBg: "#EBEBEB",
+  primaryDark: "#C87C00",
+  screenBg: "#F3F4F6",
   tgry: "#857878",
   gry: "#FBFBFB",
   lgry: "#F6F6F6",
   mgry: "#827B7B",
+  dark: "#0F172A",
+  card: "#FFFFFF",
+  border: "rgba(0,0,0,0.08)",
+  gradientStart: "#F8B64C",
+  gradientEnd: "#1C1F2B",
+  success: "#2FB36A",
+  danger: "#E14F4F",
 };

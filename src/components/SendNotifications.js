@@ -13,6 +13,7 @@ import axios from "axios";
 import { API_URL } from "@env";
 import { Dropdown } from "react-native-element-dropdown";
 import { getItemsNames } from "../services/MenuItemServices";
+
 const SendNotifications = ({
   setIsLoading,
   setShowSuccessModel,
@@ -31,8 +32,8 @@ const SendNotifications = ({
       const response = await getItemsNames();
       if (response.status) {
         let list = [{ value: "", label: "Aucun" }];
-        response.data.map((item) => {
-          list.push({ value: item._id, label: item.name });
+        response.data.map((menuItem) => {
+          list.push({ value: menuItem._id, label: menuItem.name });
         });
         setMenuItems(list);
       }
@@ -41,6 +42,7 @@ const SendNotifications = ({
       setDataLoading(false);
     }
   };
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -60,77 +62,58 @@ const SendNotifications = ({
         setShowSuccessModel(true);
       }
     } catch (err) {
-      console.log(err);
       setShowFailModal(true);
     } finally {
       setIsLoading(false);
     }
   };
+
   if (dataLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <View style={styles.loadingState}>
         <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
+
   return (
-    <View style={{ flex: 1, padding: 24 }}>
-      <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-        Envoyer des notifications
-      </Text>
-      <View
-        style={{ flexDirection: "row", alignItems: "center", marginTop: 50 }}
-      >
-        <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>Titre</Text>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Envoyer des notifications</Text>
+        <Text style={styles.subtitle}>
+          Composez un titre, un message et choisissez un article.
+        </Text>
+      </View>
+
+      <View style={styles.field}>
+        <Text style={styles.label}>Titre</Text>
         <TextInput
           placeholder="Titre"
-          style={{
-            padding: 10,
-            fontFamily: Fonts.LATO_REGULAR,
-            fontSize: 20,
-            flex: 1,
-            borderWidth: 2,
-            borderColor: Colors.primary,
-            marginLeft: 20,
-            color: "black",
-          }}
+          style={styles.input}
+          placeholderTextColor="#9CA3AF"
           onChangeText={(text) => setTitle(text)}
           value={title}
         />
       </View>
-      <View
-        style={{ flexDirection: "row", alignItems: "center", marginTop: 50 }}
-      >
-        <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-          Message
-        </Text>
+
+      <View style={styles.field}>
+        <Text style={styles.label}>Message</Text>
         <TextInput
           placeholder="Message"
-          style={{
-            padding: 10,
-            fontFamily: Fonts.LATO_REGULAR,
-            fontSize: 20,
-            flex: 1,
-            borderWidth: 2,
-            borderColor: Colors.primary,
-            marginLeft: 20,
-            color: "black",
-          }}
+          style={[styles.input, styles.textArea]}
+          placeholderTextColor="#9CA3AF"
           onChangeText={(text) => setBody(text)}
           value={body}
+          multiline
         />
       </View>
-      <View
-        style={{ flexDirection: "row", alignItems: "center", marginTop: 50 }}
-      >
-        <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-          Article (optionnel)
-        </Text>
+
+      <View style={styles.field}>
+        <Text style={styles.label}>Article (optionnel)</Text>
         <Dropdown
-          style={[styles.dropdown]}
+          style={styles.dropdown}
           placeholderStyle={styles.placeholderStyle}
           selectedTextStyle={styles.selectedTextStyle}
-          selectedStyle={styles.selectedStyle}
           itemContainerStyle={styles.itemContainerStyle}
           itemTextStyle={styles.itemTextStyle}
           containerStyle={styles.containerStyle}
@@ -141,28 +124,14 @@ const SendNotifications = ({
           placeholder="Choisir un article"
           value={item.name}
           ref={itemRef}
-          onChange={(item) => setItem({ _id: item.value, name: item.label })}
+          onChange={(selected) =>
+            setItem({ _id: selected.value, name: selected.label })
+          }
         />
       </View>
-      <TouchableOpacity
-        style={{
-          marginTop: 80,
-          alignSelf: "flex-end",
-          backgroundColor: Colors.primary,
-          paddingHorizontal: 60,
-          paddingVertical: 10,
-          borderRadius: 5,
-        }}
-        onPress={send}
-      >
-        <Text
-          style={{
-            fontFamily: Fonts.LATO_BOLD,
-            fontSize: 20,
-          }}
-        >
-          Envoyer
-        </Text>
+
+      <TouchableOpacity style={styles.sendButton} onPress={send}>
+        <Text style={styles.sendLabel}>Envoyer</Text>
       </TouchableOpacity>
     </View>
   );
@@ -171,39 +140,102 @@ const SendNotifications = ({
 export default SendNotifications;
 
 const styles = StyleSheet.create({
-  dropdown: {
-    height: 40,
-    width: 300,
-    borderColor: Colors.primary,
-    borderWidth: 2,
-    paddingHorizontal: 5,
-    paddingVertical: 5,
-    marginLeft: 40,
-    marginVertical: 20,
+  container: {
+    flex: 1,
+    padding: 20,
+    gap: 16,
   },
-  selectedStyle: {
-    height: 18,
+  header: {
+    gap: 4,
+  },
+  title: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 22,
+    color: "#111827",
+  },
+  subtitle: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  field: {
+    gap: 6,
+  },
+  label: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 15,
+    color: "#111827",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 15,
+    backgroundColor: Colors.gry,
+    color: "#111827",
+  },
+  textArea: {
+    minHeight: 90,
+    textAlignVertical: "top",
+  },
+  dropdown: {
+    height: 46,
+    borderColor: Colors.border,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: Colors.gry,
   },
   itemContainerStyle: {
-    padding: 0,
-    margin: 0,
+    paddingVertical: 8,
   },
   itemTextStyle: {
-    fontSize: 18,
-    padding: 0,
-    margin: 0,
+    fontSize: 15,
+    fontFamily: Fonts.LATO_REGULAR,
+    color: "#111827",
   },
   containerStyle: {
-    paddingHorizontal: 0,
-    margin: 0,
+    marginTop: -25,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
-
   placeholderStyle: {
-    fontSize: 20,
+    fontSize: 15,
     fontFamily: Fonts.LATO_REGULAR,
+    color: "#9CA3AF",
   },
   selectedTextStyle: {
-    fontSize: 20,
-    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 15,
+    fontFamily: Fonts.LATO_BOLD,
+    color: "#111827",
+  },
+  sendButton: {
+    alignSelf: "flex-end",
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 26,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  sendLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 16,
+    color: "#1b1b1b",
+  },
+  loadingState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
 });

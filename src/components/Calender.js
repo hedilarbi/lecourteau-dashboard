@@ -1,8 +1,8 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity } from "react-native";
 import React from "react";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { Colors, Fonts } from "../constants";
-const Calender = ({ setDate, date }) => {
+const Calender = ({ setDate, date, style, textStyle }) => {
   const onChange = (event, selectedDate) => {
     const currentDate = selectedDate;
     setDate(currentDate);
@@ -19,16 +19,9 @@ const Calender = ({ setDate, date }) => {
   return (
     <TouchableOpacity
       onPress={showDatepicker}
-      style={{
-        backgroundColor: Colors.primary,
-        paddingHorizontal: 25,
-        paddingVertical: 10,
-        marginLeft: 40,
-        borderWidth: 1,
-        borderRadius: 5,
-      }}
+      style={[styles.button, style]}
     >
-      <Text style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 18 }}>
+      <Text style={[styles.buttonText, textStyle]}>
         {date.toLocaleDateString("fr-FR")}
       </Text>
     </TouchableOpacity>
@@ -37,4 +30,16 @@ const Calender = ({ setDate, date }) => {
 
 export default Calender;
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  button: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 25,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderRadius: 5,
+  },
+  buttonText: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 18,
+  },
+});

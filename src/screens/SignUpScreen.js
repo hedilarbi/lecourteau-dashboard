@@ -164,7 +164,13 @@ const SignUpScreen = () => {
                 }
           }
         >
-          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 18 }}>
+          <Text
+            style={{
+              fontFamily: Fonts.LATO_BOLD,
+              fontSize: 18,
+              color: "black",
+            }}
+          >
             Se connecter avec le nom d'utilisateur
           </Text>
 
@@ -180,7 +186,13 @@ const SignUpScreen = () => {
             }}
             ref={userNameInput}
           >
-            <Text style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 14 }}>
+            <Text
+              style={{
+                fontFamily: Fonts.LATO_REGULAR,
+                fontSize: 14,
+                color: "#000",
+              }}
+            >
               Utilisateur:
             </Text>
             <TextInput
@@ -190,6 +202,7 @@ const SignUpScreen = () => {
                 fontFamily: Fonts.LATO_REGULAR,
                 flex: 1,
                 fontSize: 14,
+                color: "black",
                 marginLeft: 10,
               }}
               onChangeText={(text) => setUserName(text)}
@@ -207,7 +220,13 @@ const SignUpScreen = () => {
             }}
             ref={passwordInput}
           >
-            <Text style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 14 }}>
+            <Text
+              style={{
+                fontFamily: Fonts.LATO_REGULAR,
+                fontSize: 14,
+                color: "#000",
+              }}
+            >
               Mot de passe:
             </Text>
             <TextInput
@@ -218,6 +237,7 @@ const SignUpScreen = () => {
                 flex: 1,
                 fontSize: 14,
                 marginLeft: 10,
+                color: "black",
               }}
               secureTextEntry={true}
               onChangeText={(text) => setPassword(text)}
@@ -229,12 +249,18 @@ const SignUpScreen = () => {
               marginTop: 10,
               backgroundColor: Colors.primary,
               borderRadius: 5,
-              paddingVertical: 8,
+              paddingVertical: 12,
               alignItems: "center",
             }}
             onPress={login}
           >
-            <Text style={{ fontFamily: Fonts.LATO_REGULAR, fontSize: 14 }}>
+            <Text
+              style={{
+                fontFamily: Fonts.LATO_BOLD,
+                fontSize: 16,
+                color: "black",
+              }}
+            >
               Se connecter
             </Text>
           </TouchableOpacity>

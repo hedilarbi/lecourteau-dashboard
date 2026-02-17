@@ -16,27 +16,39 @@ import ItemsNav from "./ItemsNav";
 import OffersNav from "./OffersNav";
 import HomeNav from "./HomeNavigator";
 import SettingsScreen from "../screens/SettingsScreen";
+import ToppingNav from "./ToppingNav";
+import { View } from "react-native";
 function CashierDrawer() {
   const Drawer = createDrawerNavigator();
+  const withIconMargin = (icon) => (
+    <View style={{ marginRight: 8 }}>{icon}</View>
+  );
 
   return (
     <Drawer.Navigator
       screenOptions={{
         drawerType: "permanent",
-        drawerStyle: { backgroundColor: "#2E2E2E", padding: 0, margin: 0 },
-        drawerActiveTintColor: "#2E2E2E",
-        drawerActiveBackgroundColor: Colors.primary,
-        drawerInactiveTintColor: Colors.primary,
-        drawerInactiveBackgroundColor: "#2E2E2E",
+        drawerStyle: {
+          backgroundColor: Colors.dark,
+          paddingVertical: 12,
+          width: 300,
+        },
+        drawerActiveTintColor: Colors.primary,
+        drawerActiveBackgroundColor: "rgba(247,166,0,0.14)",
+        drawerInactiveTintColor: "#E5E7EB",
+        drawerInactiveBackgroundColor: "transparent",
         drawerLabelStyle: {
-          marginLeft: -20,
-          fontFamily: Fonts.BEBAS_NEUE,
-          fontSize: 24,
+          marginLeft: -12,
+          fontFamily: Fonts.LATO_BOLD,
+          fontSize: 16,
         },
         drawerItemStyle: {
-          borderRadius: 0,
-          margin: 0,
+          borderRadius: 12,
+          marginHorizontal: 12,
+          marginVertical: 4,
+          paddingVertical: 4,
         },
+        drawerContentStyle: { paddingVertical: 0 },
       }}
       drawerContent={(props) => <CustomDrawer {...props} />}
     >
@@ -46,9 +58,8 @@ function CashierDrawer() {
         options={{
           headerShown: false,
           title: "Accueil",
-          drawerIcon: ({ color }) => (
-            <FontAwesome name="home" size={24} color={color} />
-          ),
+          drawerIcon: ({ color }) =>
+            withIconMargin(<FontAwesome name="home" size={24} color={color} />),
         }}
       />
 
@@ -58,9 +69,10 @@ function CashierDrawer() {
         options={{
           headerShown: false,
           title: "Commandes",
-          drawerIcon: ({ color }) => (
-            <Foundation name="clipboard-notes" size={28} color={color} />
-          ),
+          drawerIcon: ({ color }) =>
+            withIconMargin(
+              <Foundation name="clipboard-notes" size={28} color={color} />,
+            ),
         }}
       />
       <Drawer.Screen
@@ -69,20 +81,26 @@ function CashierDrawer() {
         options={{
           headerShown: false,
           title: "Articles",
-          drawerIcon: ({ color }) => (
-            <SimpleLineIcons name="list" size={24} color={color} />
-          ),
+          drawerIcon: ({ color }) =>
+            withIconMargin(
+              <SimpleLineIcons name="list" size={24} color={color} />,
+            ),
         }}
       />
       <Drawer.Screen
-        name="Toppings"
-        component={ToppingsScreen}
+        name="ToppingsNav"
+        component={ToppingNav}
         options={{
           headerShown: false,
           title: "Personalisations",
-          drawerIcon: ({ color }) => (
-            <MaterialIcons name="dashboard-customize" size={24} color={color} />
-          ),
+          drawerIcon: ({ color }) =>
+            withIconMargin(
+              <MaterialIcons
+                name="dashboard-customize"
+                size={24}
+                color={color}
+              />,
+            ),
         }}
       />
       <Drawer.Screen
@@ -91,26 +109,27 @@ function CashierDrawer() {
         options={{
           headerShown: false,
           title: "Offres",
-          drawerIcon: ({ color }) => (
-            <MaterialCommunityIcons
-              name="brightness-percent"
-              size={24}
-              color={color}
-            />
-          ),
+          drawerIcon: ({ color }) =>
+            withIconMargin(
+              <MaterialCommunityIcons
+                name="brightness-percent"
+                size={24}
+                color={color}
+              />,
+            ),
         }}
       />
 
-      <Drawer.Screen
+      {/* <Drawer.Screen
         name="Paramètre"
         component={SettingsScreen}
         options={{
           headerShown: false,
           drawerIcon: ({ color }) => (
-            <Ionicons name="settings" size={24} color={color} />
+            withIconMargin(<Ionicons name="settings" size={24} color={color} />)
           ),
         }}
-      />
+      /> */}
       {/* <Drawer.Screen
         name="Notifications"
         component={NotificationsScreen}

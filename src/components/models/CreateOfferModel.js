@@ -1,12 +1,16 @@
 import {
   ActivityIndicator,
   Image,
-  ScrollView,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
+  ScrollView,
+  useWindowDimensions,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { AntDesign } from "@expo/vector-icons";
@@ -27,6 +31,8 @@ import { API_URL } from "@env";
 import FailModel from "./FailModel";
 
 const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
+  const { height: windowHeight } = useWindowDimensions();
+  const modalHeight = Math.min(windowHeight * 0.9, 900);
   const [menuItems, setMenuItems] = useState([]);
   const [date, setDate] = useState(new Date());
   const [showAddItemModel, setShowAddItemModel] = useState(false);
@@ -41,7 +47,6 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
   const [showFailModal, setShowFailModal] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState("");
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -111,11 +116,12 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
         name: image.split("/").pop(),
       });
     }
+
     formdata.append("customizations", JSON.stringify(customizationsNames));
     formdata.append("items", JSON.stringify(items));
     formdata.append("name", name);
     formdata.append("price", price);
-    formdata.append("expireAt", new Date(date));
+    formdata.append("expireAt", date.toISOString());
 
     try {
       setIsLoading(true);
@@ -127,13 +133,13 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
         body: formdata,
       });
       const data = await response.json();
+
       if (!response.ok) {
         throw new Error("HTTP error " + response.status);
       }
 
       setShowSuccessModel(true);
     } catch (err) {
-      setMessage(err.message);
       setShowFailModal(true);
     } finally {
       setIsLoading(false);
@@ -171,292 +177,173 @@ const CreateOfferModel = ({ setShowCreateOfferModel, setRefresh }) => {
   };
 
   return (
-    <View style={styles.container}>
-      {showAddItemModel && (
-        <AddItemModel
-          setItems={setItems}
-          menuItems={menuItems}
-          setShowAddItemModel={setShowAddItemModel}
-        />
-      )}
-      {showAddCategoryModel && (
-        <AddToppingModel
-          setShowAddCategoryModel={setShowAddCategoryModel}
-          toppings={customizationsList}
-          setCustomizationsNames={setCustomizationsNames}
-          customizationsNames={customizationsNames}
-        />
-      )}
-      {showSuccessModel && <SuccessModel />}
-      {showFailModal && <FailModel message={message} />}
-      {isLoading && (
-        <View
-          style={{
-            flex: 1,
-            position: "absolute",
-            top: 0,
-            width: "100%",
-            height: "100%",
-            left: 0,
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 100000,
-            backgroundColor: "rgba(0,0,0,0.4)",
-          }}
-        >
-          <ActivityIndicator size={"large"} color="black" />
-        </View>
-      )}
-      <View style={styles.model}>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-            Ajouter une offre
-          </Text>
-          <TouchableOpacity onPress={() => setShowCreateOfferModel(false)}>
-            <AntDesign name="close" size={40} color="gray" />
-          </TouchableOpacity>
-        </View>
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 12 }}
-        >
-          {error.length > 0 && (
-            <Text
-              style={{
-                fontFamily: Fonts.LATO_BOLD,
-                fontSize: 20,
-                textAlign: "center",
-                color: "red",
-              }}
+    <Modal
+      visible
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={() => setShowCreateOfferModel(false)}
+    >
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        {showAddItemModel && (
+          <AddItemModel
+            setItems={setItems}
+            menuItems={menuItems}
+            setShowAddItemModel={setShowAddItemModel}
+          />
+        )}
+        {showAddCategoryModel && (
+          <AddToppingModel
+            setShowAddCategoryModel={setShowAddCategoryModel}
+            toppings={customizationsList}
+            setCustomizationsNames={setCustomizationsNames}
+            customizationsNames={customizationsNames}
+          />
+        )}
+        {showSuccessModel && <SuccessModel />}
+        {showFailModal && (
+          <FailModel message="Oops ! Quelque chose s'est mal passé" />
+        )}
+        {isLoading && (
+          <View
+            style={{
+              flex: 1,
+              position: "absolute",
+              top: 0,
+              width: "100%",
+              height: "100%",
+              left: 0,
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 100000,
+              backgroundColor: "rgba(0,0,0,0.4)",
+            }}
+          >
+            <ActivityIndicator size={"large"} color="black" />
+          </View>
+        )}
+        <View style={[styles.model, { height: modalHeight }]}>
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={styles.title}>Ajouter une offre</Text>
+              <Text style={styles.subtitle}>
+                Ajoutez l'image, les infos, puis associez les articles
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowCreateOfferModel(false)}
             >
-              {error}
-            </Text>
-          )}
-          <View style={{ marginTop: 40 }}>
-            <View style={{ flexDirection: "row" }}>
-              <TouchableOpacity
-                style={{
-                  width: 250,
-                  height: 150,
-                  borderRadius: 16,
-                  backgroundColor: "gray",
+              <AntDesign name="close" size={28} color="#6B7280" />
+            </TouchableOpacity>
+          </View>
+          {error.length > 0 && <Text style={styles.errorBanner}>{error}</Text>}
 
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-                onPress={pickImage}
-              >
-                {image ? (
-                  <Image
-                    source={{ uri: image }}
-                    style={{
-                      resizeMode: "cover",
-                      width: "100%",
-                      height: "100%",
-                      borderRadius: 16,
-                    }}
-                  />
-                ) : (
-                  <Entypo name="camera" size={48} color="black" />
-                )}
-              </TouchableOpacity>
-              <View
-                style={{
-                  marginLeft: 20,
-                  justifyContent: "space-between",
-                }}
-              >
-                <View style={styles.name}>
-                  <Text style={styles.text}>Nom</Text>
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+          >
+            <View style={styles.topRow}>
+              <View style={styles.imageColumn}>
+                <Text style={styles.sectionTitle}>Image</Text>
+                <TouchableOpacity
+                  style={styles.imageUpload}
+                  onPress={pickImage}
+                >
+                  {image ? (
+                    <Image
+                      source={{ uri: image }}
+                      style={styles.imagePreview}
+                    />
+                  ) : (
+                    <View style={{ alignItems: "center", gap: 8 }}>
+                      <Entypo name="camera" size={36} color="#6B7280" />
+                      <Text style={styles.uploadLabel}>
+                        Cliquez pour importer
+                      </Text>
+                      <Text style={styles.uploadHint}>JPG ou PNG</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.detailsColumn}>
+                <View style={styles.field}>
+                  <Text style={styles.label}>Nom</Text>
                   <TextInput
-                    style={{
-                      fontFamily: Fonts.LATO_REGULAR,
-                      fontSize: 20,
-                      padding: 5,
-                      borderWidth: 2,
-                      borderColor: Colors.primary,
-                      marginLeft: 20,
-                      flex: 1,
-                    }}
+                    style={styles.input}
                     placeholder="Nom de l'offre"
-                    placeholderTextColor={Colors.tgry}
+                    placeholderTextColor="#9CA3AF"
                     onChangeText={(text) => setName(text)}
+                    value={name}
                   />
                 </View>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text style={styles.text}>Prix</Text>
 
-                  <TextInput
-                    style={{
-                      borderWidth: 2,
-                      borderColor: Colors.primary,
-                      padding: 5,
-                      paddingHorizontal: 8,
-                      marginHorizontal: 10,
-                    }}
-                    onChangeText={(text) => setPrice(text)}
-                    keyboardType="numeric"
-                    placeholder="prix"
-                  />
-                  <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 20 }}>
-                    $
-                  </Text>
+                <View style={styles.field}>
+                  <Text style={styles.label}>Prix</Text>
+                  <View style={styles.priceRow}>
+                    <TextInput
+                      style={[styles.input, styles.priceInput]}
+                      onChangeText={(text) => setPrice(text)}
+                      keyboardType="numeric"
+                      placeholder="Prix"
+                      placeholderTextColor="#9CA3AF"
+                      value={price}
+                    />
+                    <Text style={styles.priceSuffix}>$</Text>
+                  </View>
                 </View>
-                <View style={styles.prices}>
-                  <Text style={styles.text}>Date d'éxpiration</Text>
 
+                <View style={styles.field}>
+                  <Text style={styles.label}>Date d'expiration</Text>
                   <Calender setDate={setDate} date={date} />
                 </View>
-              </View>
-            </View>
-
-            <View style={styles.customizations}>
-              <Text style={styles.text}>Articles</Text>
-              <View
-                style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: 20,
-                  marginTop: 20,
-                }}
-              >
-                {items.map((item, index) => (
-                  <View
-                    style={{
-                      borderWidth: 1,
-                      borderRadius: 5,
-                      backgroundColor: "white",
-                      paddingHorizontal: 10,
-                      paddingVertical: 10,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 5,
-                      marginTop: 10,
-                    }}
-                    key={index}
-                  >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignContent: "center",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text style={styles.text}>{item.item.name}</Text>
-                      <Text style={styles.text}> x {item.quantity}</Text>
-                    </View>
+                <View style={[styles.card, styles.inlineCard]}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.sectionTitle}>Articles</Text>
+                    <Text style={styles.cardSubtitle}>
+                      Ajoutez au moins un article à l'offre.
+                    </Text>
+                  </View>
+                  <View style={styles.pillList}>
+                    {items.map((item, index) => (
+                      <View style={styles.pill} key={index}>
+                        <Text style={styles.pillText}>
+                          {item.item.name} x {item.quantity}
+                        </Text>
+                        <TouchableOpacity
+                          style={styles.pillAction}
+                          onPress={() => deleteItem(index)}
+                        >
+                          <AntDesign name="close" size={16} color="#6B7280" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
                     <TouchableOpacity
-                      style={{ alignSelf: "flex-end", marginLeft: 10 }}
-                      onPress={() => deleteItem(index)}
+                      style={styles.addPill}
+                      onPress={() => setShowAddItemModel(true)}
                     >
-                      <AntDesign name="close" size={24} color="gray" />
+                      <Entypo name="plus" size={18} color="#1b1b1b" />
+                      <Text style={styles.addPillText}>Ajouter</Text>
                     </TouchableOpacity>
                   </View>
-                ))}
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: Colors.primary,
-                    paddingHorizontal: 40,
-                    paddingVertical: 10,
-                    flexDirection: "row",
-                    gap: 10,
-                    alignItems: "center",
-                    marginTop: 10,
-                    borderRadius: 5,
-                  }}
-                  onPress={() => setShowAddItemModel(true)}
-                >
-                  <Entypo name="plus" size={24} color="black" />
-                  <Text style={styles.text}>Ajouter</Text>
-                </TouchableOpacity>
+                </View>
               </View>
             </View>
-            <View style={styles.customizations}>
-              <Text style={styles.text}>Personalisations</Text>
-              <View
-                style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: 20,
-                  marginTop: 20,
-                }}
-              >
-                {customizationsNames.map((item, index) => (
-                  <View
-                    style={{
-                      borderWidth: 1,
-                      borderRadius: 5,
-                      backgroundColor: "white",
-                      paddingHorizontal: 10,
-                      paddingVertical: 10,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 5,
-                      marginTop: 10,
-                    }}
-                    key={index}
-                  >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignContent: "center",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text style={styles.text}>{item.name}</Text>
-                    </View>
-                    <TouchableOpacity
-                      style={{ alignSelf: "flex-end", marginLeft: 10 }}
-                      onPress={() => deleteCustomization(index)}
-                    >
-                      <AntDesign name="close" size={24} color="gray" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: Colors.primary,
-                    paddingHorizontal: 40,
-                    paddingVertical: 10,
-                    flexDirection: "row",
-                    gap: 10,
-                    alignItems: "center",
-                    marginTop: 10,
-                    borderRadius: 5,
-                  }}
-                  onPress={() => setShowAddCategoryModel(true)}
-                >
-                  <Entypo name="plus" size={24} color="black" />
-                  <Text style={styles.text}>Ajouter</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
+          </ScrollView>
 
-          <TouchableOpacity
-            style={{
-              marginTop: 40,
-              alignSelf: "flex-end",
-              backgroundColor: Colors.primary,
-              paddingHorizontal: 60,
-              paddingVertical: 10,
-              borderRadius: 5,
-            }}
-            onPress={saveItem}
-          >
-            <Text style={styles.text}>Sauvegarder</Text>
+          <TouchableOpacity style={styles.saveButton} onPress={saveItem}>
+            <Text style={styles.saveLabel}>Sauvegarder</Text>
           </TouchableOpacity>
-        </ScrollView>
-      </View>
-    </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 };
 
@@ -476,42 +363,223 @@ const styles = StyleSheet.create({
   },
   model: {
     backgroundColor: "white",
-    borderRadius: 10,
-    paddingVertical: 40,
-    paddingHorizontal: 40,
-    width: "90%",
-    height: "90%",
+    borderRadius: 16,
+    paddingVertical: 24,
+    paddingHorizontal: 24,
+    width: "95%",
+    maxWidth: 1100,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  image: { flexDirection: "row", marginTop: 40, alignItems: "center" },
-  text: {
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  title: {
     fontFamily: Fonts.LATO_BOLD,
-    fontSize: 20,
+    fontSize: 24,
+    color: "#111827",
   },
-  name: {
-    flexDirection: "row",
-
-    alignItems: "center",
-  },
-
-  priceBox: {
-    backgroundColor: "white",
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderRadius: 5,
-    padding: 5,
-  },
-  prices: { flexDirection: "row", alignItems: "center" },
-  priceInput: {
+  subtitle: {
     fontFamily: Fonts.LATO_REGULAR,
-    fontSize: 18,
-    paddingLeft: 10,
-    paddingRight: 10,
-
-    borderRadius: 5,
-    marginLeft: 10,
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 4,
   },
-  customizations: {
-    marginTop: 40,
+  closeButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.gry,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  errorBanner: {
+    backgroundColor: "rgba(225,79,79,0.12)",
+    borderColor: "rgba(225,79,79,0.4)",
+    borderWidth: 1,
+    color: Colors.danger,
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+  scroll: { flex: 1 },
+  scrollContent: {
+    paddingBottom: 20,
+    gap: 20,
+    flexGrow: 1,
+  },
+  topRow: {
+    flexDirection: "row",
+    gap: 18,
+    flexWrap: "wrap",
+  },
+  imageColumn: {
+    flex: 1,
+    maxWidth: 320,
+    minWidth: 240,
+    gap: 14,
+  },
+  detailsColumn: {
+    flex: 1,
+    minWidth: 320,
+    gap: 14,
+  },
+  inlineCard: {
+    width: "100%",
+  },
+  sectionTitle: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 16,
+    color: "#111827",
+  },
+  imageUpload: {
+    width: "100%",
+    aspectRatio: 1,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: Colors.border,
+    backgroundColor: Colors.gry,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 14,
+  },
+  imagePreview: {
+    resizeMode: "cover",
+    width: "100%",
+    height: "100%",
+    borderRadius: 12,
+  },
+  uploadLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 15,
+    color: "#374151",
+  },
+  uploadHint: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 13,
+    color: "#9CA3AF",
+  },
+  field: {
+    gap: 6,
+  },
+  label: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 15,
+    color: "#111827",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 15,
+    backgroundColor: Colors.gry,
+    color: "#111827",
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  priceInput: {
+    flex: 1,
+  },
+  priceSuffix: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 16,
+    color: "#111827",
+  },
+  card: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 14,
+    backgroundColor: "white",
+    padding: 14,
+    gap: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cardHeader: {
+    gap: 2,
+  },
+  cardSubtitle: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 13,
+    color: "#6B7280",
+  },
+  pillList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  pill: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: Colors.gry,
+    gap: 6,
+  },
+  pillText: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#111827",
+  },
+  pillAction: {
+    padding: 2,
+  },
+  addPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.primary,
+  },
+  addPillText: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#1b1b1b",
+  },
+  saveButton: {
+    alignSelf: "flex-end",
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 26,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  saveLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 16,
+    color: "#1b1b1b",
   },
 });

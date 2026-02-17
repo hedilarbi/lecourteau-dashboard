@@ -10,11 +10,10 @@ import {
   Switch,
   Platform,
 } from "react-native";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Colors, Fonts, Roles } from "../constants";
 import { updateSettings } from "../services/SettingsServices";
 import SuccessModel from "../components/models/SuccessModel";
-import { useFocusEffect } from "@react-navigation/native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   getRestaurantSettings,
@@ -23,10 +22,11 @@ import {
 import ErrorScreen from "../components/ErrorScreen";
 import FailModel from "../components/models/FailModel";
 import { useSelector } from "react-redux";
-import { selectStaffData } from "../redux/slices/StaffSlice";
+import { selectStaffData, selectStaffToken } from "../redux/slices/StaffSlice";
+import PageHeader from "../components/ui/PageHeader";
 const SettingsScreen = () => {
   const { role, restaurant } = useSelector(selectStaffData);
-
+  const token = useSelector(selectStaffToken);
   const [isLoading, setIsLoading] = useState(true);
   const [restaurants, setRestaurants] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
@@ -93,19 +93,19 @@ const SettingsScreen = () => {
     // Validate inputs
     const formattedOpenHours = formatTime(
       settings.working_hours.open.hours,
-      "hours"
+      "hours",
     );
     const formattedOpenMinutes = formatTime(
       settings.working_hours.open.minutes,
-      "minutes"
+      "minutes",
     );
     const formattedCloseHours = formatTime(
       settings.working_hours.close.hours,
-      "hours"
+      "hours",
     );
     const formattedCloseMinutes = formatTime(
       settings.working_hours.close.minutes,
-      "minutes"
+      "minutes",
     );
     const validDeliveryFee = parseFloat(settings.delivery_fee);
 
@@ -116,7 +116,7 @@ const SettingsScreen = () => {
       formattedCloseMinutes === null
     ) {
       setErrorMessage(
-        "Entrée de temps invalide. Veuillez vérifier les heures et les minutes."
+        "Entrée de temps invalide. Veuillez vérifier les heures et les minutes.",
       );
       console.error("Invalid time input. Please check the hours and minutes.");
       return;
@@ -127,7 +127,7 @@ const SettingsScreen = () => {
       parseInt(formattedOpenHours + formattedOpenMinutes, 10)
     ) {
       setErrorMessage(
-        "L'heure de fermeture doit être supérieure à l'heure d'ouverture."
+        "L'heure de fermeture doit être supérieure à l'heure d'ouverture.",
       );
       console.error("Close time must be greater than open time.");
       return;
@@ -140,7 +140,7 @@ const SettingsScreen = () => {
     }
     try {
       setIsLoading(true);
-      const response = await updateSettings(restaurant._id, settings);
+      const response = await updateSettings(restaurant._id, settings, token);
 
       if (response.status) {
         setShowSuccessModel(true);
@@ -205,8 +205,8 @@ const SettingsScreen = () => {
                   },
                 },
               }
-            : restaurant
-        )
+            : restaurant,
+        ),
       );
       setShowPicker(false);
     }
@@ -248,55 +248,51 @@ const SettingsScreen = () => {
     );
   }
   return (
-    <SafeAreaView style={{ backgroundColor: Colors.screenBg, flex: 1 }}>
+    <SafeAreaView style={styles.screen}>
       {showSuccessModel && <SuccessModel />}
       {showFailModal && (
         <FailModel message="Oops ! Quelque chose s'est mal passé" />
       )}
       <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{
-          padding: 20,
-        }}
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={{ height: 20 }}>
-          {errorMessage !== "" && (
-            <Text
-              style={{
-                color: "red",
-                fontFamily: Fonts.LATO_REGULAR,
-                textAlign: "center",
-                fontSize: 16,
-              }}
-            >
-              {errorMessage}
-            </Text>
-          )}
-        </View>
-        <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
-          Paramètre
-        </Text>
-        {restaurants.map((restaurant, index) => (
-          <View
-            style={{
-              borderBottomWidth: index !== restaurants.length - 1 ? 2 : 0,
-              borderColor: "black",
-              paddingBottom: 20,
-            }}
-            key={index}
-          >
-            <Text style={[styles.title, { marginTop: 20 }]}>
-              {restaurant.name}
-            </Text>
+        <PageHeader
+          title="Paramètres"
+          subtitle="Configurez vos horaires, livraisons et disponibilité."
+          pills={[
+            { label: `${restaurants.length} restaurant(s)` },
+            errorMessage ? { label: "Erreur" } : null,
+          ].filter(Boolean)}
+        />
 
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginTop: 20,
-              }}
-            >
-              <Text style={[styles.title]}>Ouvert:</Text>
+        {errorMessage !== "" && (
+          <View style={styles.alert}>
+            <Text style={styles.alertText}>{errorMessage}</Text>
+          </View>
+        )}
+
+        {restaurants.map((restaurant, index) => (
+          <View key={restaurant._id || index} style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View>
+                <Text style={styles.cardTitle}>{restaurant.name}</Text>
+                <Text style={styles.cardSubtitle}>
+                  Ajustez les préférences et horaires de cet établissement.
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={() => saveChanges(index)}
+                activeOpacity={0.9}
+              >
+                <Text style={styles.saveLabel}>Sauvegarder</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.row}>
+              <Text style={styles.label}>Ouvert</Text>
               <Switch
                 trackColor={{ false: "#767577", true: Colors.primary }}
                 thumbColor="black"
@@ -312,22 +308,15 @@ const SettingsScreen = () => {
                               open: !restaurant.settings.open,
                             },
                           }
-                        : restaurant
-                    )
+                        : restaurant,
+                    ),
                   )
                 }
                 value={restaurant.settings.open}
-                style={{ marginLeft: 20 }}
               />
             </View>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginTop: 20,
-              }}
-            >
-              <Text style={[styles.title]}>Livraison:</Text>
+            <View style={styles.row}>
+              <Text style={styles.label}>Livraison</Text>
               <Switch
                 trackColor={{ false: "#767577", true: Colors.primary }}
                 thumbColor="black"
@@ -343,156 +332,107 @@ const SettingsScreen = () => {
                               delivery: !restaurant.settings.delivery,
                             },
                           }
-                        : restaurant
-                    )
+                        : restaurant,
+                    ),
                   )
                 }
                 value={restaurant.settings.delivery}
-                style={{ marginLeft: 20 }}
               />
             </View>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginTop: 20,
-              }}
-            >
-              <Text style={[styles.title]}>Frais de livraison:</Text>
-              <TextInput
-                style={[
-                  styles.text,
-                  {
-                    marginLeft: 20,
-                    backgroundColor: "white",
-                    borderRadius: 5,
-                    paddingVertical: 2,
-                    paddingHorizontal: 5,
-                    width: 50,
-                  },
-                ]}
-                keyboardType="numeric"
-                onChangeText={(text) =>
-                  setRestaurants((prevRestaurants) =>
-                    prevRestaurants.map((restaurant, i) =>
-                      i === index
-                        ? {
-                            ...restaurant,
-                            settings: {
-                              ...restaurant.settings,
-                              delivery_fee: text,
-                            },
-                          }
-                        : restaurant
-                    )
-                  )
-                }
-                value={restaurant.settings.delivery_fee.toString()}
-                placeholder="0"
-              />
-              <Text style={[styles.title]}> $</Text>
-            </View>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginTop: 20,
-              }}
-            >
-              <Text style={[styles.title]}>Rayon de livraison:</Text>
-              <TextInput
-                style={[
-                  styles.text,
-                  {
-                    marginLeft: 20,
-                    backgroundColor: "white",
-                    borderRadius: 5,
-                    paddingVertical: 2,
-                    paddingHorizontal: 5,
-                    width: 50,
-                  },
-                ]}
-                keyboardType="numeric"
-                onChangeText={(text) =>
-                  setRestaurants((prevRestaurants) =>
-                    prevRestaurants.map((restaurant, i) =>
-                      i === index
-                        ? {
-                            ...restaurant,
-                            settings: {
-                              ...restaurant.settings,
-                              delivery_range: text,
-                            },
-                          }
-                        : restaurant
-                    )
-                  )
-                }
-                value={restaurant.settings.delivery_range?.toString()}
-                placeholder="0"
-              />
-              <Text style={[styles.title]}> km</Text>
-            </View>
-            <View style={{ marginTop: 20 }}>
-              <Text style={[styles.title]}>Heure d’ouverture:</Text>
-              {Object.keys(restaurant.settings?.emploie_du_temps || {}).map(
-                (day) => (
-                  <View key={day} style={{ marginVertical: 10 }}>
-                    <Text style={styles.text}>
-                      {day.charAt(0).toUpperCase() + day.slice(1)}:
-                    </Text>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginTop: 10,
-                      }}
-                    >
-                      {/* Open Time Picker */}
-                      <TouchableOpacity
-                        style={[styles.timePicker]}
-                        onPress={() => handleTimePicker(day, "open", index)}
-                      >
-                        <Text style={styles.text}>
-                          {restaurant.settings.emploie_du_temps[day]?.open ||
-                            "Select Open Time"}
-                        </Text>
-                      </TouchableOpacity>
+            <View style={styles.inputRow}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Frais de livraison</Text>
+                <View style={styles.inlineField}>
+                  <TextInput
+                    style={styles.input}
+                    keyboardType="numeric"
+                    onChangeText={(text) =>
+                      setRestaurants((prevRestaurants) =>
+                        prevRestaurants.map((restaurant, i) =>
+                          i === index
+                            ? {
+                                ...restaurant,
+                                settings: {
+                                  ...restaurant.settings,
+                                  delivery_fee: text,
+                                },
+                              }
+                            : restaurant,
+                        ),
+                      )
+                    }
+                    value={restaurant.settings.delivery_fee.toString()}
+                    placeholder="0"
+                    placeholderTextColor={Colors.tgry}
+                  />
+                  <Text style={styles.suffix}>$</Text>
+                </View>
+              </View>
 
-                      <Text style={styles.text}> - </Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Rayon de livraison</Text>
+                <View style={styles.inlineField}>
+                  <TextInput
+                    style={styles.input}
+                    keyboardType="numeric"
+                    onChangeText={(text) =>
+                      setRestaurants((prevRestaurants) =>
+                        prevRestaurants.map((restaurant, i) =>
+                          i === index
+                            ? {
+                                ...restaurant,
+                                settings: {
+                                  ...restaurant.settings,
+                                  delivery_range: text,
+                                },
+                              }
+                            : restaurant,
+                        ),
+                      )
+                    }
+                    value={restaurant.settings.delivery_range?.toString()}
+                    placeholder="0"
+                    placeholderTextColor={Colors.tgry}
+                  />
+                  <Text style={styles.suffix}>km</Text>
+                </View>
+              </View>
+            </View>
 
-                      {/* Close Time Picker */}
-                      <TouchableOpacity
-                        style={[styles.timePicker]}
-                        onPress={() => handleTimePicker(day, "close", index)}
-                      >
-                        <Text style={styles.text}>
-                          {restaurant.settings.emploie_du_temps[day]?.close ||
-                            "Select Close Time"}
-                        </Text>
-                      </TouchableOpacity>
+            <View style={styles.schedule}>
+              <Text style={styles.sectionTitle}>Heures d’ouverture</Text>
+              <View style={styles.daysGrid}>
+                {Object.keys(restaurant.settings?.emploie_du_temps || {}).map(
+                  (day) => (
+                    <View key={day} style={styles.dayCard}>
+                      <Text style={styles.dayLabel}>
+                        {day.charAt(0).toUpperCase() + day.slice(1)}
+                      </Text>
+                      <View style={styles.timeRow}>
+                        <TouchableOpacity
+                          style={styles.timePicker}
+                          onPress={() => handleTimePicker(day, "open", index)}
+                        >
+                          <Text style={styles.timeLabel}>
+                            {restaurant.settings.emploie_du_temps[day]?.open ||
+                              "--:--"}
+                          </Text>
+                        </TouchableOpacity>
+                        <Text style={styles.timeSeparator}>—</Text>
+                        <TouchableOpacity
+                          style={styles.timePicker}
+                          onPress={() => handleTimePicker(day, "close", index)}
+                        >
+                          <Text style={styles.timeLabel}>
+                            {restaurant.settings.emploie_du_temps[day]?.close ||
+                              "--:--"}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
-                )
-              )}
-            </View>
-            <View
-              style={{
-                justifyContent: "flex-end",
-                flexDirection: "row",
-              }}
-            >
-              <TouchableOpacity
-                style={{
-                  backgroundColor: Colors.primary,
-                  paddingVertical: 10,
-                  paddingHorizontal: 20,
-                  borderRadius: 5,
-                }}
-                onPress={() => saveChanges(index)}
-              >
-                <Text style={styles.title}>Sauvegarder</Text>
-              </TouchableOpacity>
+                  ),
+                )}
+              </View>
             </View>
           </View>
         ))}
@@ -515,20 +455,167 @@ const SettingsScreen = () => {
 export default SettingsScreen;
 
 const styles = StyleSheet.create({
-  title: {
+  screen: {
+    flex: 1,
+    backgroundColor: Colors.screenBg,
+  },
+  scroll: {
+    flex: 1,
+  },
+  content: {
+    flexGrow: 1,
+    padding: 20,
+    gap: 14,
+  },
+  alert: {
+    backgroundColor: "rgba(225,79,79,0.08)",
+    borderColor: "rgba(225,79,79,0.25)",
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+  },
+  alertText: {
     fontFamily: Fonts.LATO_BOLD,
-    fontSize: 24,
+    fontSize: 14,
+    color: "#C43131",
   },
-  text: {
+  card: {
+    backgroundColor: Colors.gry,
+    borderRadius: 16,
+    padding: 16,
+    gap: 16,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+  cardTitle: {
+    fontFamily: Fonts.BEBAS_NEUE,
+    fontSize: 30,
+    color: "#1b1b1b",
+  },
+  cardSubtitle: {
     fontFamily: Fonts.LATO_REGULAR,
-    fontSize: 20,
+    fontSize: 14,
+    color: Colors.tgry,
+    marginTop: 2,
   },
-
+  saveButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  saveLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 6,
+  },
+  label: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 16,
+    color: "#1b1b1b",
+  },
+  inputRow: {
+    flexDirection: "row",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+  inputGroup: {
+    flex: 1,
+    minWidth: 180,
+    gap: 6,
+  },
+  inlineField: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  input: {
+    flex: 1,
+    backgroundColor: "white",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 15,
+    color: "#1b1b1b",
+  },
+  suffix: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 15,
+    color: Colors.tgry,
+  },
+  schedule: {
+    gap: 10,
+  },
+  sectionTitle: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 16,
+    color: "#1b1b1b",
+  },
+  daysGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  dayCard: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    minWidth: 150,
+    gap: 8,
+  },
+  dayLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
+  },
+  timeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   timePicker: {
     backgroundColor: "white",
-    borderRadius: 5,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    marginHorizontal: 5,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    minWidth: 78,
+    alignItems: "center",
+  },
+  timeLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
+  },
+  timeSeparator: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: Colors.tgry,
   },
 });

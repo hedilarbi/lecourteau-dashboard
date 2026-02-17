@@ -55,29 +55,38 @@ const RootNavigation = () => {
   const height = Dimensions.get("window").height;
   const globalRefresh = useSelector(selectGlobalRefresh);
   const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
+  const [alertTitle, setAlertTitle] = useState(
+    "Nouvelle commande non confirme"
+  );
+  const ongoingIdsRef = useRef(new Set());
+  const hasOngoingSnapshotRef = useRef(false);
 
   const notificationListener = useRef();
   const responseListener = useRef();
   const dispatch = useDispatch();
   const soundRef = useRef(null); // Ref to store the sound object
 
+  const stopNotificationSound = async () => {
+    Vibration.cancel(); // Always stop vibration immediately
+    if (!soundRef.current) return;
+    const activeSound = soundRef.current;
+    soundRef.current = null;
+    await Promise.allSettled([activeSound.stopAsync(), activeSound.unloadAsync()]);
+  };
+
   const playNotificationSoundInLoop = async () => {
+    await stopNotificationSound(); // Prevent multiple overlapping loops
     const { sound } = await Audio.Sound.createAsync(
       require("../../assets/sounds/notificationsound.wav")
     );
-    sound.setIsLoopingAsync(true); // Enable looping
+    await sound.setIsLoopingAsync(true); // Enable looping
     Vibration.vibrate(PATTERN, true); // Enable vibration in a loop
     await sound.playAsync();
     soundRef.current = sound; // Store the sound object in the ref
   };
 
   const handleClosingAlert = async () => {
-    if (soundRef.current) {
-      await soundRef.current.stopAsync(); // Stop the sound
-      await soundRef.current.unloadAsync(); // Unload the sound to free resources
-      soundRef.current = null; // Reset the ref
-    }
-    Vibration.cancel(); // Stop the vibration
+    await stopNotificationSound();
     setShowNewOrderAlert(false); // Set the alert to false
   };
 
@@ -88,13 +97,41 @@ const RootNavigation = () => {
         if (showNewOrderAlert) return; // Skip if the alert is already shown
 
         const response = await axios.get(
-          `${API_URL}/orders/nonConfirmed/${staff.restaurant}`
+          `${API_URL}/orders/checkOrders/${staff.restaurant}`
         );
 
-        const orders = response.data;
+        const data = response.data || {};
+        const nonConfirmedOrders = Array.isArray(data)
+          ? data
+          : data.nonConfirmedOrders || [];
+        const onGoingOrders = Array.isArray(data)
+          ? []
+          : data.onGoingOrders || [];
 
-        if (orders.length > 0) {
+        let hasNewOnGoing = false;
+        if (hasOngoingSnapshotRef.current) {
+          hasNewOnGoing = onGoingOrders.some(
+            (order) => order?._id && !ongoingIdsRef.current.has(order._id)
+          );
+        } else {
+          hasOngoingSnapshotRef.current = true;
+        }
+        ongoingIdsRef.current = new Set(
+          onGoingOrders.map((order) => order?._id).filter(Boolean)
+        );
+
+        if (nonConfirmedOrders.length > 0) {
           await playNotificationSoundInLoop(); // Play sound in a loop
+          setAlertTitle("Nouvelle commande non confirme");
+          setShowNewOrderAlert(true); // Show the alert
+          dispatch(setGlobalRefresh());
+          return;
+        }
+        if (hasNewOnGoing) {
+          await playNotificationSoundInLoop(); // Play sound in a loop
+          setAlertTitle(
+            "Nouvelle commande programmée est passée à l'état en cours"
+          );
           setShowNewOrderAlert(true); // Show the alert
           dispatch(setGlobalRefresh());
         }
@@ -111,11 +148,7 @@ const RootNavigation = () => {
   useEffect(() => {
     return () => {
       // Cleanup sound on component unmount
-      if (soundRef.current) {
-        soundRef.current.stopAsync();
-        soundRef.current.unloadAsync();
-      }
-      Vibration.cancel();
+      stopNotificationSound();
     };
   }, []);
 
@@ -224,7 +257,7 @@ const RootNavigation = () => {
                   color: "black",
                 }}
               >
-                Nouvelle commande non confirme
+                {alertTitle}
               </Text>
               <TouchableOpacity
                 style={{

@@ -8,8 +8,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { FontAwesome, MaterialIcons, Entypo } from "@expo/vector-icons";
-import { TouchableWithoutFeedback } from "react-native-gesture-handler";
+import { MaterialIcons, Entypo } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 const RenderMenuItem = ({
   item,
   index,
@@ -20,14 +20,6 @@ const RenderMenuItem = ({
   handleTri,
   triMode,
 }) => {
-  const backgroundColor = useMemo(
-    () =>
-      index % 2
-        ? { backgroundColor: "transparent" }
-        : { backgroundColor: "rgba(247,166,0,0.3)" },
-    [index]
-  );
-
   const menuItemName = useMemo(
     () => (role === Roles.ADMIN ? item.name : item.menuItem.name),
     [role, item]
@@ -40,33 +32,38 @@ const RenderMenuItem = ({
 
   return useMemo(
     () => (
-      <View style={[styles.row, backgroundColor]}>
+      <View style={[styles.row, index % 2 === 0 && styles.rowAlt]}>
         <Image
           style={styles.image}
           source={{
             uri: role === Roles.ADMIN ? item.image : item.menuItem.image,
           }}
         />
-        <Text style={[styles.rowCell, { width: "25%" }]}>{menuItemName}</Text>
-        <View style={[styles.rowCell, { width: "10%" }]}>
-          {prices.map((price, i) => (
-            <Text key={i}>{price.size}</Text>
-          ))}
+        <View style={styles.info}>
+          <Text style={styles.name} numberOfLines={2}>
+            {menuItemName}
+          </Text>
+          <View style={styles.tags}>
+            {prices.map((price, i) => (
+              <View key={i} style={styles.tag}>
+                <Text style={styles.tagText}>{price.size}</Text>
+              </View>
+            ))}
+          </View>
         </View>
-        <View style={[styles.rowCell, { flex: 1 }]}>
+        <View style={styles.priceList}>
           {prices.map((price, i) => (
-            <Text key={i}>{price.price.toFixed(2) + "$"}</Text>
+            <Text key={i} style={styles.priceText}>
+              {price.price.toFixed(2)} $
+            </Text>
           ))}
         </View>
         {role === Roles.ADMIN ? (
           <TouchableOpacity
-            style={{
-              justifyContent: "center",
-              alignItems: "center",
-            }}
+            style={[styles.iconButton, styles.editButton]}
             onPress={() => handleShowMenuItemModel(item._id)}
           >
-            <FontAwesome name="pencil" size={24} color="#2AB2DB" />
+            <Ionicons name="pencil" size={18} color="#1D4ED8" />
           </TouchableOpacity>
         ) : (
           <Switch
@@ -79,42 +76,50 @@ const RenderMenuItem = ({
         )}
         {role === Roles.ADMIN && (
           <TouchableOpacity
-            style={{
-              justifyContent: "center",
-              alignItems: "center",
-            }}
+            style={styles.iconButton}
             onPress={() => handleShowDeleteWarning(item._id)}
           >
-            <MaterialIcons name="delete" size={24} color="#F31A1A" />
+            <MaterialIcons name="delete-outline" size={20} color="#C43131" />
           </TouchableOpacity>
         )}
         {triMode && (
-          <View style={{ justifyContent: "space-between", height: 100 }}>
-            <TouchableWithoutFeedback
-              style={{
-                justifyContent: "center",
-                alignItems: "center",
-                padding: 4,
-              }}
+          <View style={styles.triButtons}>
+            <TouchableOpacity
+              style={styles.triButton}
               onPress={() => handleTri(index, index - 1)}
             >
-              <Entypo name="chevron-with-circle-up" size={28} color="black" />
-            </TouchableWithoutFeedback>
-            <TouchableWithoutFeedback
-              style={{
-                justifyContent: "center",
-                alignItems: "center",
-                padding: 4,
-              }}
+              <Entypo
+                name="chevron-with-circle-up"
+                size={22}
+                color="#1b1b1b"
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.triButton}
               onPress={() => handleTri(index, index + 1)}
             >
-              <Entypo name="chevron-with-circle-down" size={28} color="black" />
-            </TouchableWithoutFeedback>
+              <Entypo
+                name="chevron-with-circle-down"
+                size={22}
+                color="#1b1b1b"
+              />
+            </TouchableOpacity>
           </View>
         )}
       </View>
     ),
-    [index, triMode]
+    [
+      index,
+      triMode,
+      menuItemName,
+      prices,
+      role,
+      item,
+      handleShowMenuItemModel,
+      handleShowDeleteWarning,
+      updateAvailability,
+      handleTri,
+    ]
   );
 };
 
@@ -124,20 +129,77 @@ const styles = StyleSheet.create({
   row: {
     width: "100%",
     flexDirection: "row",
-    gap: 50,
+    gap: 10,
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  rowAlt: {
+    backgroundColor: "rgba(247,166,0,0.08)",
   },
   image: {
-    width: 120,
-    height: 100,
+    width: 70,
+    height: 70,
     resizeMode: "cover",
+    borderRadius: 12,
   },
-  rowCell: {
-    fontFamily: Fonts.LATO_REGULAR,
-    fontSize: 20,
-    flexDirection: "column",
+  info: {
+    flex: 1,
+    gap: 6,
+  },
+  name: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 16,
+    color: "#1b1b1b",
+  },
+  tags: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  tag: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: Colors.screenBg,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+  },
+  tagText: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 12,
+    color: Colors.tgry,
+  },
+  priceList: {
+    width: 90,
+    gap: 4,
+  },
+  priceText: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
+    textAlign: "right",
+  },
+  iconButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: "rgba(29,78,216,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(29,78,216,0.25)",
+  },
+  editButton: {
+    backgroundColor: "rgba(29,78,216,0.12)",
+    borderColor: "rgba(29,78,216,0.25)",
+  },
+  triButtons: {
+    gap: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  triButton: {
+    padding: 4,
   },
 });

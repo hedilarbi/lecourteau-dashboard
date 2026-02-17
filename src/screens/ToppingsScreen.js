@@ -12,7 +12,8 @@ import {
 import React, { useCallback, useEffect, useState } from "react";
 
 import { Colors, Fonts, Roles } from "../constants";
-import { MaterialIcons, FontAwesome } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import SearchBar from "../components/SearchBar";
 import DeleteWarning from "../components/models/DeleteWarning";
 import AddButton from "../components/AddButton";
@@ -29,10 +30,13 @@ import {
   updateRestaurantToppingAvailability,
 } from "../services/RestaurantServices";
 import UpdateToppingModal from "../components/models/UpdateToppingModal";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import ErrorScreen from "../components/ErrorScreen";
+import PageHeader from "../components/ui/PageHeader";
+import { Card, tableStyles } from "../components/ui/Surface";
 
 const ToppingsScreen = () => {
+  const navigation = useNavigation();
   const { role, restaurant } = useSelector(selectStaffData);
   const [toppings, setToppings] = useState([]);
   const [toppingsList, setToppingsList] = useState([]);
@@ -99,13 +103,6 @@ const ToppingsScreen = () => {
     setToppingId(id);
     setDeleteWarningModelState(true);
   };
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="black" />
-      </View>
-    );
-  }
   const handleShowUpdateToppingModal = (topping) => {
     setTopping(topping);
     setShowUpdateToppingModal(true);
@@ -122,7 +119,7 @@ const ToppingsScreen = () => {
   }
 
   return (
-    <SafeAreaView style={{ backgroundColor: Colors.screenBg, flex: 1 }}>
+    <SafeAreaView style={styles.screen}>
       {deleteWarningModelState && (
         <DeleteWarning
           id={toppingId}
@@ -153,135 +150,179 @@ const ToppingsScreen = () => {
         />
       )}
 
-      <View style={{ flex: 1, padding: 20 }}>
-        <Text style={{ fontFamily: Fonts.BEBAS_NEUE, fontSize: 40 }}>
-          Personnalisations
-        </Text>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginTop: 30,
-            justifyContent: "space-between",
-          }}
-        >
-          {role === Roles.ADMIN ? (
-            <SearchBar
-              setter={setToppings}
-              list={toppingsList}
-              filter={filterToppings}
-            />
-          ) : (
-            <SearchBar
-              setter={setToppings}
-              list={toppingsList}
-              filter={filterRestaurantToppings}
-            />
-          )}
-          {role === Roles.ADMIN && (
-            <AddButton
-              setShowModel={setShowCreateToppingModel}
-              text="Personnalisation"
-            />
-          )}
-          {role === Roles.ADMIN && (
-            <AddButton
-              setShowModel={setShowCreateToppingCategoryModel}
-              text="Catégorie"
-            />
-          )}
-        </View>
-
-        <ScrollView
-          style={{ width: "100%", marginTop: 30 }}
-          refreshControl={
-            <RefreshControl refreshing={isLoading} onRefresh={fetchData} />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <PageHeader
+          title="Personnalisations"
+          subtitle="Ajoutez vos compléments et gérez leurs disponibilités."
+          pills={[{ label: `${toppings.length} option(s)` }]}
+          rightContent={
+            <View style={styles.searchRow}>
+              {role === Roles.ADMIN ? (
+                <SearchBar
+                  setter={setToppings}
+                  list={toppingsList}
+                  filter={filterToppings}
+                  placeholder="Chercher une personnalisation"
+                />
+              ) : (
+                <SearchBar
+                  setter={setToppings}
+                  list={toppingsList}
+                  filter={filterRestaurantToppings}
+                  placeholder="Chercher une personnalisation"
+                />
+              )}
+              {role === Roles.ADMIN && (
+                <>
+                  <AddButton
+                    setShowModel={setShowCreateToppingModel}
+                    text="Personnalisation"
+                  />
+                  <AddButton
+                    setShowModel={setShowCreateToppingCategoryModel}
+                    text="Catégorie"
+                  />
+                  <TouchableOpacity
+                    style={styles.secondaryButton}
+                    onPress={() => navigation.navigate("ToppingGroups")}
+                    activeOpacity={0.9}
+                  >
+                    <Text style={styles.secondaryLabel}>Gérer les groupes</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
           }
-        >
-          {role === Roles.ADMIN
-            ? toppings.map((topping, index) => (
-                <View
-                  key={topping._id}
-                  style={[
-                    styles.row,
-                    index % 2
-                      ? { backgroundColor: "transparent" }
-                      : { backgroundColor: "rgba(247,166,0,0.3)" },
-                  ]}
-                >
-                  <Image
-                    style={[styles.image]}
-                    source={{ uri: topping.image }}
-                  />
+        />
 
-                  <Text style={[styles.rowCell, { width: "15%" }]}>
-                    {topping.name}
-                  </Text>
+        <Card style={styles.tableCard}>
+          <View style={tableStyles.header}>
+            <Text style={[tableStyles.headerCell, { width: 80 }]}>Visuel</Text>
+            <Text style={[tableStyles.headerCell, { flex: 1.3 }]}>Nom</Text>
+            <Text style={[tableStyles.headerCell, { flex: 1.2 }]}>
+              Catégorie
+            </Text>
+            <Text style={[tableStyles.headerCell, { width: 90 }]}>Prix</Text>
+            <Text
+              style={[
+                tableStyles.headerCell,
+                { width: role === Roles.ADMIN ? 120 : 140 },
+              ]}
+            >
+              {role === Roles.ADMIN ? "Actions" : "Disponibilité"}
+            </Text>
+          </View>
+          {isLoading ? (
+            <View style={styles.loader}>
+              <ActivityIndicator size={"large"} color={Colors.primary} />
+            </View>
+          ) : toppings.length > 0 ? (
+            <ScrollView
+              style={styles.tableScroll}
+              refreshControl={
+                <RefreshControl refreshing={isLoading} onRefresh={fetchData} />
+              }
+            >
+              {role === Roles.ADMIN
+                ? toppings.map((topping, index) => (
+                    <View
+                      key={topping._id}
+                      style={[
+                        tableStyles.row,
+                        index % 2 === 0 && tableStyles.rowAlt,
+                      ]}
+                    >
+                      <Image style={styles.thumb} source={{ uri: topping.image }} />
 
-                  <Text style={[styles.rowCell, { width: "15%" }]}>
-                    {topping.category.name}
-                  </Text>
-                  <Text style={[styles.rowCell, { width: "10%" }]}>
-                    {topping.price} $
-                  </Text>
+                      <Text style={[tableStyles.cell, { flex: 1.3 }]}>
+                        {topping.name}
+                      </Text>
 
-                  <TouchableOpacity
-                    style={{
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
-                    onPress={() => handleShowUpdateToppingModal(topping)}
-                  >
-                    <FontAwesome name="pencil" size={30} color="#2AB2DB" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={{
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
-                    onPress={() => handleShowDeleteWarning(topping._id)}
-                  >
-                    <MaterialIcons name="delete" size={24} color="#F31A1A" />
-                  </TouchableOpacity>
-                </View>
-              ))
-            : toppings.map((topping, index) => (
-                <View
-                  key={topping._id}
-                  style={[
-                    styles.row,
-                    index % 2
-                      ? { backgroundColor: "transparent" }
-                      : { backgroundColor: "rgba(247,166,0,0.3)" },
-                  ]}
-                >
-                  <Image
-                    style={[styles.image]}
-                    source={{ uri: topping.topping.image }}
-                  />
+                      <Text style={[tableStyles.cell, { flex: 1.2 }]}>
+                        {topping.category.name}
+                      </Text>
+                      <Text style={[tableStyles.cell, { width: 90 }]}>
+                        {topping.price?.toFixed
+                          ? topping.price.toFixed(2)
+                          : `${topping.price} `}
+                        $
+                      </Text>
 
-                  <Text style={[styles.rowCell, { width: "20%" }]}>
-                    {topping.topping.name}
-                  </Text>
+                      <View style={[tableStyles.actions, { width: 120 }]}>
+                        <TouchableOpacity
+                          style={[tableStyles.iconButton, styles.editButton]}
+                          onPress={() => handleShowUpdateToppingModal(topping)}
+                        >
+                          <Ionicons name="pencil" size={18} color="#1D4ED8" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={tableStyles.iconButton}
+                          onPress={() => handleShowDeleteWarning(topping._id)}
+                        >
+                          <MaterialIcons
+                            name="delete-outline"
+                            size={20}
+                            color={Colors.danger}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))
+                : toppings.map((topping, index) => (
+                    <View
+                      key={topping._id}
+                      style={[
+                        tableStyles.row,
+                        index % 2 === 0 && tableStyles.rowAlt,
+                      ]}
+                    >
+                      <Image
+                        style={styles.thumb}
+                        source={{ uri: topping.topping.image }}
+                      />
 
-                  <Text style={[styles.rowCell, { width: "10%" }]}>
-                    {topping.topping.category.name}
-                  </Text>
-                  <Text style={[styles.rowCell, { width: "10%" }]}>
-                    {topping.topping.price} $
-                  </Text>
+                      <Text style={[tableStyles.cell, { flex: 1.3 }]}>
+                        {topping.topping.name}
+                      </Text>
 
-                  <Switch
-                    trackColor={{ false: "#767577", true: Colors.primary }}
-                    thumbColor="black"
-                    ios_backgroundColor="#3e3e3e"
-                    onValueChange={() => updateAvailability(topping._id, index)}
-                    value={topping.availability}
-                  />
-                </View>
-              ))}
-        </ScrollView>
-      </View>
+                      <Text style={[tableStyles.cell, { flex: 1.2 }]}>
+                        {topping.topping.category.name}
+                      </Text>
+                      <Text style={[tableStyles.cell, { width: 90 }]}>
+                        {topping.topping.price?.toFixed
+                          ? topping.topping.price.toFixed(2)
+                          : `${topping.topping.price} `}
+                        $
+                      </Text>
+
+                      <View style={[tableStyles.actions, { width: 140 }]}>
+                        <Switch
+                          trackColor={{ false: "#767577", true: Colors.primary }}
+                          thumbColor="black"
+                          ios_backgroundColor="#3e3e3e"
+                          onValueChange={() =>
+                            updateAvailability(topping._id, index)
+                          }
+                          value={topping.availability}
+                        />
+                      </View>
+                    </View>
+                  ))}
+            </ScrollView>
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>Aucune personnalisation</Text>
+              <Text style={styles.emptySubtitle}>
+                Ajoutez vos options ou ajustez votre recherche.
+              </Text>
+            </View>
+          )}
+        </Card>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -289,22 +330,78 @@ const ToppingsScreen = () => {
 export default ToppingsScreen;
 
 const styles = StyleSheet.create({
-  row: {
-    width: "100%",
+  screen: {
+    backgroundColor: Colors.screenBg,
+    flex: 1,
+  },
+  container: {
+    flex: 1,
+  },
+  content: {
+    flexGrow: 1,
+    padding: 20,
+    gap: 14,
+  },
+  searchRow: {
     flexDirection: "row",
-    gap: 50,
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    gap: 10,
+    flexWrap: "wrap",
   },
-  image: {
-    width: 70,
-    height: 70,
-    resizeMode: "contain",
+  tableCard: {
+    flex: 1,
+    overflow: "hidden",
   },
-  rowCell: {
+  tableScroll: {
+    flex: 1,
+  },
+  secondaryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  secondaryLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
+  },
+  thumb: {
+    width: 52,
+    height: 52,
+    borderRadius: 10,
+    backgroundColor: Colors.card,
+  },
+  loader: {
+    padding: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyState: {
+    minHeight: 200,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyTitle: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 18,
+    color: "#1b1b1b",
+  },
+  emptySubtitle: {
     fontFamily: Fonts.LATO_REGULAR,
-    fontSize: 20,
+    fontSize: 14,
+    color: Colors.tgry,
+    marginTop: 4,
+    textAlign: "center",
+  },
+  editButton: {
+    backgroundColor: "rgba(29,78,216,0.12)",
+    borderColor: "rgba(29,78,216,0.25)",
   },
 });

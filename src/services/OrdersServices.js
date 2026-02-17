@@ -99,11 +99,16 @@ const deleteOrder = async (id) => {
     };
   }
 };
-const updateStatus = async (id, status) => {
+const updateStatus = async (id, status, token) => {
   try {
     let updateStatusResponse = await axios.put(
       `${API_URL}/orders/update/status/${id}`,
       { status },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
       { timeout: 10000 }
     );
 
@@ -152,10 +157,16 @@ const updatePrice = async (id, price) => {
   }
 };
 
-const confirmOrder = async (id) => {
+const confirmOrder = async (id, token) => {
   try {
     let confirmOrderResponse = await axios.put(
-      `${API_URL}/orders/confirm/${id}`
+      `${API_URL}/orders/confirm/${id}`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
 
     if (confirmOrderResponse?.status === 200) {
@@ -198,6 +209,115 @@ const updatePaymentStatus = async (id, payment_status) => {
     return {
       status: false,
       message: error.message,
+    };
+  }
+};
+
+const updateDeliveryProvider = async (id, delivery_provider, token) => {
+  try {
+    const response = await axios.put(
+      `${API_URL}/orders/update/delivery_provider/${id}`,
+      { delivery_provider },
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      },
+    );
+
+    if (response?.status === 200) {
+      return {
+        status: true,
+        message:
+          response?.data?.message ||
+          "Fournisseur de livraison mis à jour avec succès.",
+        data: response?.data?.data || null,
+      };
+    }
+
+    return {
+      status: false,
+      message: "Impossible de mettre à jour le fournisseur de livraison.",
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        "Impossible de mettre à jour le fournisseur de livraison.",
+    };
+  }
+};
+
+const createUberDirectDelivery = async (restaurantId, orderId, token) => {
+  try {
+    const response = await axios.post(
+      `${API_URL}/uber-direct/restaurants/${restaurantId}/orders/${orderId}/deliveries`,
+      {},
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      },
+    );
+
+    if (response?.status >= 200 && response?.status < 300) {
+      return {
+        status: true,
+        message: "uber delivery created",
+        data: response?.data?.data || null,
+      };
+    }
+
+    return {
+      status: false,
+      message: "Erreur lors de la création de la livraison Uber.",
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        "Erreur lors de la création de la livraison Uber.",
+    };
+  }
+};
+
+const cancelUberDirectDelivery = async (
+  restaurantId,
+  deliveryId,
+  token,
+  payload = {},
+) => {
+  try {
+    const response = await axios.post(
+      `${API_URL}/uber-direct/restaurants/${restaurantId}/deliveries/${deliveryId}/cancel`,
+      payload,
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      },
+    );
+
+    if (response?.status >= 200 && response?.status < 300) {
+      return {
+        status: true,
+        message: "Livraison Uber annulée.",
+        data: response?.data?.data || null,
+      };
+    }
+
+    return {
+      status: false,
+      message: "Erreur lors de l'annulation de la livraison Uber.",
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        "Erreur lors de l'annulation de la livraison Uber.",
     };
   }
 };
@@ -262,6 +382,9 @@ export {
   orderDelivered,
   confirmOrder,
   updatePaymentStatus,
+  updateDeliveryProvider,
+  createUberDirectDelivery,
+  cancelUberDirectDelivery,
   getOrderFiltred,
   getRestaurantOrderFiltred,
 };

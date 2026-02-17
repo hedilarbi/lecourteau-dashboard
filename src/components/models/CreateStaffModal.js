@@ -1,17 +1,21 @@
 import {
   ActivityIndicator,
   Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import React, { useEffect, useState } from "react";
-import { AntDesign } from "@expo/vector-icons";
+import { AntDesign, Entypo } from "@expo/vector-icons";
 import { Dropdown } from "react-native-element-dropdown";
 import { Colors, Fonts, Roles } from "../../constants";
-import { Entypo } from "@expo/vector-icons";
 
 import SuccessModel from "./SuccessModel";
 import * as ImagePicker from "expo-image-picker";
@@ -20,11 +24,9 @@ import { API_URL } from "@env";
 import { getRestaurants } from "../../services/RestaurantServices";
 import FailModel from "./FailModel";
 
-const CreateStaffModal = ({
-  setShowCreateStaffModal,
-
-  setRefresh,
-}) => {
+const CreateStaffModal = ({ setShowCreateStaffModal, setRefresh }) => {
+  const { height: windowHeight } = useWindowDimensions();
+  const modalHeight = Math.min(windowHeight * 0.9, 900);
   const [showSuccessModel, setShowSuccessModel] = useState(false);
   const [restaurants, setRestaurants] = useState([]);
   const [name, setName] = useState("");
@@ -41,6 +43,7 @@ const CreateStaffModal = ({
     { value: Roles.MANAGER, label: Roles.MANAGER },
     { value: Roles.LIVREUR, label: Roles.LIVREUR },
   ];
+
   const fetchData = async () => {
     try {
       const response = await getRestaurants();
@@ -51,24 +54,27 @@ const CreateStaffModal = ({
         );
         setRestaurants(list);
       }
-    } catch (error) {}
-    setIsLoading(false);
+    } catch (fetchError) {
+    } finally {
+      setIsLoading(false);
+    }
   };
+
   useEffect(() => {
     fetchData();
   }, []);
 
   const saveItem = async () => {
     if (name.length < 1) {
-      setError("Nom de l'employée manquant");
+      setError("Nom de l'employé manquant");
       return;
     }
     if (username.length < 1) {
-      setError("Nom d'utilisateur de l'employée manquant");
+      setError("Nom d'utilisateur de l'employé manquant");
       return;
     }
     if (password.length < 1) {
-      setError("Mot de passe de l'employée manquant");
+      setError("Mot de passe de l'employé manquant");
       return;
     }
     if (Object.keys(restaurant).length < 1) {
@@ -117,7 +123,6 @@ const CreateStaffModal = ({
   };
 
   const pickImage = async () => {
-    // No permissions request is necessary for launching the image library
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: true,
@@ -129,238 +134,183 @@ const CreateStaffModal = ({
       setImage(result.assets[0].uri);
     }
   };
+
   useEffect(() => {
     if (showSuccessModel) {
-      // After 1 second, reset showSuccessModel to false
-
       const timer = setTimeout(() => {
         setRefresh((prev) => prev + 1);
         setShowSuccessModel(false);
         setShowCreateStaffModal(false);
       }, 2000);
 
-      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+      return () => clearTimeout(timer);
     }
   }, [showSuccessModel]);
+
   useEffect(() => {
     if (showFailModal) {
-      // After 1 second, reset showSuccessModel to false
-
       const timer = setTimeout(() => {
         setShowFailModal(false);
       }, 2000);
 
-      return () => clearTimeout(timer); // Clear the timer if the component unmounts before 1 second
+      return () => clearTimeout(timer);
     }
   }, [showFailModal]);
+
   return (
-    <View style={styles.container}>
-      {showSuccessModel && <SuccessModel />}
-      {showFailModal && (
-        <FailModel message="Oops ! Quelque chose s'est mal passé" />
-      )}
-      {isLoading && (
-        <View
-          style={{
-            flex: 1,
-            position: "absolute",
-            top: 0,
-            width: "100%",
-            height: "100%",
-            left: 0,
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 100000,
-            backgroundColor: "rgba(0,0,0,0.4)",
-          }}
-        >
-          <ActivityIndicator size={"large"} color="black" />
-        </View>
-      )}
-      <View style={styles.model}>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 24 }}>
-            Ajouter un emplyée
-          </Text>
-          <TouchableOpacity onPress={() => setShowCreateStaffModal(false)}>
-            <AntDesign name="close" size={40} color="gray" />
-          </TouchableOpacity>
-        </View>
-        {error.length > 0 && (
-          <Text
-            style={{
-              fontFamily: Fonts.LATO_BOLD,
-              fontSize: 20,
-              textAlign: "center",
-              color: "red",
-            }}
-          >
-            {error}
-          </Text>
+    <Modal
+      visible
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={() => setShowCreateStaffModal(false)}
+    >
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        {showSuccessModel && <SuccessModel />}
+        {showFailModal && (
+          <FailModel message="Oops ! Quelque chose s'est mal passé" />
         )}
-        <View style={{ flexDirection: "row", marginTop: 40 }}>
-          <TouchableOpacity
-            style={{
-              width: 150,
-              height: 150,
-              borderRadius: 16,
-              backgroundColor: "gray",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-            onPress={pickImage}
+        {isLoading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size={"large"} color="black" />
+          </View>
+        )}
+
+        <View style={[styles.model, { height: modalHeight }]}>
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={styles.title}>Ajouter un employé</Text>
+              <Text style={styles.subtitle}>
+                Ajoutez la photo et les informations de l'employé.
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowCreateStaffModal(false)}
+            >
+              <AntDesign name="close" size={28} color="#6B7280" />
+            </TouchableOpacity>
+          </View>
+
+          {error.length > 0 && <Text style={styles.errorBanner}>{error}</Text>}
+
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            {image ? (
-              <Image
-                source={{ uri: image }}
-                style={{
-                  resizeMode: "cover",
-                  width: "100%",
-                  height: "100%",
-                  borderRadius: 16,
-                }}
-              />
-            ) : (
-              <Entypo name="camera" size={38} color="black" />
-            )}
+            <View style={styles.topRow}>
+              <View style={styles.imageColumn}>
+                <Text style={styles.sectionTitle}>Photo</Text>
+                <TouchableOpacity
+                  style={styles.imageUpload}
+                  onPress={pickImage}
+                >
+                  {image ? (
+                    <Image
+                      source={{ uri: image }}
+                      style={styles.imagePreview}
+                    />
+                  ) : (
+                    <View style={{ alignItems: "center", gap: 8 }}>
+                      <Entypo name="camera" size={36} color="#6B7280" />
+                      <Text style={styles.uploadLabel}>
+                        Cliquez pour importer
+                      </Text>
+                      <Text style={styles.uploadHint}>JPG ou PNG</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.detailsColumn}>
+                <View style={styles.field}>
+                  <Text style={styles.label}>Nom</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Nom"
+                    placeholderTextColor="#9CA3AF"
+                    onChangeText={(text) => setName(text)}
+                    value={name}
+                  />
+                </View>
+                <View style={styles.field}>
+                  <Text style={styles.label}>Nom d'utilisateur</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Nom d'utilisateur"
+                    placeholderTextColor="#9CA3AF"
+                    onChangeText={(text) => setUsername(text)}
+                    value={username}
+                  />
+                </View>
+                <View style={styles.field}>
+                  <Text style={styles.label}>Mot de passe</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Mot de passe"
+                    placeholderTextColor="#9CA3AF"
+                    onChangeText={(text) => setPassword(text)}
+                    value={password}
+                  />
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.rowFields}>
+              <View style={[styles.field, styles.rowField]}>
+                <Text style={styles.label}>Restaurant</Text>
+                <Dropdown
+                  style={styles.dropdown}
+                  placeholderStyle={styles.placeholderStyle}
+                  selectedTextStyle={styles.selectedTextStyle}
+                  itemContainerStyle={styles.itemContainerStyle}
+                  itemTextStyle={styles.itemTextStyle}
+                  containerStyle={styles.containerStyle}
+                  data={restaurants}
+                  maxHeight={300}
+                  labelField="label"
+                  valueField="label"
+                  placeholder="Restaurant"
+                  value={restaurant.name}
+                  onChange={(selected) => {
+                    setRestaurant({ id: selected.value, name: selected.label });
+                  }}
+                />
+              </View>
+              <View style={[styles.field, styles.rowField]}>
+                <Text style={styles.label}>Rôle</Text>
+                <Dropdown
+                  style={styles.dropdown}
+                  placeholderStyle={styles.placeholderStyle}
+                  selectedTextStyle={styles.selectedTextStyle}
+                  itemContainerStyle={styles.itemContainerStyle}
+                  itemTextStyle={styles.itemTextStyle}
+                  containerStyle={styles.containerStyle}
+                  data={roles}
+                  maxHeight={300}
+                  labelField="label"
+                  valueField="label"
+                  placeholder="Rôle"
+                  value={role}
+                  onChange={(selected) => {
+                    setRole(selected.value);
+                  }}
+                />
+              </View>
+            </View>
+          </ScrollView>
+
+          <TouchableOpacity style={styles.saveButton} onPress={saveItem}>
+            <Text style={styles.saveLabel}>Sauvegarder</Text>
           </TouchableOpacity>
-          <View
-            style={{ marginLeft: 40, justifyContent: "space-between", flex: 1 }}
-          >
-            <View style={styles.name}>
-              <Text style={styles.text}>Nom</Text>
-              <TextInput
-                style={{
-                  fontFamily: Fonts.LATO_REGULAR,
-                  fontSize: 20,
-                  paddingBottom: 5,
-                  paddingLeft: 5,
-                  paddingRight: 5,
-                  paddingTop: 5,
-                  borderWidth: 2,
-                  borderColor: Colors.primary,
-                  marginLeft: 20,
-                  flex: 1,
-                }}
-                placeholder="Nom"
-                placeholderTextColor={Colors.tgry}
-                onChangeText={(text) => setName(text)}
-              />
-            </View>
-            <View style={styles.name}>
-              <Text style={styles.text}>Nom d'utilisateur</Text>
-              <TextInput
-                style={{
-                  fontFamily: Fonts.LATO_REGULAR,
-                  fontSize: 20,
-                  paddingBottom: 5,
-                  paddingLeft: 5,
-                  paddingRight: 5,
-                  paddingTop: 5,
-                  borderWidth: 2,
-                  borderColor: Colors.primary,
-                  marginLeft: 20,
-                  flex: 1,
-                }}
-                placeholder="Nom d'utilisateur"
-                placeholderTextColor={Colors.tgry}
-                onChangeText={(text) => setUsername(text)}
-              />
-            </View>
-            <View style={styles.name}>
-              <Text style={styles.text}>Mot de passe</Text>
-              <TextInput
-                style={{
-                  fontFamily: Fonts.LATO_REGULAR,
-                  fontSize: 20,
-                  paddingBottom: 5,
-                  paddingLeft: 5,
-                  paddingRight: 5,
-                  paddingTop: 5,
-                  borderWidth: 2,
-                  borderColor: Colors.primary,
-                  marginLeft: 20,
-                  flex: 1,
-                }}
-                placeholder="Mot de passe"
-                placeholderTextColor={Colors.tgry}
-                onChangeText={(text) => setPassword(text)}
-              />
-            </View>
-          </View>
         </View>
-        <View
-          style={{
-            marginTop: 40,
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <View style={styles.name}>
-            <Text style={styles.text}>Réstaurant</Text>
-            <Dropdown
-              style={[styles.dropdown, { width: 300 }]}
-              placeholderStyle={styles.placeholderStyle}
-              selectedTextStyle={styles.selectedTextStyle}
-              selectedStyle={styles.selectedStyle}
-              itemContainerStyle={styles.itemContainerStyle}
-              itemTextStyle={styles.itemTextStyle}
-              containerStyle={styles.containerStyle}
-              data={restaurants}
-              maxHeight={300}
-              labelField="label"
-              valueField="label"
-              placeholder="Réstaurant"
-              value={restaurant.name}
-              onChange={(item) => {
-                setRestaurant({ id: item.value, name: item.label });
-              }}
-            />
-          </View>
-          <View style={styles.name}>
-            <Text style={styles.text}>Rôle</Text>
-            <Dropdown
-              style={[styles.dropdown]}
-              placeholderStyle={styles.placeholderStyle}
-              selectedTextStyle={styles.selectedTextStyle}
-              selectedStyle={styles.selectedStyle}
-              itemContainerStyle={styles.itemContainerStyle}
-              itemTextStyle={styles.itemTextStyle}
-              containerStyle={styles.containerStyle}
-              data={roles}
-              maxHeight={300}
-              labelField="label"
-              valueField="label"
-              placeholder="Rôle"
-              value={role}
-              onChange={(item) => {
-                setRole(item.value);
-              }}
-            />
-          </View>
-        </View>
-        <TouchableOpacity
-          style={{
-            marginTop: 60,
-            alignSelf: "flex-end",
-            backgroundColor: Colors.primary,
-            paddingHorizontal: 60,
-            paddingVertical: 10,
-            borderRadius: 5,
-          }}
-          onPress={saveItem}
-        >
-          <Text style={styles.text}>Sauvegarder</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 };
 
@@ -380,67 +330,199 @@ const styles = StyleSheet.create({
   },
   model: {
     backgroundColor: "white",
-    borderRadius: 10,
-    paddingVertical: 40,
-    paddingHorizontal: 40,
-    width: "85%",
+    borderRadius: 16,
+    paddingVertical: 24,
+    paddingHorizontal: 24,
+    width: "95%",
+    maxWidth: 1100,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  image: { flexDirection: "row", marginTop: 40, alignItems: "center" },
-  text: {
-    fontFamily: Fonts.LATO_BOLD,
-    fontSize: 20,
-  },
-  name: {
+  headerRow: {
     flexDirection: "row",
-
+    justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 12,
   },
-
+  title: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 24,
+    color: "#111827",
+  },
+  subtitle: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 4,
+  },
+  closeButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.gry,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  errorBanner: {
+    backgroundColor: "rgba(225,79,79,0.12)",
+    borderColor: "rgba(225,79,79,0.4)",
+    borderWidth: 1,
+    color: Colors.danger,
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+  scroll: { flex: 1 },
+  scrollContent: {
+    paddingBottom: 20,
+    gap: 20,
+    flexGrow: 1,
+  },
+  topRow: {
+    flexDirection: "row",
+    gap: 18,
+    flexWrap: "wrap",
+  },
+  imageColumn: {
+    flex: 1,
+    maxWidth: 320,
+    minWidth: 240,
+    gap: 14,
+  },
+  detailsColumn: {
+    flex: 1,
+    minWidth: 320,
+    gap: 14,
+  },
+  sectionTitle: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 16,
+    color: "#111827",
+  },
+  imageUpload: {
+    width: "100%",
+    aspectRatio: 1,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: Colors.border,
+    backgroundColor: Colors.gry,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 14,
+  },
+  imagePreview: {
+    resizeMode: "cover",
+    width: "100%",
+    height: "100%",
+    borderRadius: 12,
+  },
+  uploadLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 15,
+    color: "#374151",
+  },
+  uploadHint: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 13,
+    color: "#9CA3AF",
+  },
+  field: {
+    gap: 6,
+  },
+  rowFields: {
+    flexDirection: "row",
+    gap: 16,
+    flexWrap: "wrap",
+  },
+  rowField: {
+    flex: 1,
+    minWidth: 260,
+  },
+  label: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 15,
+    color: "#111827",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 15,
+    backgroundColor: Colors.gry,
+    color: "#111827",
+  },
   dropdown: {
-    height: 40,
-    width: 200,
-    borderColor: Colors.primary,
-    borderWidth: 2,
-    paddingHorizontal: 5,
-    paddingVertical: 5,
-    marginLeft: 20,
-  },
-  selectedStyle: {
-    height: 18,
-  },
-  icon: {
-    marginRight: 5,
+    height: 46,
+    borderColor: Colors.border,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: Colors.gry,
   },
   itemContainerStyle: {
-    padding: 0,
-    margin: 0,
+    paddingVertical: 8,
   },
   itemTextStyle: {
-    fontSize: 18,
-    padding: 0,
-    margin: 0,
+    fontSize: 15,
+    fontFamily: Fonts.LATO_REGULAR,
+    color: "#111827",
   },
   containerStyle: {
-    paddingHorizontal: 0,
-    margin: 0,
+    marginTop: -25,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
-
   placeholderStyle: {
-    fontSize: 20,
+    fontSize: 15,
     fontFamily: Fonts.LATO_REGULAR,
+    color: "#9CA3AF",
   },
   selectedTextStyle: {
-    fontSize: 20,
-    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 15,
+    fontFamily: Fonts.LATO_BOLD,
+    color: "#111827",
   },
-
-  prices: { flexDirection: "row", alignItems: "center" },
-  priceInput: {
-    fontFamily: Fonts.LATO_REGULAR,
-    fontSize: 18,
-    padding: 6,
-    marginLeft: 20,
-    borderColor: Colors.primary,
-    borderWidth: 2,
+  saveButton: {
+    alignSelf: "flex-end",
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 26,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  saveLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 16,
+    color: "#1b1b1b",
+  },
+  loadingOverlay: {
+    flex: 1,
+    position: "absolute",
+    top: 0,
+    width: "100%",
+    height: "100%",
+    left: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 100000,
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
 });
