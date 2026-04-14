@@ -269,7 +269,7 @@ const getRestaurantList = async () => {
         messge: "error",
       };
     }
-  } catch {
+  } catch (error) {
     return {
       status: false,
       message: error.message,

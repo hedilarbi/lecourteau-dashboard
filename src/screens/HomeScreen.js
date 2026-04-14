@@ -32,6 +32,7 @@ const HomeScreen = () => {
   const [revenue, setRevenue] = useState(null);
   const [onGoingOrders, setOnGoingOrders] = useState([]);
   const [nonConfirmedOrders, setNonConfirmedOrders] = useState([]);
+  const [scheduledOrders, setScheduledOrders] = useState([]);
   const [restaurantsStats, setRestaurantsStats] = useState([]);
   const [dateFilterType, setDateFilterType] = useState("date");
   const [date, setDate] = useState(new Date());
@@ -70,6 +71,7 @@ const HomeScreen = () => {
           if (response.status) {
             setOnGoingOrders(response.data.onGoingOrders || []);
             setNonConfirmedOrders(response.data.nonConfirmedOrders || []);
+            setScheduledOrders(response.data.scheduledOrders || []);
             setOrdersCount(response.data.ordersCount);
             setRevenue(response.data.revenue);
           } else {
@@ -358,22 +360,47 @@ const HomeScreen = () => {
             }
           />
           <View style={styles.ordersRow}>
-            <View style={styles.ordersColumn}>
-              <OnGoingOrders
-                title="Commandes à confirmer"
-                orders={nonConfirmedOrders}
-                setRefresh={setRefresh}
-                token={token}
-                showAddress={false}
-                statusChipMode="scheduled"
-                isLoading={isLoading}
-                headerEmptySubtitle="Aucune commande à confirmer"
-                countLabelSingular="commande à confirmer"
-                countLabelPlural="commandes à confirmer"
-                emptyTitle="Pas de commandes à confirmer"
-                emptySubtitle="Les nouvelles commandes apparaîtront ici."
-                showName={false}
-              />
+            <View style={[styles.ordersColumn, styles.ordersColumnSplit]}>
+              <View style={styles.ordersSplitBlock}>
+                <OnGoingOrders
+                  title="Commandes à confirmer"
+                  orders={nonConfirmedOrders}
+                  setRefresh={setRefresh}
+                  token={token}
+                  showAddress={false}
+                  statusChipMode="scheduled"
+                  isLoading={isLoading}
+                  headerEmptySubtitle="Aucune commande à confirmer"
+                  countLabelSingular="commande à confirmer"
+                  countLabelPlural="commandes à confirmer"
+                  emptyTitle="Pas de commandes à confirmer"
+                  emptySubtitle="Les nouvelles commandes apparaîtront ici."
+                  showName={true}
+                  showDueDate={false}
+                />
+              </View>
+              <View style={styles.ordersSplitBlock}>
+                <OnGoingOrders
+                  title="Commandes programmées"
+                  orders={scheduledOrders}
+                  setRefresh={setRefresh}
+                  token={token}
+                  showAddress={false}
+                  statusChipMode="scheduled"
+                  rowColorMode="scheduled"
+                  isLoading={isLoading}
+                  headerEmptySubtitle="Aucune commande programmée"
+                  countLabelSingular="commande programmée"
+                  countLabelPlural="commandes programmées"
+                  emptyTitle="Pas de commandes programmées"
+                  emptySubtitle="Les commandes planifiées apparaîtront ici."
+                  showName={true}
+                  showDueDate={true}
+                  dueDateLabel="Programmé pour"
+                  showCode={false}
+                  showStatusDropdown={false}
+                />
+              </View>
             </View>
             <View style={styles.ordersColumn}>
               <OnGoingOrders
@@ -383,11 +410,13 @@ const HomeScreen = () => {
                 token={token}
                 showAddress={false}
                 showName={true}
-                confirmedStatusLabel="En cours"
                 isLoading={isLoading}
                 headerEmptySubtitle="Aucune commande en cours"
                 countLabelSingular="commande en cours"
                 countLabelPlural="commandes en cours"
+                showDueDate={false}
+                showStatusDropdown={true}
+                showCounterPaymentChip={true}
               />
             </View>
           </View>
@@ -599,6 +628,14 @@ const styles = StyleSheet.create({
   ordersColumn: {
     flex: 1,
     minWidth: 0,
+    minHeight: 0,
+  },
+  ordersColumnSplit: {
+    gap: 14,
+  },
+  ordersSplitBlock: {
+    flex: 1,
+    minHeight: 0,
   },
 });
 

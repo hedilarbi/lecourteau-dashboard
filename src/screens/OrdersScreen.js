@@ -1,6 +1,7 @@
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -10,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Entypo, MaterialIcons } from "@expo/vector-icons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
@@ -23,17 +24,47 @@ import {
   getOrderFiltred,
   getRestaurantOrderFiltred,
 } from "../services/OrdersServices";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { convertDate } from "../utils/dateHandlers";
-import { useSelector } from "react-redux";
+import { useNavigation } from "@react-navigation/native";
+import {
+  convertDateToDDMMYYYY,
+  convertDateToDDMMYYYYHHMM,
+} from "../utils/dateHandlers";
+import { useDispatch, useSelector } from "react-redux";
 import { selectStaffData, selectStaffToken } from "../redux/slices/StaffSlice";
 import { getRestaurantList } from "../services/RestaurantServices";
 import ErrorScreen from "../components/ErrorScreen";
 import { Dropdown } from "react-native-element-dropdown";
 import PageHeader from "../components/ui/PageHeader";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import {
+  selectOrdersFilters,
+  setOrdersFilters,
+} from "../redux/slices/ordersFiltersSlice";
+
+const parsePersistedDate = (value) => {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+  const timestamp = Number(value);
+  if (!Number.isFinite(timestamp) || timestamp <= 0) {
+    return null;
+  }
+  const parsedDate = new Date(timestamp);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+};
+
+const parsePersistedPage = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return 1;
+  }
+  return Math.floor(parsed);
+};
 
 const OrdersScreen = () => {
   const navigation = useNavigation();
+  const dispatch = useDispatch();
+  const persistedFilters = useSelector(selectOrdersFilters);
   const { role, restaurant } = useSelector(selectStaffData);
   const setOrderStatusColor = (status) => {
     switch (status) {
@@ -55,22 +86,39 @@ const OrdersScreen = () => {
     }
   };
   const [isLoading, setIsLoading] = useState(false);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(persistedFilters?.search || "");
   const [orderId, setOrderId] = useState("");
   const [deleteWarningModelState, setDeleteWarningModelState] = useState(false);
   const [refresh, setRefresh] = useState(0);
-  const [filter, setFilter] = useState("");
+  const [filter, setFilter] = useState(persistedFilters?.filter || "");
+  const [orderTypeFilter, setOrderTypeFilter] = useState(
+    persistedFilters?.orderTypeFilter || "",
+  );
+  const [fromDate, setFromDate] = useState(
+    parsePersistedDate(persistedFilters?.fromDate),
+  );
+  const [toDate, setToDate] = useState(
+    parsePersistedDate(persistedFilters?.toDate),
+  );
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerType, setDatePickerType] = useState("from");
   const [navigaTo, setNavigaTo] = useState("");
   const [error, setError] = useState(false);
   const [orders, setOrders] = useState([]);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(parsePersistedPage(persistedFilters?.page));
   const [pages, setPages] = useState(1);
   const [restaurantList, setRestaurantList] = useState([]);
-  const [selectedRestaurant, setSelectedRestaurant] = useState({
-    label: "Tous",
-    value: "",
-  });
-  const [showFilters, setShowFilters] = useState(false);
+  const [selectedRestaurant, setSelectedRestaurant] = useState(
+    persistedFilters?.selectedRestaurant?.label
+      ? persistedFilters.selectedRestaurant
+      : {
+          label: "Tous",
+          value: "",
+        },
+  );
+  const [showFilters, setShowFilters] = useState(
+    Boolean(persistedFilters?.showFilters),
+  );
   const [confirmingOrderId, setConfirmingOrderId] = useState(null);
   const token = useSelector(selectStaffToken);
   const fetchData = async () => {
@@ -92,6 +140,9 @@ const OrdersScreen = () => {
             status: filter,
             search,
             restaurant: selectedRestaurant.value,
+            type: orderTypeFilter,
+            from: fromDate ? fromDate.toISOString() : undefined,
+            to: toDate ? toDate.toISOString() : undefined,
           }),
           getRestaurantList(),
         ]);
@@ -116,12 +167,15 @@ const OrdersScreen = () => {
           setRestaurantList(list);
         }
       } else {
-        const response = await getRestaurantOrderFiltred(restaurant, {
-          page,
-          limit: 20,
-          status: filter,
-          search,
-        });
+          const response = await getRestaurantOrderFiltred(restaurant, {
+            page,
+            limit: 20,
+            status: filter,
+            search,
+            type: orderTypeFilter,
+            from: fromDate ? fromDate.toISOString() : undefined,
+            to: toDate ? toDate.toISOString() : undefined,
+          });
         if (response.status) {
           setOrders(response.data.orders);
           setPages(response.data.pages);
@@ -136,7 +190,58 @@ const OrdersScreen = () => {
   };
   useEffect(() => {
     fetchData();
-  }, [refresh, page, filter, selectedRestaurant]);
+  }, [refresh, page, filter, selectedRestaurant, orderTypeFilter, fromDate, toDate]);
+
+  useEffect(() => {
+    dispatch(
+      setOrdersFilters({
+        search,
+        filter,
+        orderTypeFilter,
+        fromDate: fromDate ? fromDate.getTime() : null,
+        toDate: toDate ? toDate.getTime() : null,
+        showFilters,
+        page,
+        selectedRestaurant,
+      }),
+    );
+  }, [
+    dispatch,
+    search,
+    filter,
+    orderTypeFilter,
+    fromDate,
+    toDate,
+    showFilters,
+    page,
+    selectedRestaurant,
+  ]);
+
+  const handleOpenDatePicker = (type) => {
+    setDatePickerType(type);
+    setShowDatePicker(true);
+  };
+
+  const handleDateChange = (event, selectedDate) => {
+    if (Platform.OS === "android") {
+      setShowDatePicker(false);
+    }
+
+    if (!selectedDate) return;
+
+    if (datePickerType === "from") {
+      setFromDate(selectedDate);
+      if (toDate && selectedDate > toDate) {
+        setToDate(selectedDate);
+      }
+      return;
+    }
+
+    setToDate(selectedDate);
+    if (fromDate && selectedDate < fromDate) {
+      setFromDate(selectedDate);
+    }
+  };
 
   const handleShowDeleteWarning = (id) => {
     setOrderId(id);
@@ -163,6 +268,9 @@ const OrdersScreen = () => {
             order._id === id ? { ...order, confirmed: true } : order,
           ),
         );
+        if (response.warning) {
+          Alert.alert("Commande confirmée", response.warning);
+        }
       } else {
         console.log(response.message);
         Alert.alert("Une erreur s'est produite");
@@ -173,14 +281,6 @@ const OrdersScreen = () => {
       setConfirmingOrderId(null);
     }
   };
-
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
-  }
 
   if (error) {
     return <ErrorScreen setRefresh={setRefresh} />;
@@ -290,6 +390,62 @@ const OrdersScreen = () => {
                 </TouchableOpacity>
               ))}
             </View>
+            <View style={styles.chipsRow}>
+              {[
+                { label: "Tous les types", value: "" },
+                { label: "Livraison", value: "delivery" },
+                { label: "Emporter", value: "pick up" },
+              ].map((option) => (
+                <TouchableOpacity
+                  key={option.value || "all-types"}
+                  style={[
+                    styles.chip,
+                    orderTypeFilter === option.value && styles.chipActive,
+                  ]}
+                  onPress={() => setOrderTypeFilter(option.value)}
+                  activeOpacity={0.85}
+                >
+                  <Text
+                    style={[
+                      styles.chipLabel,
+                      orderTypeFilter === option.value && styles.chipLabelActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.dateFiltersRow}>
+              <TouchableOpacity
+                style={styles.dateFilterButton}
+                onPress={() => handleOpenDatePicker("from")}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.dateFilterLabel}>
+                  De: {fromDate ? convertDateToDDMMYYYY(fromDate) : "--"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.dateFilterButton}
+                onPress={() => handleOpenDatePicker("to")}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.dateFilterLabel}>
+                  À: {toDate ? convertDateToDDMMYYYY(toDate) : "--"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.dateFilterResetButton}
+                onPress={() => {
+                  setFromDate(null);
+                  setToDate(null);
+                }}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.dateFilterResetLabel}>Réinitialiser</Text>
+              </TouchableOpacity>
+            </View>
             {role === Roles.ADMIN && (
               <View style={styles.dropdownRow}>
                 <Text style={styles.dropdownLabel}>Restaurant</Text>
@@ -315,16 +471,21 @@ const OrdersScreen = () => {
 
         <View style={styles.tableCard}>
           <View style={styles.tableHeader}>
-            <Text style={[styles.headerCell, { flex: 1.2 }]}>Statut</Text>
-            <Text style={[styles.headerCell, { flex: 1 }]}>Code</Text>
+            <Text style={[styles.headerCell, { flex: 1.1 }]}>Statut</Text>
+            <Text style={[styles.headerCell, { flex: 1.2 }]}>Code</Text>
+            <Text style={[styles.headerCell, { flex: 1.5 }]}>Client</Text>
             <Text style={[styles.headerCell, { flex: 1 }]}>Type</Text>
             <Text style={[styles.headerCell, { flex: 1 }]}>Total</Text>
-            {role === Roles.ADMIN && (
-              <Text style={[styles.headerCell, { flex: 1.2 }]}>Créé</Text>
-            )}
+            <Text style={[styles.headerCell, { flex: 1.6 }]}>
+              Date création
+            </Text>
             <Text style={[styles.headerCell, { width: 90 }]}>Actions</Text>
           </View>
-          {orders.length > 0 ? (
+          {isLoading ? (
+            <View style={styles.tableLoadingState}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+          ) : orders.length > 0 ? (
             <ScrollView
               style={styles.tableScroll}
               refreshControl={
@@ -339,7 +500,7 @@ const OrdersScreen = () => {
                     key={order._id}
                     style={[styles.row, index % 2 === 0 && styles.rowAlt]}
                   >
-                    <View style={[styles.cell, { flex: 1.2 }]}>
+                    <View style={[styles.cell, { flex: 1.1 }]}>
                       <View
                         style={[
                           styles.statusPill,
@@ -363,7 +524,12 @@ const OrdersScreen = () => {
                         </Text>
                       </View>
                     </View>
-                    <Text style={[styles.cell, { flex: 1 }]}>{order.code}</Text>
+                    <Text style={[styles.cell, styles.codeText, { flex: 1.2 }]} numberOfLines={1}>
+                      {order.code}
+                    </Text>
+                    <Text style={[styles.cell, styles.clientText, { flex: 1.5 }]} numberOfLines={1}>
+                      {order?.user?.name || "Client inconnu"}
+                    </Text>
                     <Text style={[styles.cell, { flex: 1 }]}>
                       {order.type === "delivery" ? "Livraison" : "Emporter"}
                     </Text>
@@ -371,11 +537,9 @@ const OrdersScreen = () => {
                     <Text style={[styles.cell, { flex: 1 }]}>
                       {order.total_price.toFixed(2)} $
                     </Text>
-                    {isAdmin && (
-                      <Text style={[styles.cell, { flex: 1.2 }]}>
-                        {convertDate(order.createdAt)}
-                      </Text>
-                    )}
+                    <Text style={[styles.cell, styles.createdAtText, { flex: 1.6 }]}>
+                      {convertDateToDDMMYYYYHHMM(order.createdAt)}
+                    </Text>
 
                     <View style={[styles.actions, { width: 90 }]}>
                       {!isAdmin && !order.confirmed && (
@@ -479,6 +643,18 @@ const OrdersScreen = () => {
             <Text style={styles.pageButtonLabel}>Suivant</Text>
           </TouchableOpacity>
         </View>
+        {showDatePicker && (
+          <DateTimePicker
+            value={
+              datePickerType === "from"
+                ? fromDate || new Date()
+                : toDate || fromDate || new Date()
+            }
+            mode="date"
+            display="default"
+            onChange={handleDateChange}
+          />
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -564,6 +740,38 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
+  },
+  dateFiltersRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    alignItems: "center",
+  },
+  dateFilterButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    backgroundColor: "white",
+  },
+  dateFilterLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: Colors.tgry,
+  },
+  dateFilterResetButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    backgroundColor: Colors.primary,
+  },
+  dateFilterResetLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#1b1b1b",
   },
   chip: {
     paddingHorizontal: 12,
@@ -664,6 +872,11 @@ const styles = StyleSheet.create({
   tableScroll: {
     flex: 1,
   },
+  tableLoadingState: {
+    minHeight: 220,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -678,6 +891,20 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.LATO_REGULAR,
     fontSize: 15,
     color: "#1b1b1b",
+  },
+  codeText: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
+  },
+  clientText: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 13,
+    color: Colors.tgry,
+  },
+  createdAtText: {
+    fontSize: 13,
+    color: Colors.tgry,
   },
   statusPill: {
     paddingHorizontal: 10,

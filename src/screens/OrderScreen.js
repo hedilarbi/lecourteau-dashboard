@@ -22,6 +22,7 @@ import {
   cancelUberDirectDelivery,
   createUberDirectDelivery,
   updateDeliveryProvider,
+  updateOrderRestaurant,
   updatePaymentStatus,
   updatePrice,
   updateStatus,
@@ -32,6 +33,12 @@ import ErrorScreen from "../components/ErrorScreen";
 import { useSelector } from "react-redux";
 import { selectStaffData, selectStaffToken } from "../redux/slices/StaffSlice";
 import BackButton from "../components/BackButton";
+import { getRestaurantList } from "../services/RestaurantServices";
+
+const toSafeNumber = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
 
 const OrderScreen = () => {
   const route = useRoute();
@@ -66,6 +73,10 @@ const OrderScreen = () => {
   const [isEditingDeliveryProvider, setIsEditingDeliveryProvider] =
     useState(false);
   const [selectedDeliveryProvider, setSelectedDeliveryProvider] = useState("");
+  const [isEditingRestaurant, setIsEditingRestaurant] = useState(false);
+  const [isUpdatingRestaurant, setIsUpdatingRestaurant] = useState(false);
+  const [restaurantOptions, setRestaurantOptions] = useState([]);
+  const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
 
   const restaurantId =
     (typeof staff?.restaurant === "object"
@@ -73,6 +84,12 @@ const OrderScreen = () => {
       : staff?.restaurant) ||
     order?.restaurant?._id ||
     order?.restaurant;
+  const orderRestaurantId =
+    (typeof order?.restaurant === "object"
+      ? order?.restaurant?._id
+      : order?.restaurant) || "";
+  const orderRestaurantName =
+    typeof order?.restaurant === "object" ? order?.restaurant?.name : "";
   const hasUberDelivery = Boolean(order?.uber_delivery_id);
   const isDeliveryOrder = ["delivery", "devliery"].includes(
     String(order?.type || "").toLowerCase(),
@@ -106,6 +123,97 @@ const OrderScreen = () => {
       ? `${promoCode.amount} $`
       : `${Number(promoCode.amount).toFixed(2)} $`
     : null;
+  const subscriptionBenefits =
+    order?.subscriptionBenefits &&
+    typeof order.subscriptionBenefits === "object"
+      ? order.subscriptionBenefits
+      : null;
+  const subscriptionUsed = Boolean(subscriptionBenefits?.isApplied);
+  const subscriptionDiscountPercent = Number.isFinite(
+    Number(subscriptionBenefits?.discountPercent),
+  )
+    ? Number(subscriptionBenefits.discountPercent)
+    : 0;
+  const orderDiscountPercent = Number.isFinite(Number(order?.discount))
+    ? Number(order.discount)
+    : 0;
+  const isFirstOrderDiscountApplied = orderDiscountPercent >= 20;
+  const showSubscriptionDiscountInfo =
+    subscriptionUsed &&
+    !isFirstOrderDiscountApplied &&
+    (subscriptionDiscountPercent > 0 || orderDiscountPercent > 0);
+  const subscriptionFreeDeliveryApplied = Boolean(
+    subscriptionBenefits?.freeDeliveryApplied,
+  );
+  const subscriptionDiscountPercentDisplay =
+    subscriptionDiscountPercent > 0
+      ? subscriptionDiscountPercent
+      : orderDiscountPercent > 0
+        ? orderDiscountPercent
+        : 15;
+  const deliveryFeeValue = Number.isFinite(Number(order?.delivery_fee))
+    ? Number(order.delivery_fee)
+    : 0;
+  const normalizedPaymentMethod = String(order?.payment_method || "")
+    .trim()
+    .toLowerCase();
+  const isCounterPayment = normalizedPaymentMethod === "cash_at_counter";
+  const paymentMethodLabel = isCounterPayment
+    ? "Paiement au comptoir"
+    : normalizedPaymentMethod === "subscription_free_item"
+      ? "Article gratuit"
+      : "Paiement en ligne";
+  const displayedDeliveryFee =
+    subscriptionUsed && subscriptionFreeDeliveryApplied ? 0 : deliveryFeeValue;
+  const normalizedSubtotal = toSafeNumber(order?.sub_total, 0);
+  const normalizedSubtotalAfterDiscount = Number.isFinite(
+    Number(order?.sub_total_after_discount),
+  )
+    ? Number(order.sub_total_after_discount)
+    : normalizedSubtotal;
+  const normalizedTip = toSafeNumber(order?.tip, 0);
+  const normalizedTotalPrice = toSafeNumber(order?.total_price, 0);
+  const shouldShowDiscountedSubtotal =
+    orderDiscountPercent > 0 ||
+    hasPromoAmount ||
+    hasPromoPercent ||
+    Math.abs(normalizedSubtotalAfterDiscount - normalizedSubtotal) > 0.01;
+  const subscriptionFreeItemApplied = Boolean(
+    subscriptionBenefits?.freeItemApplied,
+  );
+  const subscriptionFreeItemAmount = Number.isFinite(
+    Number(subscriptionBenefits?.freeItemAmount),
+  )
+    ? Number(subscriptionBenefits.freeItemAmount)
+    : 0;
+  const subscriptionFreeItemId = String(
+    subscriptionBenefits?.freeItemMenuItemId?._id ||
+      subscriptionBenefits?.freeItemMenuItemId ||
+      "",
+  ).trim();
+  const subscriptionFreeItemLabel = String(
+    subscriptionBenefits?.freeItemLabel || "",
+  )
+    .trim()
+    .toLowerCase();
+  const birthdayBenefits =
+    order?.birthdayBenefits && typeof order.birthdayBenefits === "object"
+      ? order.birthdayBenefits
+      : null;
+  const birthdayFreeItemApplied = Boolean(birthdayBenefits?.freeItemApplied);
+  const birthdayFreeItemAmount = Number.isFinite(
+    Number(birthdayBenefits?.freeItemAmount),
+  )
+    ? Number(birthdayBenefits.freeItemAmount)
+    : 0;
+  const birthdayFreeItemId = String(
+    birthdayBenefits?.freeItemMenuItemId?._id ||
+      birthdayBenefits?.freeItemMenuItemId ||
+      "",
+  ).trim();
+  const birthdayFreeItemLabel = String(birthdayBenefits?.freeItemLabel || "")
+    .trim()
+    .toLowerCase();
 
   const baseStatusOptions = [
     { label: OrderStatus.ON_GOING, value: OrderStatus.ON_GOING },
@@ -192,6 +300,52 @@ const OrderScreen = () => {
     });
   };
 
+  const loadRestaurantOptions = async () => {
+    try {
+      const response = await getRestaurantList();
+      if (!response?.status || !Array.isArray(response?.data)) {
+        return false;
+      }
+
+      const options = response.data
+        .map((restaurant) => ({
+          label: restaurant?.name || "Succursale",
+          value: String(restaurant?._id || ""),
+        }))
+        .filter((option) => option.value);
+
+      setRestaurantOptions(options);
+      return options.length > 0;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const openRestaurantEditor = async () => {
+    if (!restaurantOptions.length) {
+      const hasRestaurants = await loadRestaurantOptions();
+      if (!hasRestaurants) {
+        Alert.alert(
+          "Succursales introuvables",
+          "Impossible de charger la liste des succursales.",
+        );
+        return;
+      }
+    }
+
+    setIsEditingRestaurant(true);
+  };
+
+  const selectedRestaurantName =
+    restaurantOptions.find((option) => option.value === selectedRestaurantId)
+      ?.label || "";
+  const displayedRestaurantName =
+    orderRestaurantName ||
+    restaurantOptions.find(
+      (option) => option.value === String(orderRestaurantId),
+    )?.label ||
+    "Non assignée";
+
   useEffect(() => {
     if (showFailModal) {
       const timer = setTimeout(() => {
@@ -259,6 +413,16 @@ const OrderScreen = () => {
     setStatus(order?.status || "");
   }, [order?.status]);
 
+  useEffect(() => {
+    loadRestaurantOptions();
+  }, []);
+
+  useEffect(() => {
+    if (orderRestaurantId) {
+      setSelectedRestaurantId(String(orderRestaurantId));
+    }
+  }, [orderRestaurantId]);
+
   const handleUpdateDriverMode = async () => {
     // setIsLoading(true);
     // try {
@@ -319,6 +483,81 @@ const OrderScreen = () => {
       }
     } catch (err) {
       setIsLoading(false);
+    }
+  };
+
+  const handleUpdateOrderRestaurant = async () => {
+    if (!order?._id) {
+      return;
+    }
+
+    if (!token) {
+      Alert.alert(
+        "Session expirée",
+        "Reconnectez-vous pour changer la succursale.",
+      );
+      return;
+    }
+
+    const nextRestaurantId = String(selectedRestaurantId || "");
+    const currentRestaurantId = String(orderRestaurantId || "");
+
+    if (!nextRestaurantId) {
+      Alert.alert(
+        "Succursale manquante",
+        "Sélectionnez une succursale avant de valider.",
+      );
+      return;
+    }
+
+    if (nextRestaurantId === currentRestaurantId) {
+      Alert.alert(
+        "Aucun changement",
+        "La commande est déjà dans cette succursale.",
+      );
+      return;
+    }
+
+    setIsUpdatingRestaurant(true);
+    try {
+      const response = await updateOrderRestaurant(
+        order._id,
+        nextRestaurantId,
+        token,
+      );
+      if (!response?.status) {
+        Alert.alert(
+          "Mise à jour impossible",
+          response?.message ||
+            "Impossible de changer la succursale de cette commande.",
+        );
+        return;
+      }
+
+      const apiRestaurant = response?.data?.restaurant;
+      const fallbackName =
+        selectedRestaurantName ||
+        restaurantOptions.find((option) => option.value === nextRestaurantId)
+          ?.label ||
+        "Succursale";
+      const nextRestaurant = apiRestaurant?._id
+        ? apiRestaurant
+        : { _id: nextRestaurantId, name: fallbackName };
+
+      setOrder((prev) => ({
+        ...prev,
+        restaurant: nextRestaurant,
+      }));
+      setShowSuccessModel(true);
+      setIsEditingRestaurant(false);
+      setRefresh((prev) => prev + 1);
+    } catch (error) {
+      Alert.alert(
+        "Mise à jour impossible",
+        error?.message || "Impossible de changer la succursale de la commande.",
+      );
+    } finally {
+      setIsUpdatingRestaurant(false);
     }
   };
 
@@ -580,6 +819,39 @@ const OrderScreen = () => {
               </Text>
             </View>
           </View>
+          {isCounterPayment && (
+            <View
+              style={{
+                marginTop: 12,
+                backgroundColor: "#FEF3C7",
+                borderColor: "#F59E0B",
+                borderWidth: 1,
+                borderRadius: 14,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: Fonts.LATO_BOLD,
+                  fontSize: 14,
+                  color: "#92400E",
+                }}
+              >
+                Paiement au comptoir
+              </Text>
+              <Text
+                style={{
+                  fontFamily: Fonts.LATO_REGULAR,
+                  fontSize: 12,
+                  color: "#92400E",
+                  marginTop: 4,
+                }}
+              >
+                Cette commande sera payée sur place.
+              </Text>
+            </View>
+          )}
           {isDeliveryOrder && (
             <View style={styles.deliveryAddressRow}>
               <Text style={styles.metaItem}>
@@ -619,6 +891,81 @@ const OrderScreen = () => {
                 <Text style={styles.uberButtonLabel}>Valider</Text>
               </TouchableOpacity>
             </View>
+          </View>
+          <View style={styles.orderStatusCard}>
+            <Text style={styles.deliveryProviderTitle}>Succursale</Text>
+            <View style={styles.uberActionsRow}>
+              <View style={styles.uberStatusPill}>
+                <Text style={styles.uberStatusLabel}>
+                  Actuelle : {displayedRestaurantName}
+                </Text>
+              </View>
+              {!isEditingRestaurant ? (
+                <TouchableOpacity
+                  style={[styles.uberButton, styles.modifyButton]}
+                  activeOpacity={0.9}
+                  onPress={openRestaurantEditor}
+                >
+                  <Ionicons name="swap-horizontal" size={16} color="#1D4ED8" />
+                  <Text style={styles.modifyButtonLabel}>
+                    Changer de succursale
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            {isEditingRestaurant ? (
+              <View style={styles.deliveryProviderPickerRow}>
+                <View style={styles.deliveryProviderDropdownWrapper}>
+                  <Dropdown
+                    style={[styles.dropdown, styles.deliveryProviderDropdown]}
+                    placeholderStyle={styles.placeholderStyle}
+                    selectedTextStyle={styles.selectedTextStyle}
+                    selectedStyle={styles.selectedStyle}
+                    itemContainerStyle={styles.itemContainerStyle}
+                    itemTextStyle={styles.itemTextStyle}
+                    containerStyle={styles.containerStyle}
+                    data={restaurantOptions}
+                    maxHeight={220}
+                    labelField="label"
+                    valueField="value"
+                    placeholder="Choisir une succursale"
+                    value={selectedRestaurantId || null}
+                    onChange={(item) => setSelectedRestaurantId(item.value)}
+                  />
+                </View>
+                <TouchableOpacity
+                  style={[
+                    styles.uberButton,
+                    isUpdatingRestaurant && styles.uberButtonDisabled,
+                  ]}
+                  disabled={isUpdatingRestaurant || !selectedRestaurantId}
+                  activeOpacity={0.9}
+                  onPress={handleUpdateOrderRestaurant}
+                >
+                  {isUpdatingRestaurant ? (
+                    <ActivityIndicator size="small" color="#1b1b1b" />
+                  ) : (
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={16}
+                      color="#1b1b1b"
+                    />
+                  )}
+                  <Text style={styles.uberButtonLabel}>Valider</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.uberButton, styles.modifyButton]}
+                  activeOpacity={0.9}
+                  onPress={() => {
+                    setIsEditingRestaurant(false);
+                    setSelectedRestaurantId(String(orderRestaurantId || ""));
+                  }}
+                >
+                  <Ionicons name="close-circle" size={16} color="#1D4ED8" />
+                  <Text style={styles.modifyButtonLabel}>Annuler</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
           </View>
           {order.scheduled?.isScheduled && order.scheduled?.scheduledFor ? (
             <View style={styles.topSecondaryMetaRow}>
@@ -768,6 +1115,32 @@ const OrderScreen = () => {
 
         <View style={styles.card}>
           <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Informations Client</Text>
+          </View>
+          <View style={styles.infoColumns}>
+            <View style={styles.infoColumn}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Nom & prénom</Text>
+                <Text style={styles.infoValue}>{order.user?.name}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Téléphone</Text>
+                <Text style={styles.infoValue}>
+                  {order?.user?.phone_number}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.infoColumn}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>E-mail</Text>
+                <Text style={styles.infoValue}>{order.user?.email}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Panier</Text>
           </View>
 
@@ -792,39 +1165,175 @@ const OrderScreen = () => {
                     Prix
                   </Text>
                 </View>
-                {order.orderItems?.map((item, index) => (
-                  <View
-                    key={item._id}
-                    style={[
-                      styles.listRow,
-                      index % 2 === 0 && styles.listRowAlt,
-                    ]}
-                  >
-                    <Text
-                      style={[styles.listCell, { flex: 0.5 }]}
-                      numberOfLines={2}
-                    >
-                      {item.item.name}
-                    </Text>
-                    <Text
-                      style={[styles.listCell, { flex: 1 }]}
-                      numberOfLines={2}
-                    >
-                      {item.comment || "—"}
-                    </Text>
-                    <Text style={[styles.listCell, { width: 80 }]}>
-                      {item.size}
-                    </Text>
-                    <Text style={[styles.listCell, { flex: 1 }]}>
-                      {item.customizations
-                        ?.map((custo) => custo.name)
-                        .join(", ")}
-                    </Text>
-                    <Text style={[styles.listCell, { width: 80 }]}>
-                      {parseFloat(item.price).toFixed(2)} $
-                    </Text>
-                  </View>
-                ))}
+                {order.orderItems?.map((item, index) =>
+                  (() => {
+                    const itemId = String(
+                      item?.item?._id || item?.item || "",
+                    ).trim();
+                    const itemName = String(item?.item?.name || "")
+                      .trim()
+                      .toLowerCase();
+                    const normalizedSubscriptionFreeItemLabel = String(
+                      subscriptionFreeItemLabel,
+                    )
+                      .trim()
+                      .toLowerCase();
+                    const normalizedBirthdayFreeItemLabel = String(
+                      birthdayFreeItemLabel,
+                    )
+                      .trim()
+                      .toLowerCase();
+                    const itemPrice = Number(item?.price);
+                    const itemBasePrice = Number(item?.basePrice);
+                    const hasPayingExtras =
+                      Number.isFinite(itemPrice) && itemPrice > 0;
+                    const isFreeByIdSubscription =
+                      Boolean(subscriptionFreeItemId) &&
+                      Boolean(itemId) &&
+                      itemId === subscriptionFreeItemId;
+                    const isFreeByIdBirthday =
+                      Boolean(birthdayFreeItemId) &&
+                      Boolean(itemId) &&
+                      itemId === birthdayFreeItemId;
+                    const isFreeByLabelSubscription =
+                      Boolean(normalizedSubscriptionFreeItemLabel) &&
+                      Boolean(itemName) &&
+                      (itemName === normalizedSubscriptionFreeItemLabel ||
+                        itemName.includes(
+                          normalizedSubscriptionFreeItemLabel,
+                        ) ||
+                        normalizedSubscriptionFreeItemLabel.includes(itemName));
+                    const isFreeByLabelBirthday =
+                      Boolean(normalizedBirthdayFreeItemLabel) &&
+                      Boolean(itemName) &&
+                      (itemName === normalizedBirthdayFreeItemLabel ||
+                        itemName.includes(normalizedBirthdayFreeItemLabel) ||
+                        normalizedBirthdayFreeItemLabel.includes(itemName));
+                    const isFreeByZeroPriceWithBase =
+                      Number.isFinite(itemPrice) &&
+                      itemPrice <= 0 &&
+                      Number.isFinite(itemBasePrice) &&
+                      itemBasePrice > 0;
+                    const itemDiscountAmount =
+                      Number.isFinite(itemPrice) &&
+                      Number.isFinite(itemBasePrice)
+                        ? Math.max(0, itemBasePrice - itemPrice)
+                        : 0;
+                    const isFreeByDiscountAmount =
+                      subscriptionFreeItemAmount > 0 &&
+                      itemDiscountAmount > 0 &&
+                      Math.abs(
+                        itemDiscountAmount - subscriptionFreeItemAmount,
+                      ) < 0.01;
+                    const isBirthdayFreeByDiscountAmount =
+                      birthdayFreeItemAmount > 0 &&
+                      itemDiscountAmount > 0 &&
+                      Math.abs(itemDiscountAmount - birthdayFreeItemAmount) <
+                        0.01;
+                    const hasExplicitSubscriptionMatch =
+                      subscriptionUsed &&
+                      subscriptionFreeItemApplied &&
+                      (Boolean(item?.isSubscriptionFreeItem) ||
+                        isFreeByIdSubscription ||
+                        isFreeByLabelSubscription);
+                    const hasExplicitBirthdayMatch =
+                      birthdayFreeItemApplied &&
+                      (Boolean(item?.isBirthdayFreeItem) ||
+                        isFreeByIdBirthday ||
+                        isFreeByLabelBirthday);
+                    const hasUniqueSubscriptionDiscountMatch =
+                      subscriptionUsed &&
+                      subscriptionFreeItemApplied &&
+                      isFreeByDiscountAmount &&
+                      !isBirthdayFreeByDiscountAmount;
+                    const hasUniqueBirthdayDiscountMatch =
+                      birthdayFreeItemApplied &&
+                      isBirthdayFreeByDiscountAmount &&
+                      !isFreeByDiscountAmount;
+                    const canUseSubscriptionZeroPriceFallback =
+                      subscriptionUsed &&
+                      subscriptionFreeItemApplied &&
+                      !birthdayFreeItemApplied &&
+                      isFreeByZeroPriceWithBase;
+                    const canUseBirthdayZeroPriceFallback =
+                      birthdayFreeItemApplied &&
+                      !subscriptionFreeItemApplied &&
+                      isFreeByZeroPriceWithBase;
+                    const freeItemType =
+                      hasExplicitBirthdayMatch ||
+                      hasUniqueBirthdayDiscountMatch ||
+                      canUseBirthdayZeroPriceFallback
+                        ? "birthday"
+                        : hasExplicitSubscriptionMatch ||
+                            hasUniqueSubscriptionDiscountMatch ||
+                            canUseSubscriptionZeroPriceFallback
+                          ? "subscription"
+                          : null;
+                    const isSubscriptionFreeItemRow =
+                      freeItemType === "subscription";
+                    const isBirthdayFreeItemRow = freeItemType === "birthday";
+                    const isAnyFreeItemRow =
+                      isBirthdayFreeItemRow || isSubscriptionFreeItemRow;
+                    const rowPriceLabel = isAnyFreeItemRow
+                      ? hasPayingExtras
+                        ? `${itemPrice.toFixed(2)} $`
+                        : "Gratuit"
+                      : `${Number.isFinite(itemPrice) ? itemPrice.toFixed(2) : "0.00"} $`;
+
+                    return (
+                      <View
+                        key={item._id}
+                        style={[
+                          styles.listRow,
+                          index % 2 === 0 && styles.listRowAlt,
+                        ]}
+                      >
+                        <Text
+                          style={[styles.listCell, { flex: 0.5 }]}
+                          numberOfLines={2}
+                        >
+                          {item.item.name}
+                          {isBirthdayFreeItemRow ? (
+                            <Text style={styles.subscriptionFreeItemLabel}>
+                              {" "}
+                              (cadeau anniversaire)
+                            </Text>
+                          ) : isSubscriptionFreeItemRow ? (
+                            <Text style={styles.subscriptionFreeItemLabel}>
+                              {" "}
+                              (article gratuit abonnement)
+                            </Text>
+                          ) : null}
+                        </Text>
+                        <Text
+                          style={[styles.listCell, { flex: 1 }]}
+                          numberOfLines={2}
+                        >
+                          {item.comment || "—"}
+                        </Text>
+                        <Text style={[styles.listCell, { width: 80 }]}>
+                          {item.size}
+                        </Text>
+                        <Text style={[styles.listCell, { flex: 1 }]}>
+                          {item.customizations
+                            ?.map((custo) => custo.name)
+                            .join(", ")}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.listCell,
+                            { width: 80 },
+                            isAnyFreeItemRow &&
+                              !hasPayingExtras &&
+                              styles.freePriceLabel,
+                          ]}
+                        >
+                          {rowPriceLabel}
+                        </Text>
+                      </View>
+                    );
+                  })(),
+                )}
               </View>
             ) : (
               <View style={styles.emptyState}>
@@ -982,11 +1491,27 @@ const OrderScreen = () => {
                   </Text>
                 </View>
               )}
+              {showSubscriptionDiscountInfo && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Rabais abonnement</Text>
+                  <Text style={styles.infoValue}>
+                    {subscriptionDiscountPercentDisplay} %
+                  </Text>
+                </View>
+              )}
+              {birthdayBenefits?.isApplied && birthdayFreeItemApplied && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Cadeau anniversaire</Text>
+                  <Text style={styles.infoValue}>
+                    {birthdayBenefits?.freeItemLabel || "Article offert"}
+                  </Text>
+                </View>
+              )}
 
-              {order.discount > 0 && (
+              {isFirstOrderDiscountApplied && (
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>Rabais première commande</Text>
-                  <Text style={styles.infoValue}>{order.discount} %</Text>
+                  <Text style={styles.infoValue}>{orderDiscountPercent} %</Text>
                 </View>
               )}
               {isUberProvider && order.uber_pickup_eta && (
@@ -1008,13 +1533,17 @@ const OrderScreen = () => {
             </View>
             <View style={styles.infoColumn}>
               <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Mode de paiement</Text>
+                <Text style={styles.infoValue}>{paymentMethodLabel}</Text>
+              </View>
+              <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Total</Text>
                 {updatePriceMode ? (
                   <View style={styles.valueWithIcon}>
                     <TextInput
                       style={styles.priceInput}
                       keyboardType="numeric"
-                      placeholder={parseFloat(order.total_price).toFixed(2)}
+                      placeholder={normalizedTotalPrice.toFixed(2)}
                       onChangeText={(text) => setPrice(text)}
                     />
                     <TouchableOpacity
@@ -1027,7 +1556,7 @@ const OrderScreen = () => {
                 ) : (
                   <View style={styles.valueWithIcon}>
                     <Text style={styles.infoValue}>
-                      {parseFloat(order.total_price).toFixed(2)} $
+                      {normalizedTotalPrice.toFixed(2)} $
                     </Text>
                     <TouchableOpacity
                       style={[styles.iconButton, styles.editButton]}
@@ -1041,16 +1570,18 @@ const OrderScreen = () => {
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Sous-total</Text>
                 <Text style={styles.infoValue}>
-                  {order.sub_total.toFixed(2)} $
+                  {normalizedSubtotal.toFixed(2)} $
                 </Text>
               </View>
 
-              {order.discount > 0 && (
+              {shouldShowDiscountedSubtotal && (
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>Après remise</Text>
                   <Text style={styles.infoValue}>
-                    {order.sub_total_after_discount?.toFixed(2)} $ (-{" "}
-                    {order.discount} %)
+                    {normalizedSubtotalAfterDiscount.toFixed(2)} $
+                    {orderDiscountPercent > 0
+                      ? ` (- ${orderDiscountPercent} %)`
+                      : ""}
                   </Text>
                 </View>
               )}
@@ -1066,45 +1597,15 @@ const OrderScreen = () => {
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>Frais de livraison</Text>
                   <Text style={styles.infoValue}>
-                    {order.delivery_fee.toFixed(2)} $
+                    {displayedDeliveryFee.toFixed(2)} $
                   </Text>
                 </View>
               )}
 
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Pourboire</Text>
-                <Text style={styles.infoValue}>{order.tip?.toFixed(2)} $</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.card}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Informations Client</Text>
-          </View>
-          <View style={styles.infoColumns}>
-            <View style={styles.infoColumn}>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Nom & prénom</Text>
-                <Text style={styles.infoValue}>{order.user?.name}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Téléphone</Text>
                 <Text style={styles.infoValue}>
-                  {order?.user?.phone_number}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.infoColumn}>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>E-mail</Text>
-                <Text style={styles.infoValue}>{order.user?.email}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Adresse</Text>
-                <Text style={[styles.infoValue, { flex: 1 }]} numberOfLines={2}>
-                  {order.address}
+                  {normalizedTip.toFixed(2)} $
                 </Text>
               </View>
             </View>
@@ -1550,6 +2051,15 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.LATO_REGULAR,
     fontSize: 14,
     color: "#1b1b1b",
+  },
+  freePriceLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    color: "#16A34A",
+  },
+  subscriptionFreeItemLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    color: "#B45309",
+    fontSize: 12,
   },
   listCell1: {
     fontFamily: Fonts.LATO_REGULAR,

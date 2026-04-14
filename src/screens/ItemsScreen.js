@@ -53,6 +53,7 @@ const ItemsScreen = () => {
   const [menuItemsList, setMenuItemsList] = useState([]);
   const [showMenuFilter, setShowMenuFilter] = useState(false);
   const [error, setError] = useState(false);
+  const [updatingItemIds, setUpdatingItemIds] = useState([]);
   const flatList = useRef();
 
   const handleTri = async (from, to) => {
@@ -160,12 +161,60 @@ const ItemsScreen = () => {
     setDeleteWarningModelState(true);
   };
 
-  const updateAvailability = async (itemId, index) => {
-    updateRestaurantItemAvailability(restaurant, itemId).then((response) => {
+  const updateItemAvailabilityInState = (itemId, availability) => {
+    const applyAvailability = (list = []) =>
+      list.map((entry) => {
+        const currentId = entry?._id || entry?.menuItem?._id;
+        if (String(currentId) !== String(itemId)) {
+          return entry;
+        }
+
+        if (role === Roles.ADMIN) {
+          return {
+            ...entry,
+            availability,
+          };
+        }
+
+        return {
+          ...entry,
+          availability,
+        };
+      });
+
+    setMenuItems((prev) => applyAvailability(prev));
+    setMenuItemsList((prev) => applyAvailability(prev));
+  };
+
+  const updateAvailability = async (itemId) => {
+    if (updatingItemIds.includes(String(itemId))) {
+      return;
+    }
+
+    setUpdatingItemIds((prev) => [...prev, String(itemId)]);
+
+    try {
+      const response = await updateRestaurantItemAvailability(restaurant, itemId);
+
       if (response.status) {
-        setRefresh(refresh + 1);
+        const nextAvailability =
+          typeof response?.data?.availability === "boolean"
+            ? response.data.availability
+            : undefined;
+
+        if (typeof nextAvailability === "boolean") {
+          updateItemAvailabilityInState(itemId, nextAvailability);
+        }
+      } else {
+        console.error(response.message);
       }
-    });
+    } catch (error) {
+      console.error("An error occurred while updating availability:", error);
+    } finally {
+      setUpdatingItemIds((prev) =>
+        prev.filter((currentId) => currentId !== String(itemId))
+      );
+    }
   };
 
   if (isLoading) {
@@ -333,7 +382,9 @@ const ItemsScreen = () => {
           {menuItems.length > 0 ? (
             <FlatList
               data={menuItems}
-              keyExtractor={(item) => item._id}
+              keyExtractor={(item, index) =>
+                String(item?._id || item?.menuItem?._id || index)
+              }
               renderItem={({ item, index }) => (
                 <RenderMenuItem
                   item={item}
@@ -342,6 +393,9 @@ const ItemsScreen = () => {
                   handleShowMenuItemModel={handleShowMenuItemModel}
                   handleShowDeleteWarning={handleShowDeleteWarning}
                   updateAvailability={updateAvailability}
+                  isUpdating={updatingItemIds.includes(
+                    String(item?._id || item?.menuItem?._id)
+                  )}
                   handleTri={handleTri}
                   triMode={triMode}
                 />

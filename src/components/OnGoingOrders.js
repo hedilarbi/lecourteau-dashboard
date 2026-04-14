@@ -9,9 +9,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Colors, Fonts } from "../constants";
+import { Dropdown } from "react-native-element-dropdown";
+import { Colors, Fonts, OrderStatus } from "../constants";
 import { useNavigation } from "@react-navigation/native";
-import { confirmOrder } from "../services/OrdersServices";
+import { confirmOrder, updateStatus } from "../services/OrdersServices";
 
 const OnGoingOrders = ({
   orders = [],
@@ -25,12 +26,30 @@ const OnGoingOrders = ({
   emptySubtitle = "Vous serez averti dès qu'une nouvelle commande arrive.",
   showAddress = true,
   statusChipMode = "none",
-  confirmedStatusLabel,
   isLoading = false,
   showName = true,
+  showDueDate = false,
+  dueDateLabel = "Date due",
+  rowColorMode = "alternate",
+  showCode = true,
+  showStatusDropdown = false,
+  showCounterPaymentChip = false,
 }) => {
   const navigation = useNavigation();
   const [confirmingMap, setConfirmingMap] = React.useState({});
+  const [statusDraftMap, setStatusDraftMap] = React.useState({});
+  const [statusUpdatingMap, setStatusUpdatingMap] = React.useState({});
+  const statusOptions = React.useMemo(
+    () => [
+      { label: OrderStatus.ON_GOING, value: OrderStatus.ON_GOING },
+      { label: OrderStatus.PROGRAMMED, value: OrderStatus.PROGRAMMED },
+      { label: OrderStatus.READY, value: OrderStatus.READY },
+      { label: OrderStatus.DONE, value: OrderStatus.DONE },
+      { label: OrderStatus.IN_DELIVERY, value: OrderStatus.IN_DELIVERY },
+      { label: OrderStatus.CANCELED, value: OrderStatus.CANCELED },
+    ],
+    [],
+  );
   const headerSubtitle =
     orders.length > 0
       ? `${orders.length} ${
@@ -45,6 +64,8 @@ const OnGoingOrders = ({
       const response = await confirmOrder(id, token);
       if (!response.status) {
         Alert.alert("Échec de la confirmation");
+      } else if (response.warning) {
+        Alert.alert("Commande confirmée", response.warning);
       }
     } catch {
       Alert.alert("Erreur", "Une erreur s'est produite");
@@ -53,6 +74,61 @@ const OnGoingOrders = ({
       setConfirmingMap((m) => ({ ...m, [id]: false }));
     }
   };
+
+  const updateOrderStatusFromList = async (orderId, nextStatus) => {
+    if (!orderId || !nextStatus) return;
+    if (!token) {
+      Alert.alert("Session expirée", "Reconnectez-vous pour modifier le statut.");
+      return;
+    }
+    if (statusUpdatingMap[orderId]) return;
+
+    setStatusUpdatingMap((prev) => ({ ...prev, [orderId]: true }));
+    try {
+      const response = await updateStatus(orderId, nextStatus, token);
+      if (!response.status) {
+        Alert.alert(
+          "Échec",
+          response.message || "Impossible de mettre à jour le statut.",
+        );
+        return;
+      }
+
+      setStatusDraftMap((prev) => ({ ...prev, [orderId]: nextStatus }));
+      setRefresh((prev) => prev + 1);
+    } catch (error) {
+      Alert.alert("Erreur", "Une erreur s'est produite.");
+    } finally {
+      setStatusUpdatingMap((prev) => ({ ...prev, [orderId]: false }));
+    }
+  };
+
+  const isDeliveryType = React.useCallback((type) => {
+    const normalizedType = String(type || "")
+      .toLowerCase()
+      .trim();
+    return normalizedType === "delivery" || normalizedType === "devliery";
+  }, []);
+
+  const getDueDateValue = React.useCallback((order) => {
+    const dueSource =
+      order?.scheduled?.isScheduled && order?.scheduled?.scheduledFor
+        ? order.scheduled.scheduledFor
+        : order?.createdAt;
+
+    if (!dueSource) return "--";
+
+    const dueDate = new Date(dueSource);
+    if (Number.isNaN(dueDate.getTime())) return "--";
+
+    return dueDate.toLocaleString("fr-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }, []);
 
   return (
     <View style={styles.wrapper}>
@@ -77,17 +153,34 @@ const OnGoingOrders = ({
             {orders.length > 0 ? (
               orders.map((order, index) => {
                 const isConfirming = confirmingMap[order._id];
+                const selectedStatus = statusDraftMap[order._id] || order?.status;
+                const isStatusUpdating = Boolean(statusUpdatingMap[order._id]);
+                const isDeliveryOrder = isDeliveryType(order?.type);
+                const isPickupOrder = !isDeliveryOrder;
+                const isCounterPayment =
+                  String(order?.payment_method || "").trim().toLowerCase() ===
+                  "cash_at_counter";
                 const showScheduledChip =
-                  statusChipMode === "scheduled" &&
-                  order.status === "Programmé";
-                const statusLabel = confirmedStatusLabel || order.status;
+                  statusChipMode === "scheduled" && order?.scheduled?.isScheduled;
+                const isAlreadyReady =
+                  String(order?.status || "").trim().toLowerCase() ===
+                  String(OrderStatus.READY).trim().toLowerCase();
+
+                const rowStyles = [styles.orderRow];
+                if (rowColorMode === "scheduled") {
+                  rowStyles.push(
+                    index % 2 === 0
+                      ? styles.orderRowScheduledPrimary
+                      : styles.orderRowScheduledSecondary,
+                  );
+                } else if (index % 2 === 0) {
+                  rowStyles.push(styles.orderRowAlt);
+                }
+
                 return (
                   <View key={order._id || index}>
                     <Pressable
-                      style={[
-                        styles.orderRow,
-                        index % 2 === 0 && styles.orderRowAlt,
-                      ]}
+                      style={rowStyles}
                       onPress={() =>
                         navigation.navigate("HomeNav", {
                           screen: "Order",
@@ -107,96 +200,182 @@ const OnGoingOrders = ({
                               {order.address}
                             </Text>
                           )}
-                          {showName && (
-                            <Text style={styles.address} numberOfLines={1}>
-                              {order.user.name}
-                            </Text>
-                          )}
+                          <View style={styles.inlineRow}>
+                            <View style={styles.inlineLeft}>
+                                {showName && (
+                                  <Text
+                                    style={styles.customerName}
+                                    numberOfLines={1}
+                                  >
+                                    {order.user?.name || "Client inconnu"}
+                                  </Text>
+                                )}
 
-                          <View style={styles.chipsRow}>
-                            <View
-                              style={[
-                                styles.chip,
-                                order.type === "delivery"
-                                  ? styles.deliveryChip
-                                  : styles.pickupChip,
-                              ]}
-                            >
-                              <Text style={styles.chipLabel}>
-                                {order.type === "delivery"
-                                  ? "Livraison"
-                                  : "Emporter"}
-                              </Text>
-                            </View>
-                            <View style={styles.chip}>
-                              <Text style={styles.chipLabel}>
-                                #{order.code}
-                              </Text>
-                            </View>
-                            {showScheduledChip && (
-                              <View style={[styles.chip, styles.statusChip]}>
-                                <Text style={styles.chipLabel}>Programmé</Text>
+                                <View style={styles.chipsRow}>
+                                <View
+                                  style={[
+                                    styles.chip,
+                                    isDeliveryOrder
+                                      ? styles.deliveryChip
+                                      : styles.pickupChip,
+                                  ]}
+                                >
+                                  <Text style={styles.chipLabel}>
+                                    {isDeliveryOrder
+                                      ? "Livraison"
+                                      : "Emporter"}
+                                  </Text>
+                                </View>
+                                {showCode && (
+                                  <View style={styles.chip}>
+                                    <Text style={styles.chipLabel}>
+                                      #{order.code}
+                                    </Text>
+                                  </View>
+                                )}
+                                {showCounterPaymentChip &&
+                                  isPickupOrder &&
+                                  isCounterPayment && (
+                                    <View
+                                      style={[
+                                        styles.chip,
+                                        styles.counterPaymentChip,
+                                      ]}
+                                    >
+                                      <Text
+                                        style={[
+                                          styles.chipLabel,
+                                          styles.counterPaymentChipLabel,
+                                        ]}
+                                      >
+                                        Paiement au comptoir
+                                      </Text>
+                                    </View>
+                                  )}
+                                {showScheduledChip && (
+                                  <View style={[styles.chip, styles.statusChip]}>
+                                    <Text style={styles.chipLabel}>
+                                      {order.status === "En cours"
+                                        ? "En cours"
+                                        : "Programmé"}
+                                    </Text>
+                                  </View>
+                                )}
                               </View>
-                            )}
+                            </View>
+
+                            <View style={styles.inlineRight}>
+                              <Text style={styles.price}>
+                                {Number(order.total_price || 0).toFixed(2)} $
+                              </Text>
+
+                              {!order.confirmed && (
+                                <TouchableOpacity
+                                  style={[
+                                    styles.confirmButton,
+                                    styles.confirmButtonInline,
+                                    isConfirming &&
+                                      styles.confirmButtonDisabled,
+                                  ]}
+                                  onPress={(event) => {
+                                    if (event?.stopPropagation) {
+                                      event.stopPropagation();
+                                    }
+                                    confirm(order._id);
+                                  }}
+                                  disabled={isConfirming}
+                                >
+                                  <Text style={styles.confirmLabel}>
+                                    {isConfirming
+                                      ? "Confirmation..."
+                                      : "Confirmer"}
+                                  </Text>
+                                </TouchableOpacity>
+                              )}
+                            </View>
                           </View>
+                          {showDueDate && (
+                            <View style={styles.dueTextRow}>
+                              <Text style={styles.dueTextLabel}>
+                                {dueDateLabel}: {getDueDateValue(order)}
+                              </Text>
+                            </View>
+                          )}
+                          {showStatusDropdown && (
+                            <View
+                              style={styles.quickStatusRow}
+                              onTouchStart={(event) =>
+                                event?.stopPropagation?.()
+                              }
+                            >
+                              {isDeliveryOrder && (
+                                <View style={styles.quickStatusDropdownWrap}>
+                                  <Dropdown
+                                    style={styles.quickStatusDropdown}
+                                    placeholderStyle={styles.quickStatusPlaceholder}
+                                    selectedTextStyle={styles.quickStatusSelected}
+                                    itemContainerStyle={styles.quickStatusItemContainer}
+                                    itemTextStyle={styles.quickStatusItemText}
+                                    containerStyle={styles.quickStatusContainer}
+                                    data={statusOptions}
+                                    maxHeight={220}
+                                    labelField="label"
+                                    valueField="value"
+                                    placeholder="Choisir l'état"
+                                    value={selectedStatus || null}
+                                    onChange={(item) => {
+                                      const nextStatus = item.value;
+                                      setStatusDraftMap((prev) => ({
+                                        ...prev,
+                                        [order._id]: nextStatus,
+                                      }));
+
+                                      if (
+                                        String(nextStatus || "").trim() !==
+                                        String(order?.status || "").trim()
+                                      ) {
+                                        updateOrderStatusFromList(
+                                          order._id,
+                                          nextStatus,
+                                        );
+                                      }
+                                    }}
+                                  />
+                                </View>
+                              )}
+
+                              {isPickupOrder && (
+                                <TouchableOpacity
+                                  style={[
+                                    styles.pickupReadyButton,
+                                    (isStatusUpdating || isAlreadyReady) &&
+                                      styles.pickupReadyButtonDisabled,
+                                  ]}
+                                  disabled={isStatusUpdating || isAlreadyReady}
+                                  onPress={(event) => {
+                                    event?.stopPropagation?.();
+                                    updateOrderStatusFromList(
+                                      order._id,
+                                      OrderStatus.READY,
+                                    );
+                                  }}
+                                >
+                                  {isStatusUpdating ? (
+                                    <ActivityIndicator
+                                      size="small"
+                                      color={Colors.primary}
+                                    />
+                                  ) : (
+                                    <Text style={styles.pickupReadyButtonLabel}>
+                                      Prête
+                                    </Text>
+                                  )}
+                                </TouchableOpacity>
+                              )}
+                            </View>
+                          )}
                         </View>
                       </View>
-
-                      <View style={styles.meta}>
-                        <Text style={styles.price}>
-                          {order.total_price.toFixed(2)} $
-                        </Text>
-                        <Text style={styles.metaLabel}>Total</Text>
-                      </View>
-
-                      {/* <View style={styles.action}>
-                        {!order.confirmed ? (
-                          <TouchableOpacity
-                            style={[
-                              styles.confirmButton,
-                              isConfirming && styles.confirmButtonDisabled,
-                            ]}
-                            onPress={(event) => {
-                              if (event?.stopPropagation) {
-                                event.stopPropagation();
-                              }
-                              confirm(order._id);
-                            }}
-                            disabled={isConfirming}
-                          >
-                            <Text style={styles.confirmLabel}>
-                              {isConfirming ? "Confirmation..." : "Confirmer"}
-                            </Text>
-                          </TouchableOpacity>
-                        ) : statusLabel ? (
-                          <View style={styles.statusPill}>
-                            <Text style={styles.statusLabel}>
-                              {statusLabel}
-                            </Text>
-                          </View>
-                        ) : null}
-                      </View> */}
-                      {!order.confirmed && (
-                        <View style={styles.action}>
-                          <TouchableOpacity
-                            style={[
-                              styles.confirmButton,
-                              isConfirming && styles.confirmButtonDisabled,
-                            ]}
-                            onPress={(event) => {
-                              if (event?.stopPropagation) {
-                                event.stopPropagation();
-                              }
-                              confirm(order._id);
-                            }}
-                            disabled={isConfirming}
-                          >
-                            <Text style={styles.confirmLabel}>
-                              {isConfirming ? "Confirmation..." : "Confirmer"}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      )}
                     </Pressable>
                   </View>
                 );
@@ -268,21 +447,52 @@ const styles = StyleSheet.create({
   orderRowAlt: {
     backgroundColor: "rgba(247, 165, 0, 0.19)",
   },
+  orderRowScheduledPrimary: {
+    backgroundColor: "rgba(56, 178, 86, 0.24)",
+  },
+  orderRowScheduledSecondary: {
+    backgroundColor: "rgba(56, 178, 86, 0.12)",
+  },
   orderInfoWrapper: {
     flex: 1,
   },
   orderInfo: {
     flex: 1,
-    gap: 6,
+    gap: 8,
   },
   orderInfoCompact: {
-    gap: 0,
+    gap: 6,
   },
   address: {
     fontSize: 16,
     fontFamily: Fonts.LATO_BOLD,
     color: "#1b1b1b",
-    marginBottom: 10,
+  },
+  inlineRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
+  },
+  inlineLeft: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  inlineRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginLeft: 8,
+  },
+  customerName: {
+    fontSize: 16,
+    fontFamily: Fonts.LATO_BOLD,
+    color: "#1b1b1b",
+    maxWidth: 170,
   },
   chipsRow: {
     flexDirection: "row",
@@ -305,6 +515,10 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.05)",
     borderColor: "rgba(0,0,0,0.08)",
   },
+  counterPaymentChip: {
+    backgroundColor: "rgba(247,166,0,0.18)",
+    borderColor: "rgba(180,83,9,0.22)",
+  },
   statusChip: {
     backgroundColor: "rgba(0,0,0,0.06)",
     borderColor: "rgba(0,0,0,0.12)",
@@ -314,24 +528,26 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.LATO_BOLD,
     color: "#1b1b1b",
   },
-  meta: {
-    alignItems: "flex-end",
-    minWidth: 90,
-    gap: 4,
+  counterPaymentChipLabel: {
+    color: "#92400E",
+  },
+  dueTextRow: {
+    marginTop: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: "rgba(255,255,255,0.5)",
+    borderRadius: 8,
+    alignSelf: "flex-start",
+  },
+  dueTextLabel: {
+    fontSize: 13,
+    fontFamily: Fonts.LATO_BOLD,
+    color: "#111111",
   },
   price: {
     fontSize: 22,
     fontFamily: Fonts.BEBAS_NEUE,
     color: "#1b1b1b",
-  },
-  metaLabel: {
-    fontSize: 12,
-    fontFamily: Fonts.LATO_REGULAR,
-    color: Colors.tgry,
-  },
-  action: {
-    minWidth: 120,
-    alignItems: "flex-end",
   },
   confirmButton: {
     backgroundColor: "black",
@@ -341,6 +557,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.08)",
   },
+  confirmButtonInline: {
+    minWidth: 110,
+    alignItems: "center",
+  },
   confirmButtonDisabled: {
     opacity: 0.6,
   },
@@ -349,18 +569,66 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.primary,
   },
-  statusPill: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: "rgba(0,0,0,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.08)",
+  quickStatusRow: {
+    marginTop: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
   },
-  statusLabel: {
-    fontFamily: Fonts.LATO_BOLD,
+  quickStatusDropdownWrap: {
+    minWidth: 180,
+    flex: 1,
+    maxWidth: 260,
+  },
+  quickStatusDropdown: {
+    height: 38,
+    borderColor: "rgba(0,0,0,0.15)",
+    borderWidth: 1,
+    borderRadius: 10,
+    backgroundColor: "white",
+    paddingHorizontal: 10,
+  },
+  quickStatusPlaceholder: {
+    fontFamily: Fonts.LATO_REGULAR,
     fontSize: 13,
     color: Colors.tgry,
+  },
+  quickStatusSelected: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#1b1b1b",
+  },
+  quickStatusItemContainer: {
+    paddingVertical: 2,
+  },
+  quickStatusItemText: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 14,
+    color: "#1b1b1b",
+  },
+  quickStatusContainer: {
+    borderRadius: 10,
+    borderWidth: 0,
+  },
+  pickupReadyButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    backgroundColor: "black",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 86,
+  },
+  pickupReadyButtonDisabled: {
+    opacity: 0.65,
+  },
+  pickupReadyButtonLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: Colors.primary,
   },
   emptyState: {
     minHeight: 160,

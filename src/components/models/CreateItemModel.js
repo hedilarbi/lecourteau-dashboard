@@ -38,8 +38,8 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
   const [isLoading, setIsloading] = useState(true);
   const [customizationsNames, setCustomizationsNames] = useState([]);
   const [toppingGroups, setToppingGroups] = useState([]);
-  const [selectedToppingGroupId, setSelectedToppingGroupId] = useState("");
-  const [selectedToppingGroupName, setSelectedToppingGroupName] = useState("");
+  const [selectedToppingGroups, setSelectedToppingGroups] = useState([]);
+  const [toppingGroupToAdd, setToppingGroupToAdd] = useState("");
   const [categoriesNames, setCategoriesNames] = useState([]);
   const [showSuccessModel, setShowSuccessModel] = useState(false);
   const [name, setName] = useState("");
@@ -133,10 +133,6 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
       setError("Nom de l'article manquant");
       return;
     }
-    if (description.length < 1) {
-      setError("Description de l'article manquante");
-      return;
-    }
     if (!categoryName) {
       setError("Catégorie de l'article manquante");
       return;
@@ -173,7 +169,7 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
     const customization = customizationsNames.map((item) => {
       return item._id;
     });
-    const customizationGroup = selectedToppingGroupId || "";
+    const customizationGroup = selectedToppingGroups.map((group) => group._id);
     setError("");
     const formdata = new FormData();
     if (image) {
@@ -184,7 +180,7 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
       });
     }
     formdata.append("customization", JSON.stringify(customization));
-    formdata.append("customizationGroup", customizationGroup);
+    formdata.append("customizationGroup", JSON.stringify(customizationGroup));
     formdata.append("prices", JSON.stringify(pricesPayload));
     formdata.append("name", name);
     formdata.append("category", categoryId);
@@ -459,19 +455,38 @@ const CreateItemModel = ({ setShowCreateItemModel, setRefresh }) => {
                   maxHeight={300}
                   labelField="label"
                   valueField="value"
-                  placeholder="Sélectionner un groupe de personnalisations"
-                  value={selectedToppingGroupId}
-                onChange={(item) => {
-                  setSelectedToppingGroupId(item.value);
-                  const found = toppingGroups.find((g) => g._id === item.value);
-                  setSelectedToppingGroupName(found?.name || "");
-                }}
+                  placeholder="Ajouter un groupe de personnalisations"
+                  value={toppingGroupToAdd}
+                  onChange={(item) => {
+                    setToppingGroupToAdd("");
+                    const found = toppingGroups.find((g) => g._id === item.value);
+                    if (!found) {
+                      return;
+                    }
+                    setSelectedToppingGroups((prev) => {
+                      if (prev.some((group) => group._id === found._id)) {
+                        return prev;
+                      }
+                      return [...prev, found];
+                    });
+                  }}
                 />
-                {selectedToppingGroupName ? (
-                  <View style={styles.infoBadge}>
-                    <Text style={styles.infoBadgeText}>
-                      Groupe sélectionné : {selectedToppingGroupName}
-                    </Text>
+                {selectedToppingGroups.length > 0 ? (
+                  <View style={styles.customizationList}>
+                    {selectedToppingGroups.map((group) => (
+                      <View key={group._id} style={styles.pill}>
+                        <Text style={styles.pillText}>{group.name}</Text>
+                        <TouchableOpacity
+                          onPress={() =>
+                            setSelectedToppingGroups((prev) =>
+                              prev.filter((item) => item._id !== group._id)
+                            )
+                          }
+                        >
+                          <AntDesign name="close" size={14} color="#6B7280" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
                   </View>
                 ) : null}
               </View>

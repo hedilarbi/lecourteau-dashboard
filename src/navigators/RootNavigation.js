@@ -27,14 +27,7 @@ import {
 } from "../redux/slices/globalRefreshSlice";
 import { API_URL } from "@env";
 import axios from "axios";
-import {
-  Alert,
-  Dimensions,
-  Text,
-  Touchable,
-  Vibration,
-  View,
-} from "react-native";
+import { Dimensions, Text, Vibration, View } from "react-native";
 import { Audio } from "expo-av";
 import { TouchableOpacity } from "react-native";
 const ONE_SECOND_IN_MS = 1000;
@@ -56,8 +49,9 @@ const RootNavigation = () => {
   const globalRefresh = useSelector(selectGlobalRefresh);
   const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
   const [alertTitle, setAlertTitle] = useState(
-    "Nouvelle commande non confirme"
+    "Nouvelle commande non confirme",
   );
+  const showNewOrderAlertRef = useRef(false);
   const ongoingIdsRef = useRef(new Set());
   const hasOngoingSnapshotRef = useRef(false);
 
@@ -71,18 +65,28 @@ const RootNavigation = () => {
     if (!soundRef.current) return;
     const activeSound = soundRef.current;
     soundRef.current = null;
-    await Promise.allSettled([activeSound.stopAsync(), activeSound.unloadAsync()]);
+    await Promise.allSettled([
+      activeSound.stopAsync(),
+      activeSound.unloadAsync(),
+    ]);
   };
 
   const playNotificationSoundInLoop = async () => {
     await stopNotificationSound(); // Prevent multiple overlapping loops
-    const { sound } = await Audio.Sound.createAsync(
-      require("../../assets/sounds/notificationsound.wav")
-    );
-    await sound.setIsLoopingAsync(true); // Enable looping
-    Vibration.vibrate(PATTERN, true); // Enable vibration in a loop
-    await sound.playAsync();
-    soundRef.current = sound; // Store the sound object in the ref
+    Vibration.vibrate(PATTERN, true); // Keep vibration even if sound loading fails
+    try {
+      const { sound } = await Audio.Sound.createAsync(
+        require("../../assets/sounds/notificationsound.wav"),
+      );
+      await sound.setIsLoopingAsync(true); // Enable looping
+      await sound.playAsync();
+      soundRef.current = sound; // Store the sound object in the ref
+    } catch (error) {
+      console.warn(
+        "Notification sound unavailable, fallback to vibration only:",
+        error?.message || error,
+      );
+    }
   };
 
   const handleClosingAlert = async () => {
@@ -91,13 +95,17 @@ const RootNavigation = () => {
   };
 
   useEffect(() => {
+    showNewOrderAlertRef.current = showNewOrderAlert;
+  }, [showNewOrderAlert]);
+
+  useEffect(() => {
     const fetchOrders = async () => {
       try {
         if (!staff.restaurant) return;
-        if (showNewOrderAlert) return; // Skip if the alert is already shown
+        if (showNewOrderAlertRef.current) return; // Skip if the alert is already shown
 
         const response = await axios.get(
-          `${API_URL}/orders/checkOrders/${staff.restaurant}`
+          `${API_URL}/orders/checkOrders/${staff.restaurant}`,
         );
 
         const data = response.data || {};
@@ -111,13 +119,13 @@ const RootNavigation = () => {
         let hasNewOnGoing = false;
         if (hasOngoingSnapshotRef.current) {
           hasNewOnGoing = onGoingOrders.some(
-            (order) => order?._id && !ongoingIdsRef.current.has(order._id)
+            (order) => order?._id && !ongoingIdsRef.current.has(order._id),
           );
         } else {
           hasOngoingSnapshotRef.current = true;
         }
         ongoingIdsRef.current = new Set(
-          onGoingOrders.map((order) => order?._id).filter(Boolean)
+          onGoingOrders.map((order) => order?._id).filter(Boolean),
         );
 
         if (nonConfirmedOrders.length > 0) {
@@ -130,7 +138,7 @@ const RootNavigation = () => {
         if (hasNewOnGoing) {
           await playNotificationSoundInLoop(); // Play sound in a loop
           setAlertTitle(
-            "Nouvelle commande programmée est passée à l'état en cours"
+            "Nouvelle commande programmée est passée à l'état en cours",
           );
           setShowNewOrderAlert(true); // Show the alert
           dispatch(setGlobalRefresh());
@@ -140,10 +148,11 @@ const RootNavigation = () => {
       }
     };
 
+    fetchOrders();
     const interval = setInterval(fetchOrders, 60000); // Check every 60 seconds
 
     return () => clearInterval(interval); // Cleanup on unmount
-  }, [staff.restaurant, showNewOrderAlert]);
+  }, [dispatch, staff.restaurant]);
 
   useEffect(() => {
     return () => {
@@ -207,7 +216,7 @@ const RootNavigation = () => {
 
     return () => {
       Notifications.removeNotificationSubscription(
-        notificationListener.current
+        notificationListener.current,
       );
       Notifications.removeNotificationSubscription(responseListener.current);
     };
@@ -247,6 +256,7 @@ const RootNavigation = () => {
                 borderRadius: 10,
                 justifyContent: "center",
                 alignItems: "center",
+                paddingHorizontal: 12,
                 zIndex: 100,
               }}
             >
@@ -255,6 +265,7 @@ const RootNavigation = () => {
                   fontSize: 28,
                   fontWeight: "bold",
                   color: "black",
+                  textAlign: "center",
                 }}
               >
                 {alertTitle}

@@ -2,6 +2,16 @@ import React, { useEffect, useState } from "react";
 
 import { getOrder } from "../services/OrdersServices";
 
+const toSafeNumber = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const roundMoney = (value, fallback = 0) => {
+  const normalized = toSafeNumber(value, fallback);
+  return Math.round(normalized * 100) / 100;
+};
+
 const useGetOrder = (id) => {
   const [order, setOrder] = useState({});
   const [isLoading, setIsLoading] = useState(true);
@@ -15,14 +25,33 @@ const useGetOrder = (id) => {
       const response = await getOrder(id);
       if (response.status) {
         const data = response.data;
+        const subscriptionBenefits =
+          data?.subscriptionBenefits &&
+          typeof data.subscriptionBenefits === "object"
+            ? data.subscriptionBenefits
+            : null;
+        const normalizedSubtotal = toSafeNumber(data?.sub_total, 0);
+        const normalizedSubtotalAfterDiscount = Number.isFinite(
+          Number(data?.sub_total_after_discount),
+        )
+          ? Number(data.sub_total_after_discount)
+          : normalizedSubtotal;
+        const normalizedDeliveryFee =
+          subscriptionBenefits?.isApplied && subscriptionBenefits?.freeDeliveryApplied
+            ? 0
+            : toSafeNumber(data?.delivery_fee, 0);
+        const taxableBase = roundMoney(
+          ["delivery", "devliery"].includes(
+            String(data?.type || "").toLowerCase(),
+          )
+            ? normalizedSubtotalAfterDiscount + normalizedDeliveryFee
+            : normalizedSubtotalAfterDiscount,
+          0,
+        );
+
         setOrder(data);
-        if (data.discount > 0) {
-          setTvq(data.sub_total_after_discount * 0.09975);
-          setTps(data.sub_total_after_discount * 0.05);
-        } else {
-          setTvq(data.sub_total * 0.09975);
-          setTps(data.sub_total * 0.05);
-        }
+        setTvq(roundMoney(taxableBase * 0.09975, 0));
+        setTps(roundMoney(taxableBase * 0.05, 0));
       } else {
         setError(true);
       }

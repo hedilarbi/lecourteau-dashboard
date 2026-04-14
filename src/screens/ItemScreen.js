@@ -47,24 +47,32 @@ const ItemScreen = () => {
     useState(false);
   const [toppings, setToppings] = useState([]);
   const [toppingGroups, setToppingGroups] = useState([]);
-  const [selectedToppingGroupId, setSelectedToppingGroupId] = useState("");
-  const [selectedToppingGroupName, setSelectedToppingGroupName] = useState("");
+  const [selectedToppingGroups, setSelectedToppingGroups] = useState([]);
+  const [toppingGroupToAdd, setToppingGroupToAdd] = useState("");
   const [showSuccessModel, setShowSuccessModel] = useState(false);
   const [showFailModal, setShowFailModal] = useState(false);
   const [showAddPriceModal, setShowAddPriceModal] = useState(false);
 
-  const deriveGroup = (data, groupsList = []) => {
+  const deriveGroups = (data, groupsList = []) => {
     const raw = data?.customization_group || data?.customizationGroup;
-    if (!raw) return { id: "", name: "" };
-    if (typeof raw === "object") {
-      return { id: raw._id || "", name: raw.name || "" };
-    }
-    const found =
-      groupsList.find((g) => g._id === raw || g.name === raw) || null;
-    return {
-      id: found?._id || "",
-      name: found?.name || (typeof raw === "string" ? raw : ""),
-    };
+    if (!raw) return [];
+    const rawList = Array.isArray(raw) ? raw : [raw];
+
+    return rawList
+      .map((entry) => {
+        if (!entry) return null;
+        if (typeof entry === "object") {
+          return { _id: entry._id || "", name: entry.name || "" };
+        }
+        const found =
+          groupsList.find((group) => group._id === entry || group.name === entry) ||
+          null;
+        if (!found) {
+          return typeof entry === "string" ? { _id: entry, name: entry } : null;
+        }
+        return { _id: found._id, name: found.name };
+      })
+      .filter((group) => group?._id);
   };
 
   const fetchData = async () => {
@@ -72,9 +80,7 @@ const ItemScreen = () => {
       .then((response) => {
         if (response.status) {
           setMenuItem(response.data);
-          const derived = deriveGroup(response.data);
-          setSelectedToppingGroupId(derived.id);
-          setSelectedToppingGroupName(derived.name);
+          setSelectedToppingGroups(deriveGroups(response.data));
         } else {
           setShowFailModal(true);
         }
@@ -162,9 +168,8 @@ const ItemScreen = () => {
       }
       if (groupsRes?.status) {
         setToppingGroups(groupsRes.data || []);
-        const derived = deriveGroup(menuItem, groupsRes.data || []);
-        setSelectedToppingGroupId(derived.id);
-        setSelectedToppingGroupName(derived.name);
+        setSelectedToppingGroups(deriveGroups(menuItem, groupsRes.data || []));
+        setToppingGroupToAdd("");
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -224,9 +229,10 @@ const ItemScreen = () => {
       formdata.append("fileToDelete", menuItem.image);
     }
     formdata.append("customization", JSON.stringify(customization));
-    if (selectedToppingGroupId) {
-      formdata.append("customizationGroup", selectedToppingGroupId);
-    }
+    formdata.append(
+      "customizationGroup",
+      JSON.stringify(selectedToppingGroups.map((group) => group._id))
+    );
     formdata.append("prices", JSON.stringify(prices));
     formdata.append("name", name);
     formdata.append("category", category.value);
@@ -425,28 +431,66 @@ const ItemScreen = () => {
           </View>
           <View style={{ gap: 10 }}>
             {updateMode && (
-              <Dropdown
-                style={styles.dropdown}
-                placeholderStyle={styles.placeholderStyle}
-                selectedTextStyle={styles.selectedTextStyle}
-                itemContainerStyle={styles.itemContainerStyle}
-                itemTextStyle={styles.itemTextStyle}
-                containerStyle={styles.containerStyle}
-                data={toppingGroups.map((g) => ({
-                  label: g.name,
-                  value: g._id,
-                }))}
-                maxHeight={300}
-                labelField="label"
-                valueField="value"
-                placeholder="Sélectionner un groupe de personnalisations"
-                value={selectedToppingGroupId}
-                onChange={(item) => {
-                  setSelectedToppingGroupId(item.value);
-                  const found = toppingGroups.find((g) => g._id === item.value);
-                  setSelectedToppingGroupName(found?.name || "");
-                }}
-              />
+              <>
+                <Dropdown
+                  style={styles.dropdown}
+                  placeholderStyle={styles.placeholderStyle}
+                  selectedTextStyle={styles.selectedTextStyle}
+                  itemContainerStyle={styles.itemContainerStyle}
+                  itemTextStyle={styles.itemTextStyle}
+                  containerStyle={styles.containerStyle}
+                  data={toppingGroups
+                    .filter(
+                      (group) =>
+                        !selectedToppingGroups.some(
+                          (selectedGroup) => selectedGroup._id === group._id
+                        )
+                    )
+                    .map((g) => ({
+                      label: g.name,
+                      value: g._id,
+                    }))}
+                  maxHeight={300}
+                  labelField="label"
+                  valueField="value"
+                  placeholder="Ajouter un groupe de personnalisations"
+                  value={toppingGroupToAdd}
+                  onChange={(item) => {
+                    setToppingGroupToAdd("");
+                    const found = toppingGroups.find((g) => g._id === item.value);
+                    if (!found) {
+                      return;
+                    }
+                    setSelectedToppingGroups((prev) => {
+                      if (prev.some((group) => group._id === found._id)) {
+                        return prev;
+                      }
+                      return [...prev, { _id: found._id, name: found.name }];
+                    });
+                  }}
+                />
+                {selectedToppingGroups.length > 0 && (
+                  <View style={styles.customizationGrid}>
+                    {selectedToppingGroups.map((group) => (
+                      <View key={group._id} style={styles.custoPill}>
+                        <Text style={styles.custoText}>{group.name}</Text>
+                        <TouchableOpacity
+                          style={styles.deleteIcon}
+                          onPress={() =>
+                            setSelectedToppingGroups((prev) =>
+                              prev.filter(
+                                (existingGroup) => existingGroup._id !== group._id
+                              )
+                            )
+                          }
+                        >
+                          <AntDesign name="close" size={16} color="#6B7280" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </>
             )}
 
             {(!updateMode && menuItem.customization?.length > 0) ||
@@ -470,13 +514,25 @@ const ItemScreen = () => {
               </View>
             ) : null}
 
-            {!updateMode && !menuItem.customization_group && (
+            {!updateMode &&
+              (!Array.isArray(menuItem.customization_group)
+                ? !menuItem.customization_group
+                : menuItem.customization_group.length === 0) && (
               <Text style={styles.valueText}>Aucun groupe sélectionné</Text>
             )}
-            {!updateMode && menuItem.customization_group && (
+            {!updateMode &&
+              (Array.isArray(menuItem.customization_group)
+                ? menuItem.customization_group.length > 0
+                : Boolean(menuItem.customization_group)) && (
               <Text style={styles.valueText}>
-                Groupe :{" "}
-                {selectedToppingGroupName || menuItem.customization_group.name}
+                Groupes :{" "}
+                {(Array.isArray(menuItem.customization_group)
+                  ? menuItem.customization_group
+                  : [menuItem.customization_group]
+                )
+                  .map((group) => group?.name)
+                  .filter(Boolean)
+                  .join(", ")}
               </Text>
             )}
           </View>

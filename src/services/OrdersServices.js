@@ -172,7 +172,9 @@ const confirmOrder = async (id, token) => {
     if (confirmOrderResponse?.status === 200) {
       return {
         status: true,
-        message: "order confirmed",
+        message:
+          confirmOrderResponse?.data?.message || "order confirmed",
+        warning: confirmOrderResponse?.data?.warning || null,
       };
     } else {
       return {
@@ -183,7 +185,10 @@ const confirmOrder = async (id, token) => {
   } catch (error) {
     return {
       status: false,
-      message: error.message,
+      message:
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error.message,
     };
   }
 };
@@ -245,6 +250,42 @@ const updateDeliveryProvider = async (id, delivery_provider, token) => {
         error?.response?.data?.error ||
         error?.message ||
         "Impossible de mettre à jour le fournisseur de livraison.",
+    };
+  }
+};
+
+const updateOrderRestaurant = async (id, restaurantId, token) => {
+  try {
+    const response = await axios.put(
+      `${API_URL}/orders/update/restaurant/${id}`,
+      { restaurantId },
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      },
+    );
+
+    if (response?.status === 200) {
+      return {
+        status: true,
+        message:
+          response?.data?.message ||
+          "Succursale de la commande mise à jour avec succès.",
+        data: response?.data?.data || null,
+      };
+    }
+
+    return {
+      status: false,
+      message: "Impossible de changer la succursale de la commande.",
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        "Impossible de changer la succursale de la commande.",
     };
   }
 };
@@ -383,6 +424,7 @@ export {
   confirmOrder,
   updatePaymentStatus,
   updateDeliveryProvider,
+  updateOrderRestaurant,
   createUberDirectDelivery,
   cancelUberDirectDelivery,
   getOrderFiltred,

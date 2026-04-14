@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { Colors, Fonts, Roles } from "../constants";
 import {
+  ActivityIndicator,
   Image,
   StyleSheet,
   Switch,
@@ -17,6 +18,7 @@ const RenderMenuItem = ({
   handleShowMenuItemModel,
   handleShowDeleteWarning,
   updateAvailability,
+  isUpdating,
   handleTri,
   triMode,
 }) => {
@@ -66,13 +68,19 @@ const RenderMenuItem = ({
             <Ionicons name="pencil" size={18} color="#1D4ED8" />
           </TouchableOpacity>
         ) : (
-          <Switch
-            trackColor={{ false: "#767577", true: Colors.primary }}
-            thumbColor="black"
-            ios_backgroundColor="#3e3e3e"
-            onValueChange={() => updateAvailability(item.menuItem._id, index)}
-            value={item.availability}
-          />
+          <View style={styles.availabilitySlot}>
+            {isUpdating ? (
+              <ActivityIndicator size="small" color={Colors.primary} />
+            ) : (
+              <Switch
+                trackColor={{ false: "#767577", true: Colors.primary }}
+                thumbColor="black"
+                ios_backgroundColor="#3e3e3e"
+                onValueChange={() => updateAvailability(item.menuItem._id)}
+                value={item.availability}
+              />
+            )}
+          </View>
         )}
         {role === Roles.ADMIN && (
           <TouchableOpacity
@@ -118,6 +126,7 @@ const RenderMenuItem = ({
       handleShowMenuItemModel,
       handleShowDeleteWarning,
       updateAvailability,
+      isUpdating,
       handleTri,
     ]
   );
@@ -179,6 +188,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#1b1b1b",
     textAlign: "right",
+  },
+  availabilitySlot: {
+    width: 52,
+    minHeight: 32,
+    alignItems: "center",
+    justifyContent: "center",
   },
   iconButton: {
     width: 34,
