@@ -1,6 +1,9 @@
 import {
   ActivityIndicator,
   Alert,
+  Modal,
+  PermissionsAndroid,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -9,7 +12,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import * as Location from "expo-location";
+import * as SecureStore from "expo-secure-store";
 
 import { Dropdown } from "react-native-element-dropdown";
 import { Colors, Fonts, OrderStatus } from "../constants";
@@ -18,6 +23,13 @@ import useGetOrder from "../hooks/useGetOrder";
 import { convertDate } from "../utils/dateHandlers";
 import { useRoute } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import {
+  DiscoveryFilterOption,
+  Printer,
+  PrinterConstants,
+  PrintersDiscovery,
+  usePrintersDiscovery,
+} from "react-native-esc-pos-printer";
 import {
   cancelUberDirectDelivery,
   createUberDirectDelivery,
@@ -34,10 +46,317 @@ import { useSelector } from "react-redux";
 import { selectStaffData, selectStaffToken } from "../redux/slices/StaffSlice";
 import BackButton from "../components/BackButton";
 import { getRestaurantList } from "../services/RestaurantServices";
+import {
+  formatOrderStatus,
+  normalizeOrderStatusValue,
+} from "../utils/orderStatus";
 
 const toSafeNumber = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const roundMoney = (value, fallback = 0) => {
+  const normalized = toSafeNumber(value, fallback);
+  return Math.round(normalized * 100) / 100;
+};
+
+const RECEIPT_SEPARATOR = "--------------------------------";
+const DISCOVERY_SETTLE_DELAY_MS = 400;
+const SAVED_PRINTER_KEY = "last_used_printer";
+
+const toReceiptText = (value) =>
+  String(value ?? "")
+    .replace(/[’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, "-")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const formatReceiptMoney = (value, options = {}) => {
+  const { freeWhenZero = false } = options;
+  const normalizedValue = Number(value);
+
+  if (!Number.isFinite(normalizedValue)) {
+    return "0.00 $";
+  }
+
+  if (freeWhenZero && normalizedValue <= 0) {
+    return "Gratuit";
+  }
+
+  return `${normalizedValue.toFixed(2)} $`;
+};
+
+const normalizeReceiptSize = (size) => {
+  if (!size) return "";
+  if (typeof size === "string") {
+    return size.trim();
+  }
+  if (typeof size === "object") {
+    return String(size?.size || size?.name || size?.label || "").trim();
+  }
+  return String(size).trim();
+};
+
+const normalizeReceiptId = (value) => {
+  if (!value) return "";
+  if (typeof value === "string") {
+    return value.trim();
+  }
+  if (typeof value === "number") {
+    return String(value);
+  }
+  if (typeof value === "object") {
+    return String(value?._id || value?.id || "").trim();
+  }
+  return String(value).trim();
+};
+
+const resolveOfferItemReceiptSize = (offer, offerItem, offerItemIndex = -1) => {
+  const directSize = normalizeReceiptSize(offerItem?.size || offerItem?.item?.size);
+  if (directSize) {
+    return directSize;
+  }
+
+  const templateItems = Array.isArray(offer?.offer?.items) ? offer.offer.items : [];
+  const indexedTemplateItem =
+    offerItemIndex >= 0 && offerItemIndex < templateItems.length
+      ? templateItems[offerItemIndex]
+      : null;
+  const indexedSize = normalizeReceiptSize(
+    indexedTemplateItem?.size || indexedTemplateItem?.item?.size,
+  );
+
+  if (indexedSize) {
+    return indexedSize;
+  }
+
+  const offerItemId = normalizeReceiptId(offerItem?.item);
+  const matchedTemplateItem = templateItems.find(
+    (templateItem) => normalizeReceiptId(templateItem?.item) === offerItemId,
+  );
+
+  return normalizeReceiptSize(
+    matchedTemplateItem?.size || matchedTemplateItem?.item?.size,
+  );
+};
+
+const buildReceiptItemLabel = ({ name, size, quantity }) => {
+  const normalizedName = String(name || "Article").trim() || "Article";
+  const normalizedSize = normalizeReceiptSize(size);
+  const quantityValue = Number(quantity);
+  const sizeSuffix = normalizedSize ? ` (${normalizedSize})` : "";
+  const quantitySuffix =
+    Number.isFinite(quantityValue) && quantityValue > 1 ? ` x${quantityValue}` : "";
+
+  return `${normalizedName}${sizeSuffix}${quantitySuffix}`;
+};
+
+const appendReceiptText = async (printerInstance, value, options = {}) => {
+  const { large = false, bold = false } = options;
+  const text = toReceiptText(value);
+  if (!text) {
+    return;
+  }
+
+  if (large || bold) {
+    await printerInstance.addTextStyle({
+      em: large || bold ? PrinterConstants.TRUE : PrinterConstants.FALSE,
+    });
+    await printerInstance.addTextSize({
+      width: 1,
+      height: large ? 2 : 1,
+    });
+  }
+
+  await printerInstance.addText(`${text}\n`);
+
+  if (large || bold) {
+    await printerInstance.addTextStyle({ em: PrinterConstants.FALSE });
+    await printerInstance.addTextSize({ width: 1, height: 1 });
+  }
+};
+
+const appendReceiptLine = async (printerInstance, left, right, options = {}) => {
+  const { large = false, bold = false } = options;
+
+  if (large || bold) {
+    await printerInstance.addTextStyle({
+      em: large || bold ? PrinterConstants.TRUE : PrinterConstants.FALSE,
+    });
+    await printerInstance.addTextSize({
+      width: 1,
+      height: large ? 2 : 1,
+    });
+  }
+
+  await Printer.addTextLine(printerInstance, {
+    left: toReceiptText(left),
+    right: toReceiptText(right),
+    textToWrap: "left",
+  });
+  await printerInstance.addText("\n");
+
+  if (large || bold) {
+    await printerInstance.addTextStyle({ em: PrinterConstants.FALSE });
+    await printerInstance.addTextSize({ width: 1, height: 1 });
+  }
+};
+
+const appendReceiptDivider = async (printerInstance) => {
+  await printerInstance.addText(`${RECEIPT_SEPARATOR}\n`);
+};
+
+const connectPrinterWithRetries = async (printerInstance, attempts = 4) => {
+  let lastError = null;
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      await printerInstance.connect(1500);
+      const status = await printerInstance.getStatus();
+
+      if (status?.online?.statusCode === PrinterConstants.TRUE) {
+        return;
+      }
+
+      lastError = new Error("Imprimante hors ligne.");
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error("Connexion impossible.");
+};
+
+const disconnectPrinterSafely = async (printerInstance) => {
+  if (!printerInstance) {
+    return;
+  }
+
+  try {
+    await printerInstance.disconnect();
+  } catch (error) {}
+};
+
+const waitForDiscoverySettled = async () => {
+  await new Promise((resolve) => {
+    setTimeout(resolve, DISCOVERY_SETTLE_DELAY_MS);
+  });
+};
+
+const ensureBluetoothPermissions = async () => {
+  if (Platform.OS !== "android") {
+    return true;
+  }
+
+  const apiLevel = Number(Platform.Version);
+
+  try {
+    const permissionsToRequest = [];
+
+    if (apiLevel >= 31) {
+      permissionsToRequest.push(
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      );
+    } else if (apiLevel >= 29) {
+      permissionsToRequest.push(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      );
+    } else {
+      permissionsToRequest.push(
+        PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
+      );
+    }
+
+    const permissions = await PermissionsAndroid.requestMultiple(
+      permissionsToRequest,
+    );
+
+    return permissionsToRequest.every(
+      (permission) =>
+        permissions?.[permission] === PermissionsAndroid.RESULTS.GRANTED,
+    );
+  } catch (error) {
+    return false;
+  }
+};
+
+const ensureAndroidLocationServices = async () => {
+  if (Platform.OS !== "android") {
+    return true;
+  }
+
+  try {
+    const servicesEnabled = await Location.hasServicesEnabledAsync();
+    if (servicesEnabled) {
+      return true;
+    }
+
+    await Location.enableNetworkProviderAsync();
+
+    return await Location.hasServicesEnabledAsync();
+  } catch (error) {
+    return false;
+  }
+};
+
+const stopPrinterDiscoverySafely = async () => {
+  try {
+    await PrintersDiscovery.stop();
+  } catch (error) {}
+
+  await waitForDiscoverySettled();
+};
+
+const toPrinterWorkflowErrorMessage = (error, fallback) => {
+  const details = [
+    typeof error === "string" ? error : "",
+    error?.message,
+    error?.cause?.message,
+    error?.status,
+    error?.code,
+  ]
+    .filter(Boolean)
+    .map((value) => String(value).trim())
+    .filter(Boolean);
+
+  const combinedMessage = details.join(" | ");
+
+  if (
+    combinedMessage.includes("Tried to start search when search had been already done")
+  ) {
+    return "La recherche Bluetooth etait deja en cours. Le scan attend maintenant l'arret complet du precedent avant de relancer la detection.";
+  }
+
+  if (
+    combinedMessage.includes("There is no permission for the position information")
+  ) {
+    return "Android refuse encore l'acces a la localisation. Autorisez la localisation pour l'application et activez la localisation de la tablette.";
+  }
+
+  if (combinedMessage.includes("Bluetooth is OFF")) {
+    return "Le SDK Epson indique que le Bluetooth n'est pas disponible. Verifiez aussi que la localisation Android de la tablette est activee.";
+  }
+
+  if (details.length > 0) {
+    return combinedMessage;
+  }
+
+  if (error && typeof error === "object") {
+    try {
+      const serialized = JSON.stringify(error);
+      if (serialized && serialized !== "{}") {
+        return serialized;
+      }
+    } catch (serializationError) {}
+  }
+
+  return fallback;
 };
 
 const OrderScreen = () => {
@@ -55,6 +374,11 @@ const OrderScreen = () => {
   } = useGetOrder(id);
   const staff = useSelector(selectStaffData);
   const token = useSelector(selectStaffToken);
+  const {
+    printers,
+    isDiscovering,
+    printerError,
+  } = usePrintersDiscovery();
 
   const [updatePriceMode, setUpdatePriceMode] = useState(false);
   const [showSuccessModel, setShowSuccessModel] = useState(false);
@@ -77,6 +401,14 @@ const OrderScreen = () => {
   const [isUpdatingRestaurant, setIsUpdatingRestaurant] = useState(false);
   const [restaurantOptions, setRestaurantOptions] = useState([]);
   const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
+  const [showPrinterModal, setShowPrinterModal] = useState(false);
+  const [isPrintingReceipt, setIsPrintingReceipt] = useState(false);
+  const [isPreparingPrinterDiscovery, setIsPreparingPrinterDiscovery] =
+    useState(false);
+  const [selectedPrinterTarget, setSelectedPrinterTarget] = useState("");
+  const [printerWorkflowError, setPrinterWorkflowError] = useState("");
+  const [printerWorkflowStatus, setPrinterWorkflowStatus] = useState("");
+  const printerDiscoveryLockRef = useRef(false);
 
   const restaurantId =
     (typeof staff?.restaurant === "object"
@@ -94,6 +426,10 @@ const OrderScreen = () => {
   const isDeliveryOrder = ["delivery", "devliery"].includes(
     String(order?.type || "").toLowerCase(),
   );
+  const hasUberCreationFailure =
+    isDeliveryOrder &&
+    !hasUberDelivery &&
+    Boolean(order?.uber_creation_failed || order?.uber_creation_error);
   const isUberProvider = order?.delivery_provider === "uber_direct";
   const normalizedUberStatus = String(order?.uber_status || "")
     .toLowerCase()
@@ -173,11 +509,60 @@ const OrderScreen = () => {
     : normalizedSubtotal;
   const normalizedTip = toSafeNumber(order?.tip, 0);
   const normalizedTotalPrice = toSafeNumber(order?.total_price, 0);
+  const customerPhone = String(order?.user?.phone_number || "").trim();
   const shouldShowDiscountedSubtotal =
     orderDiscountPercent > 0 ||
     hasPromoAmount ||
     hasPromoPercent ||
     Math.abs(normalizedSubtotalAfterDiscount - normalizedSubtotal) > 0.01;
+  const totalReceiptDiscountAmount = roundMoney(
+    Math.max(0, normalizedSubtotal - normalizedSubtotalAfterDiscount),
+    0,
+  );
+  const subscriptionDiscountAmount = roundMoney(
+    subscriptionBenefits?.discountAmount,
+    showSubscriptionDiscountInfo
+      ? normalizedSubtotal * (subscriptionDiscountPercentDisplay / 100)
+      : 0,
+  );
+  const firstOrderDiscountAmount = isFirstOrderDiscountApplied
+    ? roundMoney(normalizedSubtotal * (orderDiscountPercent / 100), 0)
+    : 0;
+  const promoDiscountAmount = hasPromoCode
+    ? roundMoney(
+        Math.max(
+          0,
+          totalReceiptDiscountAmount -
+            subscriptionDiscountAmount -
+            firstOrderDiscountAmount,
+        ),
+        0,
+      )
+    : 0;
+  const genericPromotionAmount =
+    !hasPromoCode &&
+    !isFirstOrderDiscountApplied &&
+    !showSubscriptionDiscountInfo &&
+    totalReceiptDiscountAmount > 0.01
+      ? totalReceiptDiscountAmount
+      : 0;
+  const referralDiscountAmount = roundMoney(order?.referralDiscountApplied, 0);
+  const promoLineLabel = hasPromoCode
+    ? hasPromoPercent
+      ? `Code promo ${promoCode.code} (-${promoCode.percent}%)`
+      : hasPromoAmount
+        ? `Code promo ${promoCode.code} (-${formattedPromoAmount})`
+        : hasFreeItemPromo
+          ? `Code promo ${promoCode.code} (${promoCode.freeItem?.name})`
+          : `Code promo ${promoCode.code}`
+    : "";
+  const promoLineValue = hasFreeItemPromo
+    ? promoDiscountAmount > 0
+      ? `-${formatReceiptMoney(promoDiscountAmount)}`
+      : "Offert"
+    : promoDiscountAmount > 0
+      ? `-${formatReceiptMoney(promoDiscountAmount)}`
+      : "";
   const subscriptionFreeItemApplied = Boolean(
     subscriptionBenefits?.freeItemApplied,
   );
@@ -219,15 +604,27 @@ const OrderScreen = () => {
     { label: OrderStatus.ON_GOING, value: OrderStatus.ON_GOING },
     { label: OrderStatus.PROGRAMMED, value: OrderStatus.PROGRAMMED },
     { label: OrderStatus.READY, value: OrderStatus.READY },
-    { label: OrderStatus.DONE, value: OrderStatus.DONE },
     { label: OrderStatus.IN_DELIVERY, value: OrderStatus.IN_DELIVERY },
-
+    {
+      label: formatOrderStatus(OrderStatus.DELIVERED),
+      value: OrderStatus.DELIVERED,
+    },
+    { label: OrderStatus.DONE, value: OrderStatus.DONE },
     { label: OrderStatus.CANCELED, value: OrderStatus.CANCELED },
   ];
+  const currentStatusValue = normalizeOrderStatusValue(order?.status);
   const statusOptions =
     order?.status &&
-    !baseStatusOptions.some((option) => option.value === order.status)
-      ? [{ label: order.status, value: order.status }, ...baseStatusOptions]
+    !baseStatusOptions.some(
+      (option) => normalizeOrderStatusValue(option.value) === currentStatusValue,
+    )
+      ? [
+          {
+            label: formatOrderStatus(order.status),
+            value: currentStatusValue,
+          },
+          ...baseStatusOptions,
+        ]
       : baseStatusOptions;
   const deliveryProviderOptions = [
     { label: "Livraison Uber", value: "uber_direct" },
@@ -300,6 +697,18 @@ const OrderScreen = () => {
     });
   };
 
+  const formatTransactionDate = (dateInString) => {
+    const date = new Date(dateInString);
+    if (Number.isNaN(date.getTime())) return "—";
+
+    const day = date.getDate();
+    const month = date.toLocaleString("fr-FR", { month: "long" });
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+
+    return `${day} ${month} ${hours}:${minutes}`;
+  };
+
   const loadRestaurantOptions = async () => {
     try {
       const response = await getRestaurantList();
@@ -345,6 +754,18 @@ const OrderScreen = () => {
       (option) => option.value === String(orderRestaurantId),
     )?.label ||
     "Non assignée";
+  const discoveredPrinters = printers.filter((printer) => printer?.target);
+  const printerErrorMessage = printerError
+    ? toPrinterWorkflowErrorMessage(printerError, "")
+    : "";
+  const printerVisibleErrorMessage = [
+    printerWorkflowError,
+    printerErrorMessage && printerErrorMessage !== printerWorkflowError
+      ? printerErrorMessage
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   useEffect(() => {
     if (showFailModal) {
@@ -357,7 +778,7 @@ const OrderScreen = () => {
   }, [showFailModal]);
 
   const updateOrderStatus = async () => {
-    const nextStatus = status || order?.status;
+    const nextStatus = normalizeOrderStatusValue(status || order?.status);
     if (!nextStatus) {
       return;
     }
@@ -410,7 +831,7 @@ const OrderScreen = () => {
   }, [order?.delivery_provider]);
 
   useEffect(() => {
-    setStatus(order?.status || "");
+    setStatus(normalizeOrderStatusValue(order?.status || ""));
   }, [order?.status]);
 
   useEffect(() => {
@@ -422,6 +843,417 @@ const OrderScreen = () => {
       setSelectedRestaurantId(String(orderRestaurantId));
     }
   }, [orderRestaurantId]);
+
+  useEffect(() => {
+    return () => {
+      void stopPrinterDiscoverySafely();
+    };
+  }, []);
+
+  const closePrinterModal = () => {
+    setShowPrinterModal(false);
+    setIsPreparingPrinterDiscovery(false);
+    setSelectedPrinterTarget("");
+    setPrinterWorkflowError("");
+    setPrinterWorkflowStatus("");
+    printerDiscoveryLockRef.current = false;
+    void stopPrinterDiscoverySafely();
+  };
+
+  const scanBluetoothPrinters = async () => {
+    if (
+      printerDiscoveryLockRef.current ||
+      isPreparingPrinterDiscovery ||
+      isDiscovering ||
+      isPrintingReceipt
+    ) {
+      return;
+    }
+
+    printerDiscoveryLockRef.current = true;
+    setIsPreparingPrinterDiscovery(true);
+    setPrinterWorkflowError("");
+    setPrinterWorkflowStatus("Vérification des permissions Bluetooth...");
+
+    try {
+      const hasPermissions = await ensureBluetoothPermissions();
+      if (!hasPermissions) {
+        setPrinterWorkflowStatus("Recherche interrompue.");
+        setPrinterWorkflowError(
+          "Android exige les autorisations Bluetooth et localisation pour rechercher une imprimante.",
+        );
+        return;
+      }
+
+      setPrinterWorkflowStatus("Vérification de la localisation Android...");
+      const hasLocationServices = await ensureAndroidLocationServices();
+      if (!hasLocationServices) {
+        setPrinterWorkflowStatus("Recherche interrompue.");
+        setPrinterWorkflowError(
+          "La localisation de la tablette doit etre activee pour que le scan Bluetooth Epson fonctionne.",
+        );
+        return;
+      }
+
+      setPrinterWorkflowStatus("Réinitialisation de la recherche Bluetooth...");
+      await stopPrinterDiscoverySafely();
+
+      setPrinterWorkflowStatus("Recherche Bluetooth en cours...");
+      await PrintersDiscovery.start({
+        timeout: 10000,
+        filterOption: {
+          deviceModel: DiscoveryFilterOption.MODEL_ALL,
+          portType:
+            Platform.OS === "ios"
+              ? DiscoveryFilterOption.PORTTYPE_BLUETOOTH_LE
+              : DiscoveryFilterOption.PORTTYPE_BLUETOOTH,
+          ...(Platform.OS === "android"
+            ? { bondedDevices: DiscoveryFilterOption.TRUE }
+            : {}),
+        },
+      });
+    } catch (error) {
+      setPrinterWorkflowStatus("Recherche impossible.");
+      setPrinterWorkflowError(
+        toPrinterWorkflowErrorMessage(
+          error,
+          "Impossible de rechercher les imprimantes.",
+        ),
+      );
+    } finally {
+      setIsPreparingPrinterDiscovery(false);
+      setTimeout(() => {
+        printerDiscoveryLockRef.current = false;
+      }, DISCOVERY_SETTLE_DELAY_MS);
+    }
+  };
+
+  const openPrinterModal = async () => {
+    setShowPrinterModal(true);
+    setPrinterWorkflowError("");
+    setPrinterWorkflowStatus("Initialisation du module d'impression...");
+    await scanBluetoothPrinters();
+  };
+
+  const launchPrinterWorkflow = async () => {
+    try {
+      const savedPrinterJson = await SecureStore.getItemAsync(SAVED_PRINTER_KEY);
+      if (savedPrinterJson) {
+        const savedPrinter = JSON.parse(savedPrinterJson);
+        const success = await printReceiptForPrinter(savedPrinter);
+        if (success) return;
+      }
+    } catch (error) {
+      console.error("Error reading saved printer:", error);
+    }
+
+    // Si pas d'imprimante sauvegardée ou si l'impression a échoué
+    await openPrinterModal();
+  };
+
+  const handlePrintAction = async () => {
+    await launchPrinterWorkflow();
+  };
+
+  const printReceiptForPrinter = async (printerDevice) => {
+    if (!printerDevice?.target) {
+      setPrinterWorkflowStatus("Imprimante introuvable.");
+      setPrinterWorkflowError(
+        "Impossible de récupérer cette imprimante.",
+      );
+      return false;
+    }
+
+    let printerInstance;
+
+    setPrinterWorkflowError("");
+    setPrinterWorkflowStatus(
+      `Connexion à ${printerDevice.deviceName || "l'imprimante"}...`,
+    );
+    setSelectedPrinterTarget(printerDevice.target);
+    setIsPrintingReceipt(true);
+
+    try {
+      await stopPrinterDiscoverySafely();
+
+      printerInstance = new Printer({
+        target: printerDevice.target,
+        deviceName: printerDevice.deviceName || "Imprimante Bluetooth",
+        lang: PrinterConstants.MODEL_ANK,
+      });
+
+      const restaurantLabel =
+        displayedRestaurantName && displayedRestaurantName !== "Non assignée"
+          ? displayedRestaurantName
+          : "Le Courteau";
+      const paymentLabel = paymentMethodLabel;
+
+      await printerInstance.addQueueTask(async () => {
+        setPrinterWorkflowStatus("Connexion à l'imprimante...");
+        await connectPrinterWithRetries(printerInstance);
+        setPrinterWorkflowStatus("Préparation du reçu...");
+        await printerInstance.clearCommandBuffer();
+
+        await printerInstance.addTextSmooth(PrinterConstants.TRUE);
+        await printerInstance.addTextAlign(PrinterConstants.ALIGN_CENTER);
+
+        // 1. Nom du restaurant
+        await printerInstance.addTextStyle({ em: PrinterConstants.TRUE });
+        await printerInstance.addTextSize({ width: 2, height: 2 });
+        await appendReceiptText(printerInstance, restaurantLabel);
+
+        // 2. Numero de commande
+        await printerInstance.addTextStyle({ em: PrinterConstants.FALSE });
+        await printerInstance.addTextSize({ width: 1, height: 1 });
+        const clientCodeLine = ` Commande #${order.code || "—"} `;
+        await printerInstance.addTextStyle({
+          reverse: PrinterConstants.TRUE,
+          em: PrinterConstants.TRUE,
+        });
+        await printerInstance.addTextSize({ width: 2, height: 2 });
+        await appendReceiptText(printerInstance, clientCodeLine);
+        await printerInstance.addTextStyle({
+          reverse: PrinterConstants.FALSE,
+          em: PrinterConstants.FALSE,
+        });
+        await printerInstance.addTextSize({ width: 1, height: 1 });
+
+        // 3. Type de commande / client / adresse / paiement
+        const typeLabel = isDeliveryOrder ? "LIVRAISON" : "RAMASSAGE";
+        const clientNameRaw = order?.user?.name || "Client";
+        await printerInstance.addTextAlign(PrinterConstants.ALIGN_LEFT);
+        await appendReceiptText(printerInstance, typeLabel);
+        await appendReceiptText(printerInstance, `Client: ${clientNameRaw}`);
+        if (isDeliveryOrder && order?.address) {
+          await appendReceiptText(printerInstance, `Adresse: ${order.address}`);
+        }
+        if (isDeliveryOrder && customerPhone) {
+          await appendReceiptText(printerInstance, `Telephone: ${customerPhone}`);
+        }
+        await appendReceiptText(printerInstance, `Paiement: ${paymentLabel}`);
+        await printerInstance.addFeedLine(1);
+
+        // 4. Trait
+        await printerInstance.addTextAlign(PrinterConstants.ALIGN_LEFT);
+        await appendReceiptDivider(printerInstance);
+
+        // 5. Articles
+        if (Array.isArray(order.orderItems) && order.orderItems.length > 0) {
+          for (const item of order.orderItems) {
+            const itemLabel = buildReceiptItemLabel({
+              name: item?.item?.name || "Article",
+              size: item?.size,
+              quantity: item?.quantity,
+            });
+
+            await appendReceiptLine(
+              printerInstance,
+              itemLabel,
+              formatReceiptMoney(item?.price, { freeWhenZero: true }),
+              { large: true },
+            );
+
+            if (Array.isArray(item?.customizations)) {
+              for (const cust of item.customizations) {
+                await appendReceiptLine(
+                  printerInstance,
+                  `  + ${cust.name}`,
+                  formatReceiptMoney(cust.price, { freeWhenZero: true }),
+                );
+              }
+            }
+
+            if (item?.comment && item.comment !== "—") {
+              await appendReceiptText(printerInstance, `  Note: ${item.comment}`);
+            }
+            await printerInstance.addFeedLine(1);
+          }
+        }
+
+        // 6. Offres
+        if (Array.isArray(order.offers) && order.offers.length > 0) {
+          for (const offer of order.offers) {
+            await appendReceiptLine(
+              printerInstance,
+              offer?.offer?.name || "Offre",
+              formatReceiptMoney(offer?.price),
+              { large: true },
+            );
+
+            if (Array.isArray(offer?.items)) {
+              for (const [offerItemIndex, offerItem] of offer.items.entries()) {
+                await appendReceiptText(
+                  printerInstance,
+                  `  - ${buildReceiptItemLabel({
+                    name: offerItem?.item?.name || "Article",
+                    size: resolveOfferItemReceiptSize(
+                      offer,
+                      offerItem,
+                      offerItemIndex,
+                    ),
+                  })}`,
+                  { large: true },
+                );
+                if (Array.isArray(offerItem?.customizations)) {
+                  for (const cust of offerItem.customizations) {
+                    await appendReceiptLine(
+                      printerInstance,
+                      `    + ${cust.name}`,
+                      formatReceiptMoney(cust.price, { freeWhenZero: true }),
+                    );
+                  }
+                }
+              }
+            }
+            await printerInstance.addFeedLine(1);
+          }
+        }
+
+        // 7. Récompenses et cadeaux
+        if (Array.isArray(order.rewards) && order.rewards.length > 0) {
+          for (const reward of order.rewards) {
+            await appendReceiptLine(
+              printerInstance,
+              reward?.item?.name || "Cadeau",
+              "0.00 $",
+            );
+          }
+          await printerInstance.addFeedLine(1);
+        }
+
+        // 8. Remises detaillees
+        if (hasPromoCode && (promoLineValue || hasFreeItemPromo)) {
+          await appendReceiptLine(
+            printerInstance,
+            promoLineLabel,
+            promoLineValue || "Offert",
+          );
+          await printerInstance.addFeedLine(1);
+        }
+
+        if (showSubscriptionDiscountInfo && subscriptionDiscountAmount > 0) {
+          await appendReceiptLine(
+            printerInstance,
+            `Rabais abonnement (-${subscriptionDiscountPercentDisplay}%)`,
+            `-${formatReceiptMoney(subscriptionDiscountAmount)}`,
+          );
+          await printerInstance.addFeedLine(1);
+        }
+
+        if (isFirstOrderDiscountApplied && firstOrderDiscountAmount > 0) {
+          await appendReceiptLine(
+            printerInstance,
+            `Rabais 1re commande (-${orderDiscountPercent}%)`,
+            `-${formatReceiptMoney(firstOrderDiscountAmount)}`,
+          );
+          await printerInstance.addFeedLine(1);
+        }
+
+        if (genericPromotionAmount > 0.01) {
+          await appendReceiptLine(
+            printerInstance,
+            "Promotion",
+            `-${formatReceiptMoney(genericPromotionAmount)}`,
+          );
+          await printerInstance.addFeedLine(1);
+        }
+
+        if (referralDiscountAmount > 0) {
+          await appendReceiptLine(
+            printerInstance,
+            "Credit parrainage",
+            `-${formatReceiptMoney(referralDiscountAmount)}`,
+          );
+          await printerInstance.addFeedLine(1);
+        }
+
+        // 9. Trait
+        await appendReceiptDivider(printerInstance);
+
+        // 10. Sous-total
+        await appendReceiptLine(
+          printerInstance,
+          "Sous-total",
+          formatReceiptMoney(normalizedSubtotal),
+        );
+
+        // 11. Taxes (Combine TPS et TVQ)
+        const combinedTaxes = toSafeNumber(tvq, 0) + toSafeNumber(tps, 0);
+        await appendReceiptLine(printerInstance, "Taxes", formatReceiptMoney(combinedTaxes));
+
+        // Frais de livraison (si applicable)
+        if (isDeliveryOrder && displayedDeliveryFee > 0) {
+          await appendReceiptLine(
+            printerInstance,
+            "Livraison",
+            formatReceiptMoney(displayedDeliveryFee),
+          );
+        }
+
+        // 12. Montant payé
+        await printerInstance.addTextStyle({ em: PrinterConstants.TRUE });
+        await appendReceiptLine(
+          printerInstance,
+          "Montant paye",
+          formatReceiptMoney(normalizedTotalPrice),
+        );
+        await printerInstance.addTextStyle({ em: PrinterConstants.FALSE });
+
+        // 13. Trait
+        await appendReceiptDivider(printerInstance);
+
+        // 14. Transaction date
+        await appendReceiptText(
+          printerInstance,
+          `Transaction passe le ${formatTransactionDate(order.createdAt)}`,
+        );
+
+        // 15 & 16. Trait Trait
+        await appendReceiptDivider(printerInstance);
+        await appendReceiptDivider(printerInstance);
+
+        // 17. Message de remerciement
+        await printerInstance.addTextAlign(PrinterConstants.ALIGN_CENTER);
+        await appendReceiptText(printerInstance, "Merci pour votre commande");
+        await appendReceiptText(printerInstance, "Le Courteau");
+
+        await printerInstance.addFeedLine(3);
+        await printerInstance.addCut();
+        await printerInstance.sendData();
+      });
+
+      // Sauvegarder l'imprimante comme étant fonctionnelle
+      try {
+        await SecureStore.setItemAsync(
+          SAVED_PRINTER_KEY,
+          JSON.stringify({
+            target: printerDevice.target,
+            deviceName: printerDevice.deviceName || "Imprimante Bluetooth",
+          }),
+        );
+      } catch (saveError) {
+        console.error("Failed to save printer:", saveError);
+      }
+
+      setPrinterWorkflowStatus(
+        `Reçu envoyé à ${printerDevice.deviceName || "l'imprimante"}.`,
+      );
+      return true;
+    } catch (error) {
+      setPrinterWorkflowStatus("Impression impossible.");
+      setPrinterWorkflowError(
+        toPrinterWorkflowErrorMessage(
+          error,
+          "La connexion à l'imprimante a échoué. Vérifiez qu'elle est allumée et déjà jumelée à la tablette.",
+        ),
+      );
+      return false;
+    } finally {
+      await disconnectPrinterSafely(printerInstance);
+      setIsPrintingReceipt(false);
+      setSelectedPrinterTarget("");
+    }
+  };
 
   const handleUpdateDriverMode = async () => {
     // setIsLoading(true);
@@ -650,6 +1482,10 @@ const OrderScreen = () => {
         setOrder((prev) => ({
           ...prev,
           delivery_provider: previousProvider,
+          uber_creation_failed: true,
+          uber_creation_error:
+            deliveryResponse.message || "Création Uber Direct échouée.",
+          uber_creation_failed_at: new Date().toISOString(),
         }));
         setSelectedDeliveryProvider(previousProvider || "");
         setIsEditingDeliveryProvider(!previousProvider);
@@ -675,6 +1511,9 @@ const OrderScreen = () => {
           uberDelivery?.tracking_url || prev?.uber_tracking_url,
         uber_pickup_eta: uberDelivery?.pickup_eta || prev?.uber_pickup_eta,
         uber_dropoff_eta: uberDelivery?.dropoff_eta || prev?.uber_dropoff_eta,
+        uber_creation_failed: false,
+        uber_creation_error: "",
+        uber_creation_failed_at: null,
       }));
       setSelectedDeliveryProvider("uber_direct");
       setIsEditingDeliveryProvider(false);
@@ -794,6 +1633,145 @@ const OrderScreen = () => {
       {showFailModal && (
         <FailModel message="Oops ! Quelque chose s'est mal passé" />
       )}
+      <Modal
+        visible={showPrinterModal}
+        transparent
+        animationType="fade"
+        onRequestClose={closePrinterModal}
+      >
+        <View style={styles.printerModalOverlay}>
+          <View style={styles.printerModalCard}>
+            <View style={styles.printerModalHeader}>
+              <View style={styles.printerModalHeaderContent}>
+                <Text style={styles.printerModalTitle}>Imprimer le reçu</Text>
+                <Text style={styles.printerModalSubtitle}>
+                  Choisissez une imprimante Bluetooth disponible près de la
+                  tablette.
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.printerModalCloseButton}
+                activeOpacity={0.8}
+                onPress={closePrinterModal}
+              >
+                <Ionicons name="close" size={20} color="#1b1b1b" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.printerModalActions}>
+              <TouchableOpacity
+                style={[
+                  styles.uberButton,
+                  (isDiscovering ||
+                    isPreparingPrinterDiscovery ||
+                    isPrintingReceipt) &&
+                    styles.uberButtonDisabled,
+                ]}
+                activeOpacity={0.9}
+                disabled={
+                  isDiscovering ||
+                  isPreparingPrinterDiscovery ||
+                  isPrintingReceipt
+                }
+                onPress={scanBluetoothPrinters}
+              >
+                {isDiscovering || isPreparingPrinterDiscovery ? (
+                  <ActivityIndicator size="small" color="#1b1b1b" />
+                ) : (
+                  <Ionicons
+                    name="bluetooth-outline"
+                    size={16}
+                    color="#1b1b1b"
+                  />
+                )}
+                <Text style={styles.uberButtonLabel}>
+                  {isDiscovering || isPreparingPrinterDiscovery
+                    ? "Recherche..."
+                    : "Rechercher"}
+                </Text>
+              </TouchableOpacity>
+              <Text style={styles.printerHintText}>
+                L'imprimante doit etre allumee, deja jumelee et la
+                localisation Android doit etre activee.
+              </Text>
+            </View>
+
+            {printerWorkflowStatus ? (
+              <View style={styles.printerStatusCard}>
+                <Text style={styles.printerStatusText}>
+                  {printerWorkflowStatus}
+                </Text>
+              </View>
+            ) : null}
+
+            {printerVisibleErrorMessage ? (
+              <View style={styles.printerErrorCard}>
+                <Text style={styles.printerErrorText}>
+                  {printerVisibleErrorMessage}
+                </Text>
+              </View>
+            ) : null}
+
+            <ScrollView
+              style={styles.printerList}
+              contentContainerStyle={styles.printerListContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {discoveredPrinters.length > 0 ? (
+                discoveredPrinters.map((printer) => {
+                  const isCurrentPrinter =
+                    isPrintingReceipt &&
+                    selectedPrinterTarget === printer.target;
+
+                  return (
+                    <TouchableOpacity
+                      key={printer.target}
+                      style={[
+                        styles.printerListItem,
+                        isCurrentPrinter && styles.printerListItemActive,
+                      ]}
+                      activeOpacity={0.9}
+                      disabled={isPrintingReceipt}
+                      onPress={() => printReceiptForPrinter(printer)}
+                    >
+                      <View style={styles.printerListItemContent}>
+                        <Text style={styles.printerListItemName}>
+                          {printer.deviceName || "Imprimante Bluetooth"}
+                        </Text>
+                        <Text style={styles.printerListItemMeta}>
+                          {printer.target}
+                        </Text>
+                      </View>
+                      {isCurrentPrinter ? (
+                        <ActivityIndicator size="small" color="#1D4ED8" />
+                      ) : (
+                        <Ionicons
+                          name="print-outline"
+                          size={18}
+                          color="#1D4ED8"
+                        />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })
+              ) : (
+                <View style={styles.printerEmptyState}>
+                  <Ionicons
+                    name="print-outline"
+                    size={22}
+                    color={Colors.tgry}
+                  />
+                  <Text style={styles.printerEmptyStateText}>
+                    {isDiscovering || isPreparingPrinterDiscovery
+                      ? "Recherche des imprimantes en cours..."
+                      : "Aucune imprimante détectée pour le moment."}
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -803,21 +1781,38 @@ const OrderScreen = () => {
       >
         <BackButton />
         <View style={styles.topCard}>
-          <View style={styles.topRow}>
-            <Text style={styles.pageTitle}>Commande #{order.code || "—"}</Text>
-            <View style={styles.topInlineMetaRow}>
-              <Text
-                style={[styles.topInlineMetaText, styles.topInlineMetaTextType]}
-              >
-                Type: {isDeliveryOrder ? "Livraison" : "Emporter"}
-              </Text>
-              <Text style={styles.topInlineMetaText}>
-                Créé le {formatDateWithoutSeconds(order.createdAt)}
-              </Text>
-              <Text style={styles.topInlineMetaText}>
-                Prix: {parseFloat(order.total_price).toFixed(2)} $
-              </Text>
+          <View style={styles.topHeaderRow}>
+            <View style={styles.topHeaderContent}>
+              <View style={styles.topRow}>
+                <Text style={styles.pageTitle}>
+                  Commande #{order.code || "—"}
+                </Text>
+                <View style={styles.topInlineMetaRow}>
+                  <Text
+                    style={[
+                      styles.topInlineMetaText,
+                      styles.topInlineMetaTextType,
+                    ]}
+                  >
+                    Type: {isDeliveryOrder ? "Livraison" : "Emporter"}
+                  </Text>
+                  <Text style={styles.topInlineMetaText}>
+                    Créé le {formatDateWithoutSeconds(order.createdAt)}
+                  </Text>
+                  <Text style={styles.topInlineMetaText}>
+                    Prix: {parseFloat(order.total_price).toFixed(2)} $
+                  </Text>
+                </View>
+              </View>
             </View>
+            <TouchableOpacity
+              style={styles.printButton}
+              activeOpacity={0.9}
+              onPress={handlePrintAction}
+            >
+              <Ionicons name="print-outline" size={18} color="#1b1b1b" />
+              <Text style={styles.printButtonLabel}>Imprimer</Text>
+            </TouchableOpacity>
           </View>
           {isCounterPayment && (
             <View
@@ -1041,6 +2036,20 @@ const OrderScreen = () => {
                   </View>
                 ) : null}
               </View>
+              {hasUberCreationFailure ? (
+                <View style={styles.uberErrorBanner}>
+                  <Ionicons name="warning" size={18} color="#B91C1C" />
+                  <View style={styles.uberErrorBannerTextWrap}>
+                    <Text style={styles.uberErrorBannerTitle}>
+                      Création Uber Direct échouée
+                    </Text>
+                    <Text style={styles.uberErrorBannerText}>
+                      {order?.uber_creation_error ||
+                        "La livraison Uber Direct n'a pas pu être créée. Relancez Uber Direct ou choisissez un autre mode de livraison."}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
               {(!order.delivery_provider || isEditingDeliveryProvider) && (
                 <View style={styles.deliveryProviderPickerRow}>
                   <View style={styles.deliveryProviderDropdownWrapper}>
@@ -1373,7 +2382,10 @@ const OrderScreen = () => {
                       {item.items?.map((offerItem, i) => (
                         <Text key={i} style={styles.subText}>
                           <Text style={styles.offerItemName}>
-                            {offerItem.item.name}
+                            {buildReceiptItemLabel({
+                              name: offerItem?.item?.name,
+                              size: resolveOfferItemReceiptSize(item, offerItem, i),
+                            })}
                           </Text>
                           {offerItem.customizations?.length ? (
                             <Text style={styles.offerItemCustomizations}>
@@ -1512,6 +2524,17 @@ const OrderScreen = () => {
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>Rabais première commande</Text>
                   <Text style={styles.infoValue}>{orderDiscountPercent} %</Text>
+                </View>
+              )}
+              {toSafeNumber(order?.referralDiscountApplied, 0) > 0 && (
+                <View style={styles.infoRow}>
+                  <Text style={[styles.infoLabel, { color: "#16A34A" }]}>
+                    Crédit parrainage
+                  </Text>
+                  <Text style={[styles.infoValue, { color: "#16A34A" }]}>
+                    - {toSafeNumber(order.referralDiscountApplied, 0).toFixed(2)}{" "}
+                    $
+                  </Text>
                 </View>
               )}
               {isUberProvider && order.uber_pickup_eta && (
@@ -1655,6 +2678,317 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     gap: 14,
   },
+  printerModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  printerModalCard: {
+    width: "100%",
+    maxWidth: 640,
+    maxHeight: "82%",
+    backgroundColor: Colors.gry,
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 18,
+    elevation: 10,
+  },
+  printerModalHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  printerModalHeaderContent: {
+    flex: 1,
+  },
+  printerModalTitle: {
+    fontFamily: Fonts.BEBAS_NEUE,
+    fontSize: 28,
+    color: "#1b1b1b",
+  },
+  printerModalSubtitle: {
+    marginTop: 4,
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 13,
+    color: Colors.tgry,
+  },
+  printerModalCloseButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  printerModalActions: {
+    marginTop: 14,
+    gap: 10,
+  },
+  printerHintText: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 12,
+    color: Colors.tgry,
+  },
+  printerStatusCard: {
+    marginTop: 12,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: "rgba(14,116,144,0.22)",
+    backgroundColor: "rgba(236,254,255,0.95)",
+  },
+  printerStatusText: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#155E75",
+  },
+  printerErrorCard: {
+    marginTop: 12,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: "rgba(185,28,28,0.25)",
+    backgroundColor: "rgba(254,226,226,0.9)",
+  },
+  printerErrorText: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#B91C1C",
+    lineHeight: 18,
+  },
+  printerList: {
+    marginTop: 14,
+    flexGrow: 0,
+  },
+  printerListContent: {
+    gap: 10,
+    paddingBottom: 4,
+  },
+  printerListItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+  },
+  printerListItemActive: {
+    borderColor: "rgba(29,78,216,0.25)",
+    backgroundColor: "rgba(29,78,216,0.08)",
+  },
+  printerListItemContent: {
+    flex: 1,
+    gap: 4,
+  },
+  printerListItemName: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#1b1b1b",
+  },
+  printerListItemMeta: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 12,
+    color: Colors.tgry,
+  },
+  printerEmptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 28,
+    borderRadius: 14,
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+  },
+  printerEmptyStateText: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: Colors.tgry,
+    textAlign: "center",
+  },
+  receiptPreviewModalCard: {
+    width: "100%",
+    maxWidth: 560,
+    maxHeight: "86%",
+    backgroundColor: Colors.gry,
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 18,
+    elevation: 10,
+  },
+  receiptPreviewScroll: {
+    marginTop: 14,
+    flexGrow: 0,
+  },
+  receiptPreviewScrollContent: {
+    paddingBottom: 4,
+  },
+  receiptPaper: {
+    backgroundColor: "#FFFDF8",
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 20,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.07)",
+  },
+  receiptTitleText: {
+    fontFamily: Fonts.BEBAS_NEUE,
+    fontSize: 32,
+    color: "#1b1b1b",
+    textAlign: "center",
+  },
+  receiptCenteredText: {
+    marginTop: 6,
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#1b1b1b",
+    textAlign: "center",
+  },
+  receiptLeftText: {
+    marginTop: 6,
+    width: "100%",
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#1b1b1b",
+    textAlign: "left",
+  },
+  receiptHighlightRow: {
+    marginTop: 12,
+    alignSelf: "center",
+    backgroundColor: "#1b1b1b",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  receiptHighlightText: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 18,
+    color: "white",
+    textAlign: "center",
+  },
+  receiptDividerText: {
+    marginTop: 12,
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 12,
+    color: "#6B7280",
+    letterSpacing: 0.4,
+  },
+  receiptPlainText: {
+    marginTop: 6,
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 13,
+    color: "#1b1b1b",
+    lineHeight: 18,
+  },
+  receiptLineRow: {
+    marginTop: 6,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  receiptLineText: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 13,
+    color: "#1b1b1b",
+    lineHeight: 18,
+  },
+  receiptLineLeftText: {
+    flex: 1,
+  },
+  receiptLineRightText: {
+    minWidth: 78,
+    textAlign: "right",
+  },
+  receiptLargeLineLeftText: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  receiptLargeLineRightText: {
+    minWidth: 82,
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "right",
+  },
+  receiptLineTextStrong: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+  },
+  receiptLargeText: {
+    marginTop: 6,
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 15,
+    color: "#1b1b1b",
+    lineHeight: 20,
+  },
+  receiptSpacer: {
+    height: 6,
+  },
+  receiptPreviewActions: {
+    marginTop: 16,
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  receiptPreviewSecondaryButton: {
+    minHeight: 44,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    backgroundColor: "white",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  receiptPreviewSecondaryButtonLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#1b1b1b",
+  },
+  receiptPreviewPrimaryButton: {
+    minHeight: 44,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    backgroundColor: Colors.primary,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  receiptPreviewPrimaryButtonLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 13,
+    color: "#1b1b1b",
+  },
   topCard: {
     backgroundColor: Colors.gry,
     borderRadius: 18,
@@ -1666,6 +3000,17 @@ const styles = StyleSheet.create({
     elevation: 6,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
+  },
+  topHeaderRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+  topHeaderContent: {
+    flex: 1,
+    minWidth: 260,
   },
   topRow: {
     flexDirection: "row",
@@ -1721,6 +3066,22 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontFamily: Fonts.BEBAS_NEUE,
     fontSize: 34,
+    color: "#1b1b1b",
+  },
+  printButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  printButtonLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
     color: "#1b1b1b",
   },
   orderStatusCard: {
@@ -1819,6 +3180,31 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.LATO_BOLD,
     fontSize: 13,
     color: "#0F766E",
+  },
+  uberErrorBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "rgba(220,38,38,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(220,38,38,0.25)",
+  },
+  uberErrorBannerTextWrap: {
+    flex: 1,
+    gap: 3,
+  },
+  uberErrorBannerTitle: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: "#B91C1C",
+  },
+  uberErrorBannerText: {
+    fontFamily: Fonts.LATO_REGULAR,
+    fontSize: 13,
+    color: "#7F1D1D",
+    lineHeight: 18,
   },
   metaRow: {
     flexDirection: "row",

@@ -13,6 +13,10 @@ import { Dropdown } from "react-native-element-dropdown";
 import { Colors, Fonts, OrderStatus } from "../constants";
 import { useNavigation } from "@react-navigation/native";
 import { confirmOrder, updateStatus } from "../services/OrdersServices";
+import {
+  formatOrderStatus,
+  normalizeOrderStatusValue,
+} from "../utils/orderStatus";
 
 const OnGoingOrders = ({
   orders = [],
@@ -44,8 +48,12 @@ const OnGoingOrders = ({
       { label: OrderStatus.ON_GOING, value: OrderStatus.ON_GOING },
       { label: OrderStatus.PROGRAMMED, value: OrderStatus.PROGRAMMED },
       { label: OrderStatus.READY, value: OrderStatus.READY },
-      { label: OrderStatus.DONE, value: OrderStatus.DONE },
       { label: OrderStatus.IN_DELIVERY, value: OrderStatus.IN_DELIVERY },
+      {
+        label: formatOrderStatus(OrderStatus.DELIVERED),
+        value: OrderStatus.DELIVERED,
+      },
+      { label: OrderStatus.DONE, value: OrderStatus.DONE },
       { label: OrderStatus.CANCELED, value: OrderStatus.CANCELED },
     ],
     [],
@@ -76,7 +84,8 @@ const OnGoingOrders = ({
   };
 
   const updateOrderStatusFromList = async (orderId, nextStatus) => {
-    if (!orderId || !nextStatus) return;
+    const normalizedNextStatus = normalizeOrderStatusValue(nextStatus);
+    if (!orderId || !normalizedNextStatus) return;
     if (!token) {
       Alert.alert("Session expirée", "Reconnectez-vous pour modifier le statut.");
       return;
@@ -85,7 +94,7 @@ const OnGoingOrders = ({
 
     setStatusUpdatingMap((prev) => ({ ...prev, [orderId]: true }));
     try {
-      const response = await updateStatus(orderId, nextStatus, token);
+      const response = await updateStatus(orderId, normalizedNextStatus, token);
       if (!response.status) {
         Alert.alert(
           "Échec",
@@ -94,7 +103,10 @@ const OnGoingOrders = ({
         return;
       }
 
-      setStatusDraftMap((prev) => ({ ...prev, [orderId]: nextStatus }));
+      setStatusDraftMap((prev) => ({
+        ...prev,
+        [orderId]: normalizedNextStatus,
+      }));
       setRefresh((prev) => prev + 1);
     } catch (error) {
       Alert.alert("Erreur", "Une erreur s'est produite.");
@@ -153,10 +165,17 @@ const OnGoingOrders = ({
             {orders.length > 0 ? (
               orders.map((order, index) => {
                 const isConfirming = confirmingMap[order._id];
-                const selectedStatus = statusDraftMap[order._id] || order?.status;
+                const selectedStatus = normalizeOrderStatusValue(
+                  statusDraftMap[order._id] || order?.status,
+                );
                 const isStatusUpdating = Boolean(statusUpdatingMap[order._id]);
                 const isDeliveryOrder = isDeliveryType(order?.type);
                 const isPickupOrder = !isDeliveryOrder;
+                const hasUberCreationFailure =
+                  isDeliveryOrder &&
+                  Boolean(
+                    order?.uber_creation_failed || order?.uber_creation_error,
+                  );
                 const isCounterPayment =
                   String(order?.payment_method || "").trim().toLowerCase() ===
                   "cash_at_counter";
@@ -261,6 +280,20 @@ const OnGoingOrders = ({
                                     </Text>
                                   </View>
                                 )}
+                                {hasUberCreationFailure && (
+                                  <View
+                                    style={[styles.chip, styles.uberErrorChip]}
+                                  >
+                                    <Text
+                                      style={[
+                                        styles.chipLabel,
+                                        styles.uberErrorChipLabel,
+                                      ]}
+                                    >
+                                      Uber Direct échoué
+                                    </Text>
+                                  </View>
+                                )}
                               </View>
                             </View>
 
@@ -301,6 +334,14 @@ const OnGoingOrders = ({
                               </Text>
                             </View>
                           )}
+                          {hasUberCreationFailure && (
+                            <View style={styles.uberErrorMessage}>
+                              <Text style={styles.uberErrorMessageText}>
+                                {order?.uber_creation_error ||
+                                  "La livraison Uber Direct n'a pas pu être créée. Ouvrez la commande pour relancer ou choisir un autre mode."}
+                              </Text>
+                            </View>
+                          )}
                           {showStatusDropdown && (
                             <View
                               style={styles.quickStatusRow}
@@ -324,7 +365,8 @@ const OnGoingOrders = ({
                                     placeholder="Choisir l'état"
                                     value={selectedStatus || null}
                                     onChange={(item) => {
-                                      const nextStatus = item.value;
+                                      const nextStatus =
+                                        normalizeOrderStatusValue(item.value);
                                       setStatusDraftMap((prev) => ({
                                         ...prev,
                                         [order._id]: nextStatus,
@@ -332,7 +374,11 @@ const OnGoingOrders = ({
 
                                       if (
                                         String(nextStatus || "").trim() !==
-                                        String(order?.status || "").trim()
+                                        String(
+                                          normalizeOrderStatusValue(
+                                            order?.status,
+                                          ) || "",
+                                        ).trim()
                                       ) {
                                         updateOrderStatusFromList(
                                           order._id,
@@ -530,6 +576,28 @@ const styles = StyleSheet.create({
   },
   counterPaymentChipLabel: {
     color: "#92400E",
+  },
+  uberErrorChip: {
+    backgroundColor: "rgba(220,38,38,0.12)",
+    borderColor: "rgba(220,38,38,0.32)",
+  },
+  uberErrorChipLabel: {
+    color: "#B91C1C",
+  },
+  uberErrorMessage: {
+    marginTop: 2,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: "rgba(220,38,38,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(220,38,38,0.22)",
+  },
+  uberErrorMessageText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: Fonts.LATO_BOLD,
+    color: "#991B1B",
   },
   dueTextRow: {
     marginTop: 6,

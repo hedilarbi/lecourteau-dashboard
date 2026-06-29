@@ -1,4 +1,7 @@
-import { NavigationContainer } from "@react-navigation/native";
+import {
+  createNavigationContainerRef,
+  NavigationContainer,
+} from "@react-navigation/native";
 
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import SignUpScreen from "../screens/SignUpScreen";
@@ -40,6 +43,8 @@ const PATTERN = [
   1 * ONE_SECOND_IN_MS,
   2 * ONE_SECOND_IN_MS,
 ];
+const navigationRef = createNavigationContainerRef();
+
 const RootNavigation = () => {
   const RootStack = createNativeStackNavigator();
   const staffToken = useSelector(selectStaffToken);
@@ -51,6 +56,7 @@ const RootNavigation = () => {
   const [alertTitle, setAlertTitle] = useState(
     "Nouvelle commande non confirme",
   );
+  const [alertOrder, setAlertOrder] = useState(null);
   const showNewOrderAlertRef = useRef(false);
   const ongoingIdsRef = useRef(new Set());
   const hasOngoingSnapshotRef = useRef(false);
@@ -91,7 +97,32 @@ const RootNavigation = () => {
 
   const handleClosingAlert = async () => {
     await stopNotificationSound();
+    setAlertOrder(null);
     setShowNewOrderAlert(false); // Set the alert to false
+  };
+
+  const getRootRouteName = () => {
+    if (staff.role === Roles.ADMIN) return "Main";
+    if (staff.role === Roles.CASHIER) return "Cashier";
+    return null;
+  };
+
+  const handleViewAlertOrderDetails = async () => {
+    const orderId = alertOrder?._id;
+    await handleClosingAlert();
+
+    if (!orderId || !navigationRef.isReady()) return;
+
+    const rootRouteName = getRootRouteName();
+    if (!rootRouteName) return;
+
+    navigationRef.navigate(rootRouteName, {
+      screen: "HomeNav",
+      params: {
+        screen: "Order",
+        params: { id: orderId },
+      },
+    });
   };
 
   useEffect(() => {
@@ -116,23 +147,29 @@ const RootNavigation = () => {
           ? []
           : data.onGoingOrders || [];
 
-        let hasNewOnGoing = false;
-        if (hasOngoingSnapshotRef.current) {
-          hasNewOnGoing = onGoingOrders.some(
+        const hadOngoingSnapshot = hasOngoingSnapshotRef.current;
+        let newOnGoingOrder = null;
+        if (hadOngoingSnapshot) {
+          newOnGoingOrder = onGoingOrders.find(
             (order) => order?._id && !ongoingIdsRef.current.has(order._id),
           );
         } else {
           hasOngoingSnapshotRef.current = true;
         }
-        ongoingIdsRef.current = new Set(
+        const hasNewOnGoing = Boolean(newOnGoingOrder);
+        const nextOngoingIds = new Set(
           onGoingOrders.map((order) => order?._id).filter(Boolean),
         );
 
         if (nonConfirmedOrders.length > 0) {
           await playNotificationSoundInLoop(); // Play sound in a loop
           setAlertTitle("Nouvelle commande non confirme");
+          setAlertOrder(null);
           setShowNewOrderAlert(true); // Show the alert
           dispatch(setGlobalRefresh());
+          if (!hasNewOnGoing) {
+            ongoingIdsRef.current = nextOngoingIds;
+          }
           return;
         }
         if (hasNewOnGoing) {
@@ -140,9 +177,14 @@ const RootNavigation = () => {
           setAlertTitle(
             "Nouvelle commande programmée est passée à l'état en cours",
           );
+          setAlertOrder(newOnGoingOrder);
           setShowNewOrderAlert(true); // Show the alert
           dispatch(setGlobalRefresh());
+          ongoingIdsRef.current = nextOngoingIds;
+          return;
         }
+
+        ongoingIdsRef.current = nextOngoingIds;
       } catch (error) {
         console.error("Error fetching new orders:", error);
       }
@@ -226,7 +268,7 @@ const RootNavigation = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       {showNewOrderAlert && (
         <View
           style={{
@@ -270,22 +312,68 @@ const RootNavigation = () => {
               >
                 {alertTitle}
               </Text>
-              <TouchableOpacity
+              {alertOrder?.code ? (
+                <Text
+                  style={{
+                    fontSize: 22,
+                    fontWeight: "700",
+                    color: Colors.primary,
+                    textAlign: "center",
+                    marginTop: 18,
+                  }}
+                >
+                  Code: #{alertOrder.code}
+                </Text>
+              ) : null}
+              <View
                 style={{
-                  backgroundColor: Colors.primary,
-                  borderRadius: 10,
-                  paddingVertical: 14,
-                  paddingHorizontal: 32,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
                   marginTop: 32,
                 }}
-                onPress={handleClosingAlert}
               >
-                <Text
-                  style={{ color: "black", fontSize: 18, fontWeight: "bold" }}
+                {alertOrder?._id ? (
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: Colors.dark,
+                      borderRadius: 10,
+                      paddingVertical: 14,
+                      paddingHorizontal: 32,
+                    }}
+                    onPress={handleViewAlertOrderDetails}
+                  >
+                    <Text
+                      style={{
+                        color: "white",
+                        fontSize: 18,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      Voir détails
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: Colors.primary,
+                    borderRadius: 10,
+                    paddingVertical: 14,
+                    paddingHorizontal: 32,
+                  }}
+                  onPress={handleClosingAlert}
                 >
-                  Bien reçu
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    style={{
+                      color: "black",
+                      fontSize: 18,
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Bien reçu
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>

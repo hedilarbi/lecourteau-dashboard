@@ -11,6 +11,7 @@ import { Colors, Fonts } from "../constants";
 
 import useGetUser from "../hooks/useGetUser";
 import { convertDate } from "../utils/dateHandlers";
+import { formatOrderStatus } from "../utils/orderStatus";
 import { useRoute } from "@react-navigation/native";
 
 import ErrorScreen from "../components/ErrorScreen";
@@ -192,7 +193,7 @@ const UserScreen = () => {
                     {convertDate(order.createdAt)}
                   </Text>
                   <Text style={[styles.listCell, { flex: 1 }]}>
-                    {order.status}
+                    {formatOrderStatus(order.status)}
                   </Text>
                   <Text style={[styles.listCell, { flex: 1 }]}>
                     {order.type}

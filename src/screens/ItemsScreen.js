@@ -16,7 +16,7 @@ import DeleteWarning from "../components/models/DeleteWarning";
 import CreateItemModel from "../components/models/CreateItemModel";
 import AddButton from "../components/AddButton";
 
-import { Entypo, Feather } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { filterMenuItems, filterRestaurantMenuItems } from "../utils/filters";
 import {
   deleteMenuItem,
@@ -36,6 +36,11 @@ import RenderMenuItem from "../components/RenderMenuItem";
 import Spinner from "../components/Spinner";
 import PageHeader from "../components/ui/PageHeader";
 
+const AVAILABILITY_FILTERS = {
+  AVAILABLE: "available",
+  UNAVAILABLE: "unavailable",
+};
+
 const ItemsScreen = () => {
   const { role, restaurant } = useSelector(selectStaffData);
   const navigation = useNavigation();
@@ -51,10 +56,52 @@ const ItemsScreen = () => {
   const [menuItemFilter, setMenuItemFilter] = useState("Toutes les catégories");
   const [menuItems, setMenuItems] = useState([]);
   const [menuItemsList, setMenuItemsList] = useState([]);
+  const [availabilityFilter, setAvailabilityFilter] = useState(
+    AVAILABILITY_FILTERS.AVAILABLE
+  );
   const [showMenuFilter, setShowMenuFilter] = useState(false);
   const [error, setError] = useState(false);
   const [updatingItemIds, setUpdatingItemIds] = useState([]);
   const flatList = useRef();
+  const isAdmin = role === Roles.ADMIN;
+
+  const getItemCategoryName = useCallback(
+    (item) =>
+      isAdmin
+        ? item?.category?.name
+        : item?.menuItem?.category?.name,
+    [isAdmin]
+  );
+
+  const matchesAvailabilityFilter = useCallback(
+    (item) => {
+      if (isAdmin) {
+        return true;
+      }
+
+      if (availabilityFilter === AVAILABILITY_FILTERS.UNAVAILABLE) {
+        return item?.availability === false;
+      }
+
+      return item?.availability === true;
+    },
+    [availabilityFilter, isAdmin]
+  );
+
+  const applyCurrentFilters = useCallback(
+    (list = []) => {
+      const nextList = list.filter(matchesAvailabilityFilter);
+
+      if (menuItemFilter === "Toutes les catégories") {
+        return nextList;
+      }
+
+      return nextList.filter(
+        (item) => getItemCategoryName(item) === menuItemFilter
+      );
+    },
+    [getItemCategoryName, matchesAvailabilityFilter, menuItemFilter]
+  );
 
   const handleTri = async (from, to) => {
     const menuItemsCopy = [...menuItems];
@@ -91,11 +138,11 @@ const ItemsScreen = () => {
     }
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
 
     try {
-      if (role === Roles.ADMIN) {
+      if (isAdmin) {
         const [categoriesResponse, menuItemResponse] = await Promise.all([
           getCategories(),
           getMenuItems(),
@@ -103,14 +150,7 @@ const ItemsScreen = () => {
 
         if (menuItemResponse?.status) {
           setMenuItemsList(menuItemResponse?.data);
-          if (menuItemFilter === "Toutes les catégories") {
-            setMenuItems(menuItemResponse?.data);
-          } else {
-            const list = menuItemResponse.data.filter(
-              (item) => item.category.name === menuItemFilter
-            );
-            setMenuItems(list);
-          }
+          setMenuItems(applyCurrentFilters(menuItemResponse?.data));
         } else {
           setError(true);
         }
@@ -122,12 +162,13 @@ const ItemsScreen = () => {
       } else {
         const [categoriesResponse, menuItemResponse] = await Promise.all([
           getCategories(),
-          getRestaurantItems(restaurant),
+          getRestaurantItems(restaurant, availabilityFilter),
         ]);
 
         if (menuItemResponse.status) {
-          setMenuItems(menuItemResponse?.data.menu_items);
-          setMenuItemsList(menuItemResponse?.data.menu_items);
+          const nextMenuItems = menuItemResponse?.data?.menu_items || [];
+          setMenuItemsList(nextMenuItems);
+          setMenuItems(applyCurrentFilters(nextMenuItems));
         } else {
           setError(true);
         }
@@ -142,16 +183,22 @@ const ItemsScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [
+    applyCurrentFilters,
+    availabilityFilter,
+    isAdmin,
+    menuItemFilter,
+    restaurant,
+  ]);
   useEffect(() => {
     setIsLoading(true);
     fetchData();
-  }, [refresh]);
+  }, [fetchData, refresh]);
 
   useFocusEffect(
     useCallback(() => {
       fetchData();
-    }, [menuItemFilter])
+    }, [fetchData])
   );
   const handleShowMenuItemModel = (id) => {
     navigation.navigate("Item", { id });
@@ -182,8 +229,11 @@ const ItemsScreen = () => {
         };
       });
 
-    setMenuItems((prev) => applyAvailability(prev));
-    setMenuItemsList((prev) => applyAvailability(prev));
+    const nextList = applyAvailability(menuItemsList).filter(
+      matchesAvailabilityFilter
+    );
+    setMenuItemsList(nextList);
+    setMenuItems(applyCurrentFilters(nextList));
   };
 
   const updateAvailability = async (itemId) => {
@@ -311,7 +361,7 @@ const ItemsScreen = () => {
         />
 
         <View style={styles.filtersRow}>
-          {role === Roles.ADMIN && (
+          {isAdmin && (
             <View>
               {triMode ? (
                 <View style={styles.triActions}>
@@ -339,6 +389,53 @@ const ItemsScreen = () => {
                   <Text style={styles.primaryLabel}>Modifier l&apos;ordre</Text>
                 </TouchableOpacity>
               )}
+            </View>
+          )}
+          {!isAdmin && (
+            <View style={styles.availabilityFilters}>
+              <TouchableOpacity
+                style={[
+                  styles.availabilityButton,
+                  availabilityFilter === AVAILABILITY_FILTERS.AVAILABLE &&
+                    styles.availabilityButtonActive,
+                ]}
+                onPress={() =>
+                  setAvailabilityFilter(AVAILABILITY_FILTERS.AVAILABLE)
+                }
+                activeOpacity={0.9}
+              >
+                <Text
+                  style={[
+                    styles.availabilityLabel,
+                    availabilityFilter === AVAILABILITY_FILTERS.AVAILABLE &&
+                      styles.availabilityLabelActive,
+                  ]}
+                >
+                  Disponibles
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.availabilityButton,
+                  availabilityFilter === AVAILABILITY_FILTERS.UNAVAILABLE &&
+                    styles.availabilityButtonActive,
+                ]}
+                onPress={() =>
+                  setAvailabilityFilter(AVAILABILITY_FILTERS.UNAVAILABLE)
+                }
+                activeOpacity={0.9}
+              >
+                <Text
+                  style={[
+                    styles.availabilityLabel,
+                    availabilityFilter === AVAILABILITY_FILTERS.UNAVAILABLE &&
+                      styles.availabilityLabelActive,
+                  ]}
+                >
+                  Indisponibles
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
           <TouchableOpacity
@@ -471,6 +568,34 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+  availabilityFilters: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "white",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    padding: 4,
+  },
+  availabilityButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  availabilityButtonActive: {
+    backgroundColor: "black",
+  },
+  availabilityLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: Colors.tgry,
+  },
+  availabilityLabelActive: {
+    color: Colors.primary,
   },
   triActions: {
     flexDirection: "row",

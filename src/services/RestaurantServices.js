@@ -126,10 +126,12 @@ const createRestaurant = async (name, address, location, phoneNumber) => {
   }
 };
 
-const getRestaurantItems = async (id) => {
+const getRestaurantItems = async (id, availability) => {
   try {
+    const params = availability ? { availability } : undefined;
     let getRestaurantResponse = await axios.get(
-      `${API_URL}/restaurants/items/${id}`
+      `${API_URL}/restaurants/items/${id}`,
+      { params }
     );
 
     if (getRestaurantResponse?.status === 200) {
@@ -151,10 +153,12 @@ const getRestaurantItems = async (id) => {
     };
   }
 };
-const getRestaurantToppings = async (id) => {
+const getRestaurantToppings = async (id, availability) => {
   try {
+    const params = availability ? { availability } : undefined;
     let getRestaurantResponse = await axios.get(
-      `${API_URL}/restaurants/toppings/${id}`
+      `${API_URL}/restaurants/toppings/${id}`,
+      { params }
     );
 
     if (getRestaurantResponse?.status === 200) {

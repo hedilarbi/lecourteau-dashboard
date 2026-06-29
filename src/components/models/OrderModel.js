@@ -15,11 +15,19 @@ import { Colors, Fonts } from "../../constants";
 import { Entypo } from "@expo/vector-icons";
 import useGetOrder from "../../hooks/useGetOrder";
 import { convertDate } from "../../utils/dateHandlers";
+import {
+  formatOrderStatus,
+  isDeliveredOrderStatus,
+} from "../../utils/orderStatus";
 
 const OrderModel = ({ setShowOrderModel, id }) => {
   const { order, isLoading } = useGetOrder(id);
 
   const setOrderColor = (status) => {
+    if (isDeliveredOrderStatus(status)) {
+      return "#0A8D37";
+    }
+
     switch (status) {
       case "Delivered":
         return "#0A8D37";
@@ -63,7 +71,7 @@ const OrderModel = ({ setShowOrderModel, id }) => {
                       { color: setOrderColor(order.status) },
                     ]}
                   >
-                    {order.status}
+                    {formatOrderStatus(order.status)}
                   </Text>
                 </View>
                 <View style={styles.infoTextContainer}>

@@ -40,6 +40,11 @@ import {
   selectOrdersFilters,
   setOrdersFilters,
 } from "../redux/slices/ordersFiltersSlice";
+import {
+  formatOrderStatus,
+  isDeliveredOrderStatus,
+  normalizeOrderStatusValue,
+} from "../utils/orderStatus";
 
 const parsePersistedDate = (value) => {
   if (value === null || value === undefined || value === "") {
@@ -67,6 +72,10 @@ const OrdersScreen = () => {
   const persistedFilters = useSelector(selectOrdersFilters);
   const { role, restaurant } = useSelector(selectStaffData);
   const setOrderStatusColor = (status) => {
+    if (isDeliveredOrderStatus(status)) {
+      return "#2AB2DB";
+    }
+
     switch (status) {
       case OrderStatus.READY:
         return "#2AB2DB";
@@ -90,7 +99,9 @@ const OrdersScreen = () => {
   const [orderId, setOrderId] = useState("");
   const [deleteWarningModelState, setDeleteWarningModelState] = useState(false);
   const [refresh, setRefresh] = useState(0);
-  const [filter, setFilter] = useState(persistedFilters?.filter || "");
+  const [filter, setFilter] = useState(
+    normalizeOrderStatusValue(persistedFilters?.filter || ""),
+  );
   const [orderTypeFilter, setOrderTypeFilter] = useState(
     persistedFilters?.orderTypeFilter || "",
   );
@@ -368,6 +379,10 @@ const OrdersScreen = () => {
                   label: OrderStatus.IN_DELIVERY,
                   value: OrderStatus.IN_DELIVERY,
                 },
+                {
+                  label: formatOrderStatus(OrderStatus.DELIVERED),
+                  value: OrderStatus.DELIVERED,
+                },
                 { label: OrderStatus.DONE, value: OrderStatus.DONE },
               ].map((option) => (
                 <TouchableOpacity
@@ -520,7 +535,7 @@ const OrdersScreen = () => {
                             { color: setOrderStatusColor(order.status) },
                           ]}
                         >
-                          {order.status}
+                          {formatOrderStatus(order.status)}
                         </Text>
                       </View>
                     </View>

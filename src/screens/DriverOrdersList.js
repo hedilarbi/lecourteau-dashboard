@@ -10,12 +10,20 @@ import { selectStaffData } from "../redux/slices/StaffSlice";
 import { useSelector } from "react-redux";
 import { getDriverOrders } from "../services/StaffServices";
 import { Fonts, OrderStatus } from "../constants";
+import {
+  formatOrderStatus,
+  isDeliveredOrderStatus,
+} from "../utils/orderStatus";
 const DriverOrdersList = () => {
   const { _id } = useSelector(selectStaffData);
   const [isLoading, setIsLoading] = useState(true);
   const [orders, setOrders] = useState(null);
 
   const handleOrderStatusColor = (status) => {
+    if (isDeliveredOrderStatus(status)) {
+      return "#2AB2DB";
+    }
+
     switch (status) {
       case OrderStatus.READY:
         return "#2AB2DB";
@@ -102,7 +110,7 @@ const DriverOrdersList = () => {
                   color: handleOrderStatusColor(order.status),
                 }}
               >
-                {order.status}
+                {formatOrderStatus(order.status)}
               </Text>
               <Text style={{ fontFamily: Fonts.LATO_BOLD, fontSize: 14 }}>
                 {date}

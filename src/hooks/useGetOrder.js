@@ -40,12 +40,15 @@ const useGetOrder = (id) => {
           subscriptionBenefits?.isApplied && subscriptionBenefits?.freeDeliveryApplied
             ? 0
             : toSafeNumber(data?.delivery_fee, 0);
+        const referralDiscount = toSafeNumber(data?.referralDiscountApplied, 0);
+        const subtotalForTaxes = Math.max(0, normalizedSubtotalAfterDiscount - referralDiscount);
+
         const taxableBase = roundMoney(
           ["delivery", "devliery"].includes(
             String(data?.type || "").toLowerCase(),
           )
-            ? normalizedSubtotalAfterDiscount + normalizedDeliveryFee
-            : normalizedSubtotalAfterDiscount,
+            ? subtotalForTaxes + normalizedDeliveryFee
+            : subtotalForTaxes,
           0,
         );
 

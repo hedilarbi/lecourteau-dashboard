@@ -310,16 +310,21 @@ const createUberDirectDelivery = async (restaurantId, orderId, token) => {
 
     return {
       status: false,
-      message: "Erreur lors de la création de la livraison Uber.",
+      message:
+        response?.data?.message ||
+        "Erreur lors de la création de la livraison Uber.",
+      details: response?.data?.details || null,
     };
   } catch (error) {
+    const responseData = error?.response?.data;
     return {
       status: false,
       message:
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
+        responseData?.message ||
+        responseData?.error ||
         error?.message ||
         "Erreur lors de la création de la livraison Uber.",
+      details: responseData?.details || null,
     };
   }
 };

@@ -15,11 +15,19 @@ import { Colors, Fonts } from "../../constants";
 
 import useGetUser from "../../hooks/useGetUser";
 import { convertDate } from "../../utils/dateHandlers";
+import {
+  formatOrderStatus,
+  isDeliveredOrderStatus,
+} from "../../utils/orderStatus";
 
 const UserModel = ({ setShowUserModel, id }) => {
   const { user, isLoading } = useGetUser(id);
 
   const setOrderColor = (status) => {
+    if (isDeliveredOrderStatus(status)) {
+      return "#0A8D37";
+    }
+
     switch (status) {
       case "Delivered":
         return "#0A8D37";
@@ -104,7 +112,7 @@ const UserModel = ({ setShowUserModel, id }) => {
                       { flex: 1, color: setOrderColor(order.status) },
                     ]}
                   >
-                    {order.status}
+                    {formatOrderStatus(order.status)}
                   </Text>
                   <Text style={[styles.rowCell]}>{order.total_price} $</Text>
                   <Text style={[styles.rowCell]}>{order.address}</Text>

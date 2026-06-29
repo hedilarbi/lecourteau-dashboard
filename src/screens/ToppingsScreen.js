@@ -35,9 +35,15 @@ import ErrorScreen from "../components/ErrorScreen";
 import PageHeader from "../components/ui/PageHeader";
 import { Card, tableStyles } from "../components/ui/Surface";
 
+const AVAILABILITY_FILTERS = {
+  AVAILABLE: "available",
+  UNAVAILABLE: "unavailable",
+};
+
 const ToppingsScreen = () => {
   const navigation = useNavigation();
   const { role, restaurant } = useSelector(selectStaffData);
+  const isAdmin = role === Roles.ADMIN;
   const [toppings, setToppings] = useState([]);
   const [toppingsList, setToppingsList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,7 +56,33 @@ const ToppingsScreen = () => {
   const [refresh, setRefresh] = useState(0);
   const [topping, setTopping] = useState(null);
   const [error, setError] = useState(false);
-  const fetchData = async () => {
+  const [updatingToppingIds, setUpdatingToppingIds] = useState([]);
+  const [availabilityFilter, setAvailabilityFilter] = useState(
+    AVAILABILITY_FILTERS.AVAILABLE
+  );
+  const matchesAvailabilityFilter = useCallback(
+    (item) => {
+      if (role === Roles.ADMIN) {
+        return true;
+      }
+
+      if (availabilityFilter === AVAILABILITY_FILTERS.UNAVAILABLE) {
+        return item?.availability === false;
+      }
+
+      return item?.availability === true;
+    },
+    [availabilityFilter, role]
+  );
+
+  const applyCurrentFilters = useCallback(
+    (list = []) => {
+      return list.filter(matchesAvailabilityFilter);
+    },
+    [matchesAvailabilityFilter]
+  );
+
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
 
@@ -58,18 +90,18 @@ const ToppingsScreen = () => {
         const response = await getToppings();
 
         if (response.status) {
-          setToppings(response.data);
           setToppingsList(response.data);
+          setToppings(applyCurrentFilters(response.data));
           setError(false);
         } else {
           setError(true);
         }
       } else {
-        const response = await getRestaurantToppings(restaurant);
+        const response = await getRestaurantToppings(restaurant, availabilityFilter);
 
         if (response.status) {
-          setToppings(response.data);
           setToppingsList(response.data);
+          setToppings(applyCurrentFilters(response.data));
           setError(false);
         } else {
           setError(true);
@@ -80,25 +112,61 @@ const ToppingsScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-  const updateAvailability = async (toppingId, index) => {
-    updateRestaurantToppingAvailability(restaurant, toppingId).then(
-      (response) => {
-        if (response.status) {
-          const updatedMenuItems = [...toppings];
+  }, [applyCurrentFilters, availabilityFilter, role, restaurant]);
 
-          updatedMenuItems[index] = {
-            ...updatedMenuItems[index],
-            availability: !updatedMenuItems[index].availability,
-          };
-          setToppings(updatedMenuItems);
+  const updateToppingAvailabilityInState = (toppingId, availability) => {
+    const applyAvailability = (list = []) =>
+      list.map((entry) => {
+        const currentId = entry?._id || entry?.topping?._id;
+        if (String(currentId) !== String(toppingId)) {
+          return entry;
+        }
+
+        return {
+          ...entry,
+          availability,
+        };
+      });
+
+    const nextList = applyAvailability(toppingsList).filter(
+      matchesAvailabilityFilter
+    );
+    setToppingsList(applyAvailability(toppingsList));
+    setToppings(applyCurrentFilters(nextList));
+  };
+
+  const updateAvailability = async (toppingId) => {
+    if (updatingToppingIds.includes(String(toppingId))) {
+      return;
+    }
+
+    setUpdatingToppingIds((prev) => [...prev, String(toppingId)]);
+
+    try {
+      const response = await updateRestaurantToppingAvailability(restaurant, toppingId);
+
+      if (response.status) {
+        const nextAvailability =
+          typeof response?.data?.availability === "boolean"
+            ? response.data.availability
+            : undefined;
+
+        if (typeof nextAvailability === "boolean") {
+          updateToppingAvailabilityInState(toppingId, nextAvailability);
+        } else {
+          updateToppingAvailabilityInState(toppingId, !toppingsList.find(t => String(t._id || t.topping?._id) === String(toppingId))?.availability);
         }
       }
-    );
+    } finally {
+      setUpdatingToppingIds((prev) =>
+        prev.filter((currentId) => currentId !== String(toppingId))
+      );
+    }
   };
+
   useEffect(() => {
     fetchData().then(() => setIsLoading(false));
-  }, [refresh]);
+  }, [fetchData, refresh]);
   const handleShowDeleteWarning = (id) => {
     setToppingId(id);
     setDeleteWarningModelState(true);
@@ -160,24 +228,26 @@ const ToppingsScreen = () => {
           subtitle="Ajoutez vos compléments et gérez leurs disponibilités."
           pills={[{ label: `${toppings.length} option(s)` }]}
           rightContent={
-            <View style={styles.searchRow}>
-              {role === Roles.ADMIN ? (
-                <SearchBar
-                  setter={setToppings}
-                  list={toppingsList}
-                  filter={filterToppings}
-                  placeholder="Chercher une personnalisation"
-                />
-              ) : (
-                <SearchBar
-                  setter={setToppings}
-                  list={toppingsList}
-                  filter={filterRestaurantToppings}
-                  placeholder="Chercher une personnalisation"
-                />
-              )}
+            <View style={styles.headerActions}>
+              <View style={styles.searchRow}>
+                {role === Roles.ADMIN ? (
+                  <SearchBar
+                    setter={setToppings}
+                    list={toppingsList}
+                    filter={filterToppings}
+                    placeholder="Chercher une personnalisation"
+                  />
+                ) : (
+                  <SearchBar
+                    setter={setToppings}
+                    list={toppingsList}
+                    filter={filterRestaurantToppings}
+                    placeholder="Chercher une personnalisation"
+                  />
+                )}
+              </View>
               {role === Roles.ADMIN && (
-                <>
+                <View style={styles.headerButtons}>
                   <AddButton
                     setShowModel={setShowCreateToppingModel}
                     text="Personnalisation"
@@ -193,11 +263,61 @@ const ToppingsScreen = () => {
                   >
                     <Text style={styles.secondaryLabel}>Gérer les groupes</Text>
                   </TouchableOpacity>
-                </>
+                </View>
               )}
             </View>
           }
         />
+
+        {!isAdmin && (
+          <View style={styles.filtersRow}>
+            <View style={styles.availabilityFilters}>
+              <TouchableOpacity
+                style={[
+                  styles.availabilityButton,
+                  availabilityFilter === AVAILABILITY_FILTERS.AVAILABLE &&
+                    styles.availabilityButtonActive,
+                ]}
+                onPress={() =>
+                  setAvailabilityFilter(AVAILABILITY_FILTERS.AVAILABLE)
+                }
+                activeOpacity={0.9}
+              >
+                <Text
+                  style={[
+                    styles.availabilityLabel,
+                    availabilityFilter === AVAILABILITY_FILTERS.AVAILABLE &&
+                      styles.availabilityLabelActive,
+                  ]}
+                >
+                  Disponibles
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.availabilityButton,
+                  availabilityFilter === AVAILABILITY_FILTERS.UNAVAILABLE &&
+                    styles.availabilityButtonActive,
+                ]}
+                onPress={() =>
+                  setAvailabilityFilter(AVAILABILITY_FILTERS.UNAVAILABLE)
+                }
+                activeOpacity={0.9}
+              >
+                <Text
+                  style={[
+                    styles.availabilityLabel,
+                    availabilityFilter === AVAILABILITY_FILTERS.UNAVAILABLE &&
+                      styles.availabilityLabelActive,
+                  ]}
+                >
+                  Indisponibles
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         <Card style={styles.tableCard}>
           <View style={tableStyles.header}>
@@ -274,7 +394,7 @@ const ToppingsScreen = () => {
                   ))
                 : toppings.map((topping, index) => (
                     <View
-                      key={topping._id}
+                      key={topping.topping._id}
                       style={[
                         tableStyles.row,
                         index % 2 === 0 && tableStyles.rowAlt,
@@ -300,15 +420,19 @@ const ToppingsScreen = () => {
                       </Text>
 
                       <View style={[tableStyles.actions, { width: 140 }]}>
-                        <Switch
-                          trackColor={{ false: "#767577", true: Colors.primary }}
-                          thumbColor="black"
-                          ios_backgroundColor="#3e3e3e"
-                          onValueChange={() =>
-                            updateAvailability(topping._id, index)
-                          }
-                          value={topping.availability}
-                        />
+                        {updatingToppingIds.includes(String(topping.topping._id)) ? (
+                          <ActivityIndicator size="small" color={Colors.primary} />
+                        ) : (
+                          <Switch
+                            trackColor={{ false: "#767577", true: Colors.primary }}
+                            thumbColor="black"
+                            ios_backgroundColor="#3e3e3e"
+                            onValueChange={() =>
+                              updateAvailability(topping.topping._id)
+                            }
+                            value={topping.availability}
+                          />
+                        )}
                       </View>
                     </View>
                   ))}
@@ -342,11 +466,55 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 14,
   },
-  searchRow: {
+  headerActions: {
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: 10,
+  },
+  headerButtons: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
     flexWrap: "wrap",
+  },
+  filtersRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
+    marginBottom: 8,
+  },
+  availabilityFilters: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "white",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    padding: 4,
+  },
+  availabilityButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  availabilityButtonActive: {
+    backgroundColor: "black",
+  },
+  availabilityLabel: {
+    fontFamily: Fonts.LATO_BOLD,
+    fontSize: 14,
+    color: Colors.tgry,
+  },
+  availabilityLabelActive: {
+    color: Colors.primary,
+  },
+  searchRow: {
+    width: "100%",
+    minWidth: 260,
+    height: 44,
   },
   tableCard: {
     flex: 1,
